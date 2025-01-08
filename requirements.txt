@@ -1,0 +1,4 @@
+numpy>=2.2.1
+pandas>=2.2.3
+streamlit==1.40.2
+streamlit_calendar==1.2.1
