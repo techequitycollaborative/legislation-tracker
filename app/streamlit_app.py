@@ -23,13 +23,13 @@ pg = st.navigation([bills_tabs, bills_multi,legislators,calendar, dashboard])
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
 # Add logo
-from PIL import Image
-logo=Image.open('/app/assets/logo.png')
+#from PIL import Image
+#logo=Image.open('/app/assets/logo.png')
 
-st.logo(
-    logo,
-    link="https://techequity.us"
-)
+#st.logo(
+#    logo,
+#    link="https://techequity.us"
+#)
 
 # Run the pages
 pg.run()
