@@ -13,10 +13,10 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/techequitycollaborative/legislation-tracker.git .
-
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
+
+COPY . .
 
 EXPOSE 8501
 
