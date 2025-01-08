@@ -20,15 +20,16 @@ dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌')
 
 
 # Build navigation bar
-pg = st.navigation([bills_tabs, bills_multi,legislators,calendar, dashboard])
+pg = st.navigation([bills_tabs, bills_multi, legislators, calendar, dashboard])
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
-# Add logo
+# Path to the logo
 logo = '/Users/danyasherbini/Documents/GitHub/legislation-tracker/app/assets/logo.png'
 
-st.logo(
-    logo,
-    link="https://techequity.us"
+# Add logo with a hyperlink using Markdown
+st.markdown(
+    f'<a href="https://techequity.us" target="_blank"><img src="{logo}" width="200"></a>', 
+    unsafe_allow_html=True
 )
 
 # Run the pages
