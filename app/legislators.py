@@ -17,7 +17,7 @@ from utils.utils import to_csv
 
 
 
-#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#PATH = '.'
 #os.chdir(PATH)
 #os.getcwd()
 

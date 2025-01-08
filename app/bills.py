@@ -17,7 +17,7 @@ from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_s
 
 
 
-#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#PATH = '.'
 #os.chdir(PATH)
 #os.getcwd()
 
@@ -39,11 +39,11 @@ st.write(
 @st.cache_data
 def load_bill_data():
     # load bill data
-    bills = pd.read_csv('/Users/danyasherbini/Documents/GitHub/lt-streamlit/data/bills.csv')
+    bills = pd.read_csv('./data/bills.csv')
     # Change chamber id to senate and assembly
     bills['chamber'] = np.where(bills['origin_chamber_id']==1,'Assembly','Senate')
     # load bill history data
-    bill_history = pd.read_csv('/Users/danyasherbini/Documents/GitHub/lt-streamlit/data/bill_history.csv')
+    bill_history = pd.read_csv('./data/bill_history.csv')
     # merge data sets
     bills = pd.merge(bills, bill_history, how='left', on= 'bill_id')
     # rename columns

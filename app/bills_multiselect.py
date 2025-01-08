@@ -17,7 +17,7 @@ from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_s
 from utils.session_manager import initialize_session_state
 
 # Set working directory
-#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#PATH = '.'
 #os.chdir(PATH)
 
 # Page title and description
@@ -34,11 +34,11 @@ st.write(
 @st.cache_data
 def load_bill_data():
     # Load bill data
-    bills = pd.read_csv('/Users/danyasherbini/Documents/GitHub/lt-streamlit/data/bills.csv')
+    bills = pd.read_csv('./data/bills.csv')
     bills['chamber'] = np.where(bills['origin_chamber_id'] == 1, 'Assembly', 'Senate')
     
     # Load and merge bill history data
-    bill_history = pd.read_csv('/Users/danyasherbini/Documents/GitHub/lt-streamlit/data/bill_history.csv')
+    bill_history = pd.read_csv('./data/bill_history.csv')
     bills = pd.merge(bills, bill_history, how='left', on='bill_id')
     
     # Rename columns and format

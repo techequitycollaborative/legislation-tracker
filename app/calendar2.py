@@ -15,7 +15,7 @@ import streamlit as st
 from streamlit.components.v1 import html
 
 
-#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#PATH = '.'
 #os.chdir(PATH)
 #os.getcwd()
 
@@ -35,7 +35,7 @@ st.write(
 # reruns (e.g. if the user interacts with the widgets).
 @st.cache_data
 def load_calendar_data():
-    assembly_data = pd.read_csv('/Users/danyasherbini/Documents/GitHub/lt-streamlit/data/assembly_dates.csv')
+    assembly_data = pd.read_csv('./data/assembly_dates.csv')
     return assembly_data
 
 assembly_data = load_calendar_data()
