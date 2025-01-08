@@ -24,8 +24,10 @@ pg = st.navigation([bills_tabs, bills_multi,legislators,calendar, dashboard])
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
 # Add logo
+logo = '/Users/danyasherbini/Documents/GitHub/legislation-tracker/app/assets/logo.png'
+
 st.logo(
-    './app/assets/logo.png',
+    logo,
     link="https://techequity.us"
 )
 
