@@ -25,7 +25,7 @@ st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
 # Add logo
 st.logo(
-    '/Users/danyasherbini/Documents/GitHub/lt-streamlit/assets/logo.png',
+    './app/assets/logo.png',
     link="https://techequity.us"
 )
 
