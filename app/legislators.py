@@ -17,9 +17,9 @@ from utils.utils import to_csv
 
 
 
-PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
-os.chdir(PATH)
-os.getcwd()
+#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#os.chdir(PATH)
+#os.getcwd()
 
 
 # Show the page title and description
@@ -37,7 +37,7 @@ st.write(
 # reruns (e.g. if the user interacts with the widgets).
 @st.cache_data
 def load_leg_data():
-    legislators = pd.read_csv('/Users/danyasherbini/Documents/GitHub/lt-streamlit/data/legislators.csv')
+    legislators = pd.read_csv('./data/legislators.csv')
     legislators['chamber'] = np.where(legislators['chamber_id']==1,'Assembly','Senate')
     legislators = legislators.drop(['chamber_id'],axis=1)
     return legislators

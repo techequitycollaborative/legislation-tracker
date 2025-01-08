@@ -17,9 +17,9 @@ from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_s
 
 
 
-PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
-os.chdir(PATH)
-os.getcwd()
+#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#os.chdir(PATH)
+#os.getcwd()
 
 
 # Show the page title and description

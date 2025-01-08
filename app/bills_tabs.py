@@ -16,9 +16,9 @@ from utils import aggrid_styler
 from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_set
 from utils.session_manager import initialize_session_state
 
-PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
-os.chdir(PATH)
-os.getcwd()
+#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#os.chdir(PATH)
+#os.getcwd()
 
 
 # Show the page title and description

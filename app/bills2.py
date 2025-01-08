@@ -16,8 +16,8 @@ from utils import aggrid_styler
 from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_set
 
 # Set working directory
-PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
-os.chdir(PATH)
+#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#os.chdir(PATH)
 
 # Page title and description
 st.title('Bills')

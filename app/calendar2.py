@@ -15,9 +15,9 @@ import streamlit as st
 from streamlit.components.v1 import html
 
 
-PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
-os.chdir(PATH)
-os.getcwd()
+#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#os.chdir(PATH)
+#os.getcwd()
 
 
 # Show the page title and description

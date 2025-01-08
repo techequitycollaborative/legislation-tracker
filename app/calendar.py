@@ -15,9 +15,9 @@ import streamlit as st
 from streamlit_calendar import calendar
 
 
-PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
-os.chdir(PATH)
-os.getcwd()
+#PATH = '/Users/danyasherbini/Documents/GitHub/lt-streamlit'
+#os.chdir(PATH)
+#os.getcwd()
 
 
 # Show the page title and description
