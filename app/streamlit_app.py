@@ -10,6 +10,8 @@ Streamlit, an open-source framework to build data apps in Python.
 """
 
 import streamlit as st
+import requests
+from io import BytesIO
 
 # Pages
 bills_tabs = st.Page('bills_tabs.py', title='Bills - Tabs', icon='📝')
@@ -23,7 +25,9 @@ pg = st.navigation([bills_tabs, bills_multi,legislators,calendar, dashboard])
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
 # Add logo
-logo = st.image('assets/logo.png')
+logo_url = 'https://github.com/techequitycollaborative/legislation-tracker/blob/main/app/assets/logo.png'
+response = requests.get(url_icon)
+logo = Image.open(BytesIO(response.content))
 
 st.logo(
     logo,
