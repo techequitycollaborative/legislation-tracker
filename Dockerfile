@@ -1,7 +1,9 @@
 # app/Dockerfile
 
+#Set base image in Python
 FROM python:3.10-slim
 
+# Set working directory to app folder in repo
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -11,10 +13,10 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/techequitycollaborative/legislation-tracker.git .
-
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
+
+COPY . /app/
 
 EXPOSE 8501
 
