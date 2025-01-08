@@ -23,7 +23,7 @@ pg = st.navigation([bills_tabs, bills_multi,legislators,calendar, dashboard])
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
 # Add logo
-logo = st.image('/assets/logo.png')
+logo = st.image('./assets/logo.png')
 
 st.logo(
     logo,
