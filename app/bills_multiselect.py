@@ -27,7 +27,17 @@ st.write(
 ############################ LOAD AND CLEAN DATA #############################
 
 # Initialize connection to postgres
-conn = st.connection("postgresql", type="sql")
+#conn = st.connection("postgresql", type="sql")
+conn = st.connection(
+    "postgresql",
+    host=st.secrets["postgresql"]["host"],
+    port=st.secrets["postgresql"]["port"],
+    user=st.secrets["postgresql"]["user"],
+    password=st.secrets["postgresql"]["password"],
+    database=st.secrets["postgresql"]["database"],
+    type="sql"
+)
+
 
 # Perform table queries
 bills = conn.query('SELECT * FROM bill;', ttl="10m")
