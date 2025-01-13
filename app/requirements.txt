@@ -3,3 +3,6 @@ pandas==2.2.3
 streamlit==1.40.2
 streamlit_calendar==1.2.1
 streamlit-aggrid
+psycopg==3.2.3
+psycopg-binary==3.2.3
+sqlalchemy==4.12.2
