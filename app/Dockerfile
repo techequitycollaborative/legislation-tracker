@@ -24,6 +24,9 @@ RUN pip3 install -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
+# Copy secrets.toml from the root of the repo to /app in the container
+COPY secrets.toml /app/secrets.toml
+
 # Expose the Streamlit port
 EXPOSE 8501
 
