@@ -31,8 +31,8 @@ conn = st.connection("legtracker",type="sql"
 )
 
 # Perform table queries
-bills = conn.query('SELECT * FROM bill;', ttl="10m")
-history = conn.query('SELECT * FROM bill_history;', ttl="10m")
+bills = conn.query('SELECT * FROM "bill";', ttl="10m")
+history = conn.query('SELECT * FROM "bill_history";', ttl="10m")
 
 # Clean up bills
 bills['chamber'] = np.where(bills['origin_chamber_id'] == 1, 'Assembly', 'Senate')
