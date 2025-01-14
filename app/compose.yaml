@@ -29,6 +29,7 @@ services:
   db:
      image: postgres
      restart: always
+     user: doadmin
      secrets:
        - db-password
      volumes:
