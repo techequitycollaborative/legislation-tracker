@@ -18,7 +18,7 @@ services:
       - type: bind
         source: ./app
         target: /app
-      - target: /app
+      - streamlit_app:/app
 
 volumes:
   streamlit_app:
