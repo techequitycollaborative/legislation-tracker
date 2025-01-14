@@ -18,10 +18,10 @@ services:
       - type: bind
         source: ./app
         target: /app
-      - streamlit_app:/app
+      - .streamlit:/app/.streamlit
 
-volumes:
-  streamlit_app:
+#volumes:
+#  myapp:
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
