@@ -29,11 +29,11 @@ services:
   db:
      image: postgres
      restart: always
-     user: doadmin
+  #   user: doadmin
      secrets:
        - db-password
-     volumes:
-       - db-data:/var/lib/postgresql/data
+  #   volumes:
+  #     - db-data:/var/lib/postgresql/data
      environment:
        - POSTGRES_DB=legtracker
        - POSTGRES_USER=doadmin
@@ -45,8 +45,8 @@ services:
        interval: 10s
        timeout: 5s
        retries: 5
-volumes:
-   db-data:
+#volumes:
+#   db-data:
 
 secrets:
    db-password:
