@@ -35,7 +35,7 @@ services:
        - db-data:/var/lib/postgresql/data
      environment:
        - POSTGRES_DB=legtracker
-       - POSTGRES_USER=legtracker
+       - POSTGRES_USER=doadmin
        - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
      expose:
        - 5432
