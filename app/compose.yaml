@@ -50,4 +50,4 @@ volumes:
 
 secrets:
    db-password:
-     file: .streamlit/secrets.toml
+     file: db/password.txt
