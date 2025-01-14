@@ -15,7 +15,13 @@ services:
     ports:
       - 8501:8501
     volumes:
-    - .streamlit:/app/.streamlit
+      - type: bind
+        source: ./app
+        target: /app
+      - target: /app
+
+volumes:
+  streamlit_app:
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
