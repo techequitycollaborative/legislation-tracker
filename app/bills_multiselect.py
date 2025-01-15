@@ -27,7 +27,7 @@ st.write(
 ############################ LOAD AND CLEAN DATA #############################
 
 # Initialize connection to postgres
-conn = st.connection("legtracker",type="sql")
+conn = st.connection("postgresql",type="sql")
 
 # Perform table queries
 bills = conn.query('SELECT * FROM bill;', ttl="10m") 
