@@ -1,4 +1,5 @@
 secrets.toml
+password.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
