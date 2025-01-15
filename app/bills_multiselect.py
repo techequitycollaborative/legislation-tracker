@@ -95,11 +95,40 @@ bills = bills.merge(latest_status, on='bill_id', how='left')
 bills['status'] = bills['event_text']
 bills.drop(columns=['event_text'], inplace=True)
 
-# Make data_introduced column
-introduced_events = history[history['event_text'] == 'Introduced.']
-introduced_events = introduced_events.loc[:, ['bill_id', 'event_date']]
-introduced_events.rename(columns={'event_date': 'date_introduced'}, inplace=True)
-bills = bills.merge(introduced_events, on='bill_id', how='left')
+# Make date_introduced column
+def get_date_introduced(bills, history):
+    """
+    Get the earliest event_date (i.e. the date_introduced) for each bill and add date_introduced column to bills dataframe.
+
+    Parameters:
+    -----------
+    history : DataFrame
+        The DataFrame containing bill history, including bill_id, event_date, and event_text.
+
+    Returns:
+    --------
+    DataFrame
+        A DataFrame with date_introduced column added.
+    """
+    # Ensure event_date is in datetime format
+    history['event_date'] = pd.to_datetime(history['event_date'], errors='coerce').dt.strftime('%m-%d-%Y')
+
+    # Get the earliest event_date for each bill_id
+    earliest_events = history.loc[history.groupby('bill_id')['event_date'].idxmin()]
+
+    # Select the relevant columns: bill_id, event_date
+    earliest_events = earliest_events[['bill_id', 'event_date']]
+    
+    # Rename column to date_introduced -- VERY IMPORTANT FOR AGRID STYLER FUNCTION TO WORK PROPERLY!!!
+    earliest_events.rename(columns={'event_date': 'date_introduced'}, inplace=True)
+    
+    # Merge with bills df
+    bills = bills.merge(earliest_events, on='bill_id', how='left')
+
+    # Return the result
+    return bills
+
+bills = get_date_introduced(bills, history)
 
 # Create bill_history as its own variable
 def create_bill_history(history):
@@ -124,8 +153,8 @@ def create_bill_history(history):
     # Convert the event_description list into a string format
     result['event_description'] = result['event_description'].apply(lambda x: ', '.join([f'"{event}"' for event in x]))
 
-    # Rename column
-    result['bill_history'] = result['event_description']
+    # Rename the column to 'bill_history'
+    result.rename(columns={'event_description': 'bill_history'}, inplace=True)
 
     return result
 

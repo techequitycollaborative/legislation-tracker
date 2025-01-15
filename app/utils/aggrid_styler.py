@@ -42,7 +42,7 @@ def draw_bill_grid(
         )
     
     # Configure special settings for certain columns (batch)
-    builder.configure_columns(['full_text','leginfo_link','coauthors','bill_history','leg_session'],hide=True) # hide these columns in the initial dataframe
+    builder.configure_columns(['bill_id','full_text','leginfo_link','coauthors','bill_history','leg_session'],hide=True) # hide these columns in the initial dataframe
     
     # Configure special settings for individual columns
     #builder.configure_column('checkbox', headerName='', checkboxSelection=True, width=50, pinned='left') # option to add a specific checkbox column
