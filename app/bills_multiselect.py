@@ -25,7 +25,7 @@ st.write(
     '''
 )
 
-############################ LOAD AND CLEAN DATA #############################
+############################ CONNECT TO POSTGRES DATABASE #############################
 
 # Initialize connection to postgres
 #conn = st.connection("postgresql",type="sql")
@@ -34,8 +34,6 @@ st.write(
 #bills = conn.query('SELECT * FROM bill;', ttl="10m") 
 #history = conn.query('SELECT * FROM bill_history;', ttl="10m")
 
-
-## New db query
 
 # Load the database configuration
 db_config = config('postgres')
@@ -78,6 +76,8 @@ def query_table(schema, table):
 # Query bill and bill_history tables
 bills = query_table('ca_dev', 'bill')
 history = query_table('ca_dev', 'bill_history')
+
+############################## DATA MANIPULATION ##############################
 
 # Clean up bills
 bills['chamber'] = np.where(bills['origin_chamber_id'] == 1, 'Assembly', 'Senate')
