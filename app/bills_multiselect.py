@@ -10,8 +10,7 @@ This page displays bill info, using a multi-select widget that allows users to f
 import streamlit as st
 import pandas as pd
 import numpy as np
-import psycopg2
-from db.config import config
+from db.query import query_table
 from utils import aggrid_styler
 from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_set
 from utils.session_manager import initialize_session_state
@@ -25,53 +24,7 @@ st.write(
     '''
 )
 
-############################ CONNECT TO POSTGRES DATABASE #############################
-
-# Initialize connection to postgres
-#conn = st.connection("postgresql",type="sql")
-
-# Perform table queries
-#bills = conn.query('SELECT * FROM bill;', ttl="10m") 
-#history = conn.query('SELECT * FROM bill_history;', ttl="10m")
-
-
-# Load the database configuration
-db_config = config('postgres')
-
-def query_table(schema, table):
-    """
-    Parameters
-    ----------
-    schema : str
-        The schema name in the PostgreSQL database.
-    table : str
-        The table name in the PostgreSQL database.
-
-    Returns
-    -------
-    pd.DataFrame
-        The queried table in DataFrame format.
-    """
-    # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
-    print("Connected to the PostgreSQL database.")
-    
-    # Define SQL query
-    query = f'SELECT * FROM {schema}.{table};'
-    
-    # Query the table and convert to a DataFrame
-    with conn.cursor() as cursor:
-        cursor.execute(query)
-        records = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-        df = pd.DataFrame(records, columns=columns)
-    
-    # Close the connection
-    conn.close()
-    print("Database connection closed.")
-    
-    return df
-
+############################ QUERY POSTGRES DATABASE #############################
 
 # Query bill and bill_history tables
 bills = query_table('ca_dev', 'bill')
@@ -85,16 +38,6 @@ bills = bills.drop(['openstates_bill_id', 'committee_id', 'origin_chamber_id'], 
 bills = bills.sort_values('bill_number', ascending=True) # sort by bill number by default
 
 # Make status column pull from most recent update from bill_history table
-#history['event_date'] = pd.to_datetime(history['event_date']) 
-#latest_status = ( 
-#    history.sort_values('event_date', ascending=False)
-#           .drop_duplicates(subset='bill_id', keep='first')
-#           .loc[:, ['bill_id', 'event_text']]
-#)
-#bills = bills.merge(latest_status, on='bill_id', how='left')
-#bills['status'] = bills['event_text']
-#bills.drop(columns=['event_text'], inplace=True)
-
 def get_bill_status(bills, history):
     """
     Get the most recent status of a bill based on the full bill history.
@@ -128,7 +71,6 @@ def get_bill_status(bills, history):
     return bills
 
 bills = get_bill_status(bills, history)
-
 
 # Make date_introduced column
 def get_date_introduced(bills, history):
@@ -165,7 +107,7 @@ def get_date_introduced(bills, history):
 bills = get_date_introduced(bills, history)
 
 # Create bill_history as its own variable
-def create_bill_history(history):
+def create_bill_history(bills, history):
     """
     Create a DataFrame with bill_id and a full bill history
     
@@ -174,7 +116,7 @@ def create_bill_history(history):
         history: DataFrame containing the bill history data
         
     Returns:
-        DataFrame with bill_id and combined chunk of bill history text, which will be later formatted via utils function.
+        DataFrame with bill_id and combined chunk of bill history text, which will be later formatted via format_bill_history utils function.
     """
     # Ensure event_date is in datetime format
     history['event_date'] = pd.to_datetime(history['event_date'])
@@ -190,15 +132,19 @@ def create_bill_history(history):
 
     # Rename the column to 'bill_history'
     result.rename(columns={'event_description': 'bill_history'}, inplace=True)
+    
+    # Merge with bills table
+    bills = bills.merge(result, on='bill_id', how='left')
 
-    return result
+    return bills
 
-bill_history = create_bill_history(history)
-bills = bills.merge(bill_history, on='bill_id', how='left')
+bills = create_bill_history(bills, history)
+
+# Apply format_bill_history function
 bills['bill_history'] = bills['bill_history'].apply(ensure_set).apply(format_bill_history)
 
 
-############################### FILTER DATA FRAMES ###############################
+############################### FILTER DATA FRAMES BY TOPIC ###############################
 
 # Filter DataFrames for specific topics
 ai_terms = ['artificial intelligence', 'algorithm', 'automated']
