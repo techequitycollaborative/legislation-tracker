@@ -80,9 +80,9 @@ history = query_table('ca_dev', 'bill_history')
 ############################## DATA MANIPULATION ##############################
 
 # Clean up bills table
-bills['chamber'] = np.where(bills['origin_chamber_id'] == 1, 'Assembly', 'Senate')
-bills = bills.drop(['openstates_bill_id', 'committee_id', 'origin_chamber_id'], axis=1)
-bills = bills.sort_values('bill_number', ascending=True)
+bills['chamber'] = np.where(bills['origin_chamber_id'] == 1, 'Assembly', 'Senate') # make chamber column and assign values
+bills = bills.drop(['openstates_bill_id', 'committee_id', 'origin_chamber_id'], axis=1) # drop unnecessary columns
+bills = bills.sort_values('bill_number', ascending=True) # sort by bill number by default
 
 # Make status column pull from most recent update from bill_history table
 #history['event_date'] = pd.to_datetime(history['event_date']) 
