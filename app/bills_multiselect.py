@@ -79,21 +79,56 @@ history = query_table('ca_dev', 'bill_history')
 
 ############################## DATA MANIPULATION ##############################
 
-# Clean up bills
+# Clean up bills table
 bills['chamber'] = np.where(bills['origin_chamber_id'] == 1, 'Assembly', 'Senate')
 bills = bills.drop(['openstates_bill_id', 'committee_id', 'origin_chamber_id'], axis=1)
 bills = bills.sort_values('bill_number', ascending=True)
 
 # Make status column pull from most recent update from bill_history table
-history['event_date'] = pd.to_datetime(history['event_date']) 
-latest_status = ( 
-    history.sort_values('event_date', ascending=False)
-           .drop_duplicates(subset='bill_id', keep='first')
-           .loc[:, ['bill_id', 'event_text']]
-)
-bills = bills.merge(latest_status, on='bill_id', how='left')
-bills['status'] = bills['event_text']
-bills.drop(columns=['event_text'], inplace=True)
+#history['event_date'] = pd.to_datetime(history['event_date']) 
+#latest_status = ( 
+#    history.sort_values('event_date', ascending=False)
+#           .drop_duplicates(subset='bill_id', keep='first')
+#           .loc[:, ['bill_id', 'event_text']]
+#)
+#bills = bills.merge(latest_status, on='bill_id', how='left')
+#bills['status'] = bills['event_text']
+#bills.drop(columns=['event_text'], inplace=True)
+
+def get_bill_status(bills, history):
+    """
+    Get the most recent status of a bill based on the full bill history.
+
+    Parameters:
+    -----------
+        bills: DataFrame containing bill data
+        history: DataFrame containing the bill history data
+
+    Returns:
+    --------
+        A DataFrame with status column added.
+    """
+    # Ensure event_date is in datetime format
+    history['event_date'] = pd.to_datetime(history['event_date']) 
+    
+    # Get latest status for each bill by sorting bill_history df by event_date in descending order
+    latest_status = ( 
+        history.sort_values('event_date', ascending=False)
+               .drop_duplicates(subset='bill_id', keep='first')
+               .loc[:, ['bill_id', 'event_text']]
+    )
+    
+    # Merge latest status df with bills df
+    bills = bills.merge(latest_status, on='bill_id', how='left')
+    
+    # Reassign event_text column as status column, then drop event_text column
+    bills['status'] = bills['event_text']
+    bills.drop(columns=['event_text'], inplace=True)
+    
+    return bills
+
+bills = get_bill_status(bills, history)
+
 
 # Make date_introduced column
 def get_date_introduced(bills, history):
@@ -102,12 +137,11 @@ def get_date_introduced(bills, history):
 
     Parameters:
     -----------
-    history : DataFrame
-        The DataFrame containing bill history, including bill_id, event_date, and event_text.
+        bills: DataFrame containing bill data
+        history: DataFrame containing the bill history data
 
     Returns:
     --------
-    DataFrame
         A DataFrame with date_introduced column added.
     """
     # Ensure event_date is in datetime format
@@ -136,10 +170,11 @@ def create_bill_history(history):
     Create a DataFrame with bill_id and a full bill history
     
     Parameters:
+        bills: DataFrame containing bill data
         history: DataFrame containing the bill history data
         
     Returns:
-        DataFrame with bill_id and combined event descriptions
+        DataFrame with bill_id and combined chunk of bill history text, which will be later formatted via utils function.
     """
     # Ensure event_date is in datetime format
     history['event_date'] = pd.to_datetime(history['event_date'])
