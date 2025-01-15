@@ -7,10 +7,11 @@ Created on Dec 4, 2024
 
 This page displays bill info, using a multi-select widget that allows users to filter bills by topic.
 """
-
+import streamlit as st
 import pandas as pd
 import numpy as np
-import streamlit as st
+import psycopg2
+from db.config import config
 from utils import aggrid_styler
 from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_set
 from utils.session_manager import initialize_session_state
@@ -27,11 +28,56 @@ st.write(
 ############################ LOAD AND CLEAN DATA #############################
 
 # Initialize connection to postgres
-conn = st.connection("postgresql",type="sql")
+#conn = st.connection("postgresql",type="sql")
 
 # Perform table queries
-bills = conn.query('SELECT * FROM bill;', ttl="10m") 
-history = conn.query('SELECT * FROM bill_history;', ttl="10m")
+#bills = conn.query('SELECT * FROM bill;', ttl="10m") 
+#history = conn.query('SELECT * FROM bill_history;', ttl="10m")
+
+
+## New db query
+
+# Load the database configuration
+db_config = config('postgres')
+
+def query_table(schema, table):
+    """
+    Parameters
+    ----------
+    schema : str
+        The schema name in the PostgreSQL database.
+    table : str
+        The table name in the PostgreSQL database.
+
+    Returns
+    -------
+    pd.DataFrame
+        The queried table in DataFrame format.
+    """
+    # Establish connection to the PostgreSQL server
+    conn = psycopg2.connect(**db_config)
+    print("Connected to the PostgreSQL database.")
+    
+    # Define SQL query
+    query = f'SELECT * FROM {schema}.{table};'
+    
+    # Query the table and convert to a DataFrame
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+        records = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(records, columns=columns)
+    
+    # Close the connection
+    conn.close()
+    print("Database connection closed.")
+    
+    return df
+
+
+# Query bill and bill_history tables
+bills = query_table('ca_dev', 'bill')
+history = query_table('ca_dev', 'bill_history')
 
 # Clean up bills
 bills['chamber'] = np.where(bills['origin_chamber_id'] == 1, 'Assembly', 'Senate')

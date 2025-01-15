@@ -7,7 +7,7 @@ Given a section string (ex: postgres), return parameters
 from configparser import ConfigParser
 
 
-def config(section, filename='credentials.ini'):
+def config(section, filename='db/credentials.ini'):
     # create a parser
     parser = ConfigParser()
     # read config file
