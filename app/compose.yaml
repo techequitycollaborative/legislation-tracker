@@ -11,7 +11,7 @@ services:
   streamlit_app: # Name of the app
     build:
       context: .
-      dockerfile: Dockerfile # Name of dockerfile in the repo
+      dockerfile: app/Dockerfile # path to Dockerfile in the repo
     image: leg-tracker:latest  # Name and optional tag for the image
     ports:
       - 8501:8501
