@@ -16,8 +16,8 @@ services:
     ports:
       - 8501:8501
     volumes:
-    - .streamlit:/app/.streamlit # copies files from .streamlit folder to container
-    - ./:/app # copies files from /app folder to container
+      - .streamlit:/app/.streamlit # copies files from .streamlit folder to container -- for development/testing only
+      - ./:/app # copies files from /app folder to container -- for development/testing only
     environment:
       - ENV=development
     command: streamlit run /app/streamlit_app.py # command to launch app
