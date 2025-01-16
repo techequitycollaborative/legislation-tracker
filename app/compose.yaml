@@ -10,16 +10,14 @@
 services:
   streamlit_app: # Name of the app
     build:
-      context: ./app
+      context: .
       dockerfile: Dockerfile # path to Dockerfile in the repo
     image: leg-tracker:latest  # Name and optional tag for the image
     ports:
       - 8501:8501
     volumes:
-#      - .streamlit:/app/.streamlit
-#      - ./:/app 
-      - ./app/.streamlit:/app/.streamlit # copies files from .streamlit folder to container -- for development/testing only
-      - ./app:/app # copies files from /app folder to container -- for development/testing only
+      - .streamlit:/app/.streamlit # copies files from .streamlit folder to container -- for development/testing only
+      - ./:/app # copies files from /app folder to container -- for development/testing only
     environment:
       - ENV=development
     command: streamlit run /app/streamlit_app.py # command to launch app
