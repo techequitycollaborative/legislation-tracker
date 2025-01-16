@@ -8,14 +8,19 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  streamlit_app:
+  streamlit_app: # Name of the app
     build:
       context: .
+      dockerfile: Dockerfile # Name of dockerfile in the repo
     image: leg-tracker:latest  # Name and optional tag for the image
     ports:
       - 8501:8501
     volumes:
-    - .streamlit:/app/.streamlit
+    - .streamlit:/app/.streamlit # copies files from .streamlit folder to container
+    - ./:/app # copies files from /app folder to container
+    environment:
+      - ENV=development
+    command: streamlit run /app/streamlit_app.py # command to launch app
 
 
 
