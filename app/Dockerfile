@@ -1,7 +1,7 @@
 # app/Dockerfile
 
 # Set base image in Python
-FROM python:3.10-slim
+FROM python:3.10.4
 
 # Set working directory to app folder in repo
 WORKDIR /app
