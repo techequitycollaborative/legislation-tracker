@@ -1,29 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Bills Page
+Legislator Page
 Created on Oct 2, 2024
 @author: danyasherbini
 
-This page of the app contains bill information.
+This page of the app contains legislator information.
 """
 
-import os
-import pandas as pd
 import numpy as np
 import streamlit as st
+from db.query import query_table
 from utils import aggrid_styler
 from utils.utils import to_csv
 
 
-
-#PATH = '.'
-#os.chdir(PATH)
-#os.getcwd()
-
-
 # Show the page title and description
-#st.set_page_config(page_title='Legislation Tracker', layout='wide') #can add page_icon argument
 st.title('Legislators')
 st.write(
     '''
@@ -31,19 +23,12 @@ st.write(
     '''
 )
 
-############################ LOAD AND SET UP DATA #############################
+# Query data
+legislators = query_table('ca_dev', 'legislator')
 
-# Load the data from a CSV. We're caching this so it doesn't reload every time the app
-# reruns (e.g. if the user interacts with the widgets).
-@st.cache_data
-def load_leg_data():
-    legislators = pd.read_csv('./data/legislators.csv')
-    legislators['chamber'] = np.where(legislators['chamber_id']==1,'Assembly','Senate')
-    legislators = legislators.drop(['chamber_id'],axis=1)
-    return legislators
-
-legislators = load_leg_data()
-
+# Clean data
+legislators['chamber'] = np.where(legislators['chamber_id']==1,'Assembly','Senate') # change chamber id to actual chamber values
+legislators = legislators.drop(['legislator_id','chamber_id'],axis=1) # drop these two columns
    
 # Make the aggrid dataframe
 data = aggrid_styler.draw_leg_grid(legislators)
