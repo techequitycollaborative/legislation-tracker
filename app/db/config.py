@@ -3,39 +3,23 @@
 """
 config.py
 
-Configuration script for PosgreSQL database connection. Runs credentials.ini file to connect to database.
+Configuration script for PosgreSQL database connection. 
+    - Loads database credentials from Digital Ocean environmental variables if deployed on digital ocean servor
+    - If deployed locally, loads database credentials from locally configured credentials.ini file at: root/app/db/credentials.ini
+
+Used to power query.py in order to pull data from PostgreSQL database into Streamlit app for further manipulation in Python.
 
 Date: Jan 15, 2025
-
----
-Input: section string, credentials.ini
-Output: string values
 """
-#from configparser import ConfigParser
-
-
-#def config(section, filename='db/credentials.ini'):
-#    # create a parser
-#    parser = ConfigParser()
-#    # read config file
-#    parser.read(filename)
-
-#    # get section, default to postgresql
-#    values = {}
-#    if parser.has_section(section):
-#        params = parser.items(section)
-#        for param in params:
-#            values[param[0]] = param[1]
-#    else:
-#        raise Exception('Section {0} not found in the {1} file'.format(section, filename))
-
-#    return values
-
 
 import os
 from configparser import ConfigParser
 
 def config(section):
+    '''
+    Params: section string (i.e. 'postgres')
+    Returns: database credentials as string values, to be used as inputs to query function in query.py
+    '''
     # First, try to get configuration from Digitial Ocean environment variables
     db_config = {
         'host': os.getenv('DB_HOST'),
