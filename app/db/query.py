@@ -11,7 +11,7 @@ Date: Jan 15. 2025
 
 import pandas as pd
 import psycopg2
-from config import config
+from db.config import config
 
 def query_table(schema, table):
     """
