@@ -11,10 +11,7 @@ Date: Jan 15. 2025
 
 import pandas as pd
 import psycopg2
-from db.config import config
-
-# Load the database configuration
-db_config = config('postgres')
+from config import config
 
 def query_table(schema, table):
     """
