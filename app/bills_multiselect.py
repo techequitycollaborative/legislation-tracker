@@ -27,11 +27,18 @@ st.write(
 ############################ QUERY POSTGRES DATABASE #############################
 
 # Query bill and bill_history tables
-# Cache this so database query functions don't reload every time the app
+# Cache these functions so database query functions don't reload every time the app
 # reruns (i.e. if the user interacts with the table)
 @st.cache_data
-bills = query_table('ca_dev', 'bill')
-history = query_table('ca_dev', 'bill_history')
+def get_bills():
+    return query_table('ca_dev', 'bill')
+
+@st.cache_data
+def get_bill_history():
+    return query_table('ca_dev', 'bill_history')
+
+bills = get_bills()
+history = get_bill_history()
 
 ############################## DATA MANIPULATION ##############################
 
