@@ -30,15 +30,12 @@ st.write(
 # Cache these functions so database query functions don't reload every time the app
 # reruns (i.e. if the user interacts with the table)
 @st.cache_data
-def get_bills():
-    return query_table('ca_dev', 'bill')
+def get_data():
+    bills = query_table('ca_dev', 'bill')
+    history = query_table('ca_dev', 'bill_history')
+    return bills, history
 
-@st.cache_data
-def get_bill_history():
-    return query_table('ca_dev', 'bill_history')
-
-bills = get_bills()
-history = get_bill_history()
+bills, history = get_data()
 
 ############################## DATA MANIPULATION ##############################
 
