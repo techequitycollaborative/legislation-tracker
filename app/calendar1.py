@@ -15,11 +15,6 @@ import streamlit as st
 from streamlit_calendar import calendar
 
 
-#PATH = '.'
-#os.chdir(PATH)
-#os.getcwd()
-
-
 # Show the page title and description
 #st.set_page_config(page_title='Legislation Tracker', layout='wide') #can add page_icon argument
 st.title('Calendar - Option 1')

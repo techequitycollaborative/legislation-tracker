@@ -12,14 +12,15 @@ Streamlit, an open-source framework to build data apps in Python.
 import streamlit as st
 
 # Pages
-bills_tabs = st.Page('bills_tabs.py', title='Bills - Tabs', icon='📝') # not using this page right now, but leaving here as an option
-bills_multi = st.Page('bills_multiselect.py', title='Bills', icon='📝')
+welcome = st.Page('welcome.py',title='Welcome',icon='📜')
+bills_tabs = st.Page('bills_tabs.py', title='Bills - Tabs', icon='📝')
+bills_multi = st.Page('bills_multiselect.py', title='Bills - Multiselect', icon='📝')
 legislators = st.Page('legislators.py', title='Legislators', icon='💼')
 calendar = st.Page('calendar2.py', title='Calendar', icon='📅')
 dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌')
 
 # Build navigation bar
-pg = st.navigation([bills_multi,legislators,calendar, dashboard])
+pg = st.navigation([welcome,bills_tabs, bills_multi,legislators,calendar, dashboard])
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
 # Add logo

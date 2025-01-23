@@ -34,13 +34,17 @@ bills = process_bills_data(bills, history)
 
 # Filter DataFrames for specific topics
 @st.cache_data
-def get_filtered_df(filter_terms):
-    return bills[bills['bill_name'].str.contains('|'.join(filter_terms), na=False, case=False)]
+def get_filtered_df(df, filter_terms):
+    
+    # filter df by if the bill name contains specific terms
+    filtered_df = df[df['bill_name'].str.contains('|'.join(filter_terms), na=False, case=False)]
+    
+    return filtered_df
 
 # Filtered dataframes for each category
-ai_df = get_filtered_df(['artificial intelligence', 'algorithm', 'automated'])
-housing_df = get_filtered_df(['housing', 'eviction', 'tenants', 'renters'])
-labor_df = get_filtered_df(['worker', 'labor', 'gig economy', 'contract workers'])
+ai_df = get_filtered_df(bills, ['artificial intelligence', 'algorithm', 'automated'])
+housing_df = get_filtered_df(bills, ['housing', 'eviction', 'tenants', 'renters'])
+labor_df = get_filtered_df(bills, ['worker', 'labor', 'gig economy', 'contract workers'])
 
 # Category mapping
 category_mapping = {

@@ -8,81 +8,48 @@ Created on Oct 2, 2024
 This page displays bill info, segementing bills by topic using a tab display.
 """
 
-import os
-import pandas as pd
-import numpy as np
 import streamlit as st
+#import pandas as pd
+from db.query import get_data
 from utils import aggrid_styler
-from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_set
-from utils.session_manager import initialize_session_state
+from utils.utils import display_bill_info, to_csv, process_bills_data
 
-#PATH = '.'
-#os.chdir(PATH)
-#os.getcwd()
-
-
-# Show the page title and description
-#st.set_page_config(page_title='Legislation Tracker', layout='wide') #can add page_icon argument
+# Page title and description
 st.title('Bills')
 st.write(
     '''
-    This page shows California bills for the 2023-2024 legislative session. 
+    This page shows California assembly and senate bill information. 
     Please note that the page may take a few moments to load.
     '''
 )
 
-############################ LOAD AND SET UP DATA #############################
+############################ LOAD AND PROCESS BILLS DATA #############################
 
-# Load the data from a CSV. We're caching this so it doesn't reload every time the app
-# reruns (e.g. if the user interacts with the widgets).
+# get data
+bills, history = get_data()
+
+# process data
+bills = process_bills_data(bills, history)
+
+
+############################### FILTER DATA FRAMES BY TOPIC ###############################
+
+# Filter DataFrames for specific topics
 @st.cache_data
-def load_bill_data():
-    # load bill data
-    bills = pd.read_csv('./data/bills.csv')
-    # Change chamber id to senate and assembly
-    bills['chamber'] = np.where(bills['origin_chamber_id']==1,'Assembly','Senate')
-    # load bill history data
-    bill_history = pd.read_csv('./data/bill_history.csv')
-    # merge data sets
-    bills = pd.merge(bills, bill_history, how='left', on= 'bill_id')
-    # rename columns
-    bills = bills.rename(columns={'history_trace':'bill_history','bill_date':'date_introduced','bill_number':'bill_no'})
-    # reformat bill history column
-    bills['bill_history'] = bills['bill_history'].apply(ensure_set)
-    bills['bill_history'] = bills['bill_history'].apply(format_bill_history)
-    return bills
+def get_filtered_df(df, filter_terms):
+    
+    # filter df by if the bill name contains specific terms
+    filtered_df = df[df['bill_name'].str.contains('|'.join(filter_terms), na=False, case=False)]
+    
+    return filtered_df
 
-bills = load_bill_data()
+# Filtered dataframes for each category
+ai_df = get_filtered_df(bills, ['artificial intelligence', 'algorithm', 'automated'])
+housing_df = get_filtered_df(bills, ['housing', 'eviction', 'tenants', 'renters'])
+labor_df = get_filtered_df(bills, ['worker', 'labor', 'gig economy', 'contract workers'])
 
 
-# Additional data manipulation to bills df
-# Move bill_number column to first column
-numbers = bills['bill_no']
-bills.insert(0,'bill_number',numbers)
-# Drop some columns we don't need
-drop_cols = ['bill_no','bill_id','openstates_bill_id', 'committee_id', 'origin_chamber_id']
-bills = bills.drop(drop_cols, axis=1)
-# Sort by bill number by default
-bills = bills.sort_values('bill_number', ascending=True)
-
-
-# Get dataframes for AI bills, housing bills, and labor bills
-
-# AI bills
-ai_terms = ['artificial intelligence','algorithm','automated']
-ai_df = bills[bills['bill_name'].str.contains('|'.join(ai_terms),na=False,case=False)]
-ai_df = ai_df.sort_values('bill_number', ascending=True) # sort by bill number by default
-
-# Housing bills
-housing_terms = ['housing','eviction','tenants','renters']
-housing_df = bills[bills['bill_name'].str.contains('|'.join(housing_terms), na=False, case=False)]
-housing_df = housing_df.sort_values('bill_number', ascending=True) # sort by bill number by default
-
-# Labor bills
-labor_terms = ['worker','labor','gig economy','contract workers']
-labor_df = bills[bills['bill_name'].str.contains('|'.join(labor_terms), na=False, case=False)]
-labor_df = labor_df.sort_values('bill_number', ascending=True) # sort by bill number by default
-
+################################# CREATE TABS #################################
 
 # Create page tabs
 tab1, tab2, tab3 , tab4 = st.tabs(['All Bills', 'AI', 'Housing', 'Labor'])
