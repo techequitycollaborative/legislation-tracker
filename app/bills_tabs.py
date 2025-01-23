@@ -89,7 +89,8 @@ tab1, tab2, tab3 , tab4 = st.tabs(['All Bills', 'AI', 'Housing', 'Labor'])
 
 
 # Initialize session state for selected bills
-initialize_session_state()
+if 'selected_bills' not in st.session_state:
+    st.session_state.selected_bills = []
 
 ############################### TAB 1: All Bills ###############################
 with tab1:

@@ -171,7 +171,8 @@ category_mapping = {
 }
 
 # Initialize session state for selected bills
-initialize_session_state()
+if 'selected_bills' not in st.session_state:
+    st.session_state.selected_bills = []
 
 ############################### MULTISELECT FILTER ###############################
 
