@@ -13,7 +13,6 @@ import numpy as np
 from db.query import query_table
 from utils import aggrid_styler
 from utils.utils import display_bill_info, to_csv, format_bill_history, ensure_set
-from utils.session_manager import initialize_session_state
 
 # Page title and description
 st.title('Bills')
