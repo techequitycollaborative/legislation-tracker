@@ -9,7 +9,6 @@ Custom functions for Legislation Tracker streamlit app
 
 """
 import streamlit as st
-from utils.session_manager import initialize_session_state
 
 ###############################################################################
 
@@ -113,10 +112,6 @@ def display_bill_info(selected_rows):
     link = selected_rows['leginfo_link'].iloc[0]
     text = selected_rows['full_text'].iloc[0]
     history = selected_rows['bill_history'].iloc[0]
-    
-    # Initialize 'selected_bills' if it doesn't exist
-    #if 'selected_bills' not in st.session_state:
-       #st.session_state.selected_bills = []
       
     # Container for bill number and chamber
     with st.container(key='number_chamber'):
@@ -179,7 +174,7 @@ def display_bill_info(selected_rows):
    # Button to add bill to dashboard
     with st.container(key='add_to_dashboard'):
         if st.button('Add to Dashboard'):
-            # Call the function to add the bill to the dashboard and update the cache
+            # Call the function to add the bill to the dashboard
             add_bill_to_dashboard(number, name, author, coauthors, status, date, chamber, link, text, history)
 
 

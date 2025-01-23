@@ -40,7 +40,7 @@ def config(section):
                 db_config = {
                     'host': parser.get(section, 'host'),
                     'port': parser.get(section, 'port'),
-                    'dbname': parser.get(section, 'database'),
+                    'dbname': parser.get(section, 'dbname'),
                     'user': parser.get(section, 'user'),
                     'password': parser.get(section, 'password'),
                     'sslmode': parser.get(section, 'sslmode')
