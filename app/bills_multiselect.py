@@ -19,7 +19,7 @@ from utils.session_manager import initialize_session_state
 st.title('Bills')
 st.write(
     '''
-    This page shows California bills for the 2023-2024 legislative session. 
+    This page shows California assembly and senate bill information. 
     Please note that the page may take a few moments to load.
     '''
 )
@@ -175,6 +175,7 @@ category_mapping = {
 initialize_session_state()
 
 ############################### MULTISELECT FILTER ###############################
+
 # Multiselect widget for bill categories
 selected_categories = st.multiselect(
     'Select a category:',
@@ -182,19 +183,23 @@ selected_categories = st.multiselect(
     default=['All Bills']
 )
 
-# Combine selected dataframes
-if selected_categories:
+# Make a combined dataframe based on the selections made in the multi-select widget
+# Caching this function so it doesn't take as long to load/filter the dataframe based on user selections
+@st.cache_data
+def get_combined_df(selected_categories):
+    # Concatenate and deduplicate only when categories change
     combined_df = pd.concat([category_mapping[category] for category in selected_categories]).drop_duplicates()
+    return combined_df
 
-    # Create a two-column layout: left for header, right for the button
-    col1, col2 = st.columns([4, 1])  # Adjust column widths as needed
+# only combine the dataframe when the user selection changes
+if selected_categories:
+    combined_df = get_combined_df(selected_categories)
 
+    # Create a two-column layout
+    col1, col2 = st.columns([4, 1])
     with col1:
-        # Header for the selected categories
         st.markdown(f"### Displaying: {', '.join(selected_categories)}")
-
     with col2:
-        # Display the download button in the right column
         st.download_button(
             label='Download Data as CSV',
             data=to_csv(combined_df),
@@ -202,17 +207,13 @@ if selected_categories:
             mime='text/csv',
             use_container_width=True
         )
-    
-    # Make the aggrid dataframe
+
+    # Display the aggrid table
     data = aggrid_styler.draw_bill_grid(combined_df)
     
-    # Define selected rows
     selected_rows = data.selected_rows
-    
-    # If a row is selected, display bill info
     if selected_rows is not None and len(selected_rows) != 0:
         display_bill_info(selected_rows)
-
 else:
     st.write('Please select at least one category to display bills.')
 
