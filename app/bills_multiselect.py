@@ -5,13 +5,16 @@ Bills Page: Multi-Select -- with Postgres Connection
 Created on Dec 4, 2024
 @author: danyasherbini
 
-This page displays bill info, using a multi-select widget that allows users to filter bills by topic.
+Bill into page with:
+    - Bill table with multi-select
+    - Bill details with text
 """
+
 import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.utils import display_bill_info, to_csv, process_bills_data
+from utils.utils import display_bill_info_text, display_bill_info_expander, display_bill_info_dialog, to_csv, process_bills_data
 
 # Page title and description
 st.title('Bills')
@@ -97,7 +100,7 @@ if selected_categories:
     
     selected_rows = data.selected_rows
     if selected_rows is not None and len(selected_rows) != 0:
-        display_bill_info(selected_rows)
+        display_bill_info_text(selected_rows)
 else:
     st.write('Please select at least one category to display bills.')
 

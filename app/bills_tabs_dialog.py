@@ -7,7 +7,7 @@ Created on Oct 2, 2024
 
 Bill into page with:
     - Bill table with tabs
-    - Bill details with expander
+    - Bill details with dialog
 """
 
 import streamlit as st
@@ -88,7 +88,7 @@ with tab1:
 
     # If a row is selected, display bill info:
     if selected_rows is not None and len(selected_rows) != 0:
-        display_bill_info_expander(selected_rows)
+        display_bill_info_dialog(selected_rows)
 
 
 
@@ -119,7 +119,7 @@ with tab2:
     # If a row is selected, display bill info:
     if selected_rows is not None:
         if len(selected_rows) != 0:
-            display_bill_info_expander(selected_rows)
+            display_bill_info_dialog(selected_rows)
 
         
 ############################# TAB 3: Housing Bills #############################
@@ -152,7 +152,7 @@ with tab3:
     # If a row is selected, display bill info:
     if selected_rows is not None:
         if len(selected_rows) != 0:
-            display_bill_info_expander(selected_rows)
+            display_bill_info_dialog(selected_rows)
 
     
         
@@ -186,7 +186,7 @@ with tab4:
     # If a row is selected, display bill info:
     if selected_rows is not None:
         if len(selected_rows) != 0:
-            display_bill_info_expander(selected_rows)
+            display_bill_info_dialog(selected_rows)
    
     
 
