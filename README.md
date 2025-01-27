@@ -1,2 +1,2 @@
 # legislation-tracker
-A web application for advocacy organizations to track state legislation.
+A web application to track California state legislation.
