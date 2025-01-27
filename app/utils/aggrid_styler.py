@@ -14,17 +14,18 @@ from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from st_aggrid.shared import GridUpdateMode
 
+
 # Ag grid styler function for bills table
 def draw_bill_grid(
         df,
         formatter: dict = None,
         selection='single',
         use_checkbox=True,
-        #header_checkbox = True, -- turned off for now
-        fit_columns=False, # change to true to make all columns the same width/fit to the table width
-        theme='streamlit',
-        max_height: int = 1500,
-        wrap_text: bool = False,
+        #header_checkbox = True, -- don't need this since we are only doing single selection
+        fit_columns=True, # change to true to make all columns the same width/fit to the table width
+        theme='streamlit', # options = streamlit, alpine, balham, material
+        height: int = 600,
+        wrap_text: bool = True,
         auto_height: bool = False,
         key=None,
         css: dict = None
@@ -46,15 +47,25 @@ def draw_bill_grid(
     
     # Configure special settings for individual columns
     #builder.configure_column('checkbox', headerName='', checkboxSelection=True, width=50, pinned='left') # option to add a specific checkbox column
+    builder.configure_column('bill_id',headerName = 'Bill ID')
     builder.configure_column('bill_number',headerName = 'Bill Number',pinned='left', checkboxSelection=True) # pin this column, make it the checkbox column
     builder.configure_column('bill_name',headerName = 'Bill Name')
     builder.configure_column('author',headerName = 'Author')
+    builder.configure_column('coauthors',headerName = 'Coauthor(s)')
     builder.configure_column('status',headerName = 'Status')
-    builder.configure_column('date_introduced',headerName = 'Date Introduced',filter='agDateColumnFilter')
+    builder.configure_column('leginfo_link',headerName = 'Link')
+    builder.configure_column('leg_session',headerName = 'Session')
+    builder.configure_column('date_introduced',headerName = 'Date Introduced')#,filter='agDateColumnFilter') # text filter for now
     builder.configure_column('chamber',headerName = 'Chamber',filter='agSetColumnFilter')
+    builder.configure_column('full_text',headerName = 'Bill Text')
+    builder.configure_column('bill_history',headerName = 'Bill History')
+    builder.configure_column('bill_topic',headerName = 'Bill Topic')
     
-    # Configure how user selects rows -- don't need this as already have it turned on above
-    #builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox)
+    
+    builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) # Configure how user selects rows
+    builder.configure_side_bar(filters_panel=True, columns_panel=False) # configure the sidebar panel
+    #builder.configure_pagination(enabled=True, paginationAutoPageSize=True, paginationPageSize=10) # can add pagination instead of making the table scrollable
+    builder.configure_auto_height(autoHeight=False) # configure height of the table
     
     # Build the grid options dictionary
     grid_options = builder.build()
@@ -65,7 +76,7 @@ def draw_bill_grid(
         update_mode=GridUpdateMode.SELECTION_CHANGED | GridUpdateMode.VALUE_CHANGED, # ensures the df is updated dynamically
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=fit_columns,
-        max_height=max_height,
+        height=height,
         theme=theme,
         key=key,
         css=css
@@ -80,7 +91,7 @@ def draw_leg_grid(
         #use_checkbox=True, -- turned off for legislators table
         #header_checkbox = True, -- turned off for legislators table
         fit_columns=True, # change to false to make all column width based on the variable
-        theme='streamlit',
+        theme='streamlit', # options = streamlit, alpine, balham, material
         max_height: int = 500,
         wrap_text: bool = False,
         auto_height: bool = False,

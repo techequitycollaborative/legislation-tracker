@@ -16,12 +16,13 @@ welcome = st.Page('welcome.py',title='Welcome',icon='📜')
 bills_tabs_expander = st.Page('bills_tabs.py', title='Bills - Tabs + Expander', icon='📝')
 bills_tabs_dialog = st.Page('bills_tabs_dialog.py', title='Bills - Tabs + Dialog', icon='📝')
 bills_multi = st.Page('bills_multiselect.py', title='Bills - Multiselect + Text', icon='📝')
+bills_topic = st.Page('bills_topic.py', title='Bills - Topic', icon='📝')
 legislators = st.Page('legislators.py', title='Legislators', icon='💼')
 calendar = st.Page('calendar2.py', title='Calendar', icon='📅')
 dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌')
 
 # Build navigation bar
-pg = st.navigation([welcome,bills_tabs_expander, bills_tabs_dialog,bills_multi,legislators,calendar, dashboard])
+pg = st.navigation([welcome,bills_tabs_expander, bills_tabs_dialog,bills_multi,bills_topic,legislators,calendar, dashboard])
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
 
 # Add logo

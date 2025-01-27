@@ -11,6 +11,7 @@ Custom functions for Legislation Tracker streamlit app
 import streamlit as st
 import pandas as pd
 import numpy as np
+import re
 
 ###############################################################################
 
@@ -164,8 +165,6 @@ def create_bill_history(bills, history):
 
 ###############################################################################
 
-import re
-
 def format_bill_history(element_set):
     '''
     Reformats Bill History into a more readable/cleaner format for Streamlit,
@@ -195,12 +194,48 @@ def format_bill_history(element_set):
 
 ###############################################################################
 
+def get_bill_topics(df, keyword_dict):
+    """
+    Tags each bill in the DataFrame with a topic based on keywords found in the bill_name column.
+
+    Parameters:
+        - df (DataFrame): Input DataFrame containing a 'bill_name' column.
+        - keywords (dict): A dictionary where keys are tuples of keywords and
+                            values are the corresponding topics to apply.
+
+    Returns:
+        -df (DataFrame): A DataFrame with a new 'bill_topic' column containing the assigned topic.
+    """
+
+    # Initialize the 'bill_topic' column with default value (e.g., "Uncategorized")
+    df['bill_topic'] = 'Uncategorized'
+
+    for keywords, label in keyword_dict.items():
+        # Ensure the keywords are joined into a single string for regex
+        pattern = '|'.join(re.escape(word) for word in keywords)
+        # Apply the label where the pattern matches in the bill_name column
+        df.loc[df['bill_name'].str.contains(pattern, na=False, case=False), 'bill_topic'] = label
+
+    return df
+
+
+# Keyword/topic mapping
+keywords = {
+    ('artificial intelligence', 'algorithm', 'automated'): 'AI',
+    ('housing', 'eviction', 'tenant', 'renter'): 'Housing',
+    ('worker', 'labor', 'gig economy', 'contract workers', 'content moderator', 'data labeler', 'data labeller', 'ghost work'): 'Labor'
+}
+
+
+###############################################################################
+
 def process_bills_data(bills, history):
     bills = clean_bill_data(bills)  # Step 1: Clean the bills data
     bills = get_bill_status(bills, history)  # Step 2: Get bill status
     bills = get_date_introduced(bills, history)  # Step 3: Get date introduced
     bills = create_bill_history(bills, history)  # Step 4: Create bill history
-    bills['bill_history'] = bills['bill_history'].apply(ensure_set).apply(format_bill_history) #Step 5: format bill history
+    bills['bill_history'] = bills['bill_history'].apply(ensure_set).apply(format_bill_history) #Step 5: Format bill history
+    bills = get_bill_topics(bills, keywords) # Step 6: Get bill topics
     return bills
 
 ###############################################################################
