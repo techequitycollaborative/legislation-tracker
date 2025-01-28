@@ -92,7 +92,7 @@ def draw_leg_grid(
         #header_checkbox = True, -- turned off for legislators table
         fit_columns=True, # change to false to make all column width based on the variable
         theme='streamlit', # options = streamlit, alpine, balham, material
-        max_height: int = 500,
+        height: int = 600,
         wrap_text: bool = False,
         auto_height: bool = False,
         key=None,
@@ -114,13 +114,14 @@ def draw_leg_grid(
     builder.configure_columns(['legislator_id'],hide=True)
     
     # Configure special settings for individual columns 
-    builder.configure_column('name',pinned='left',headerName = 'Name', filter='agSetColumnFilter') 
+    builder.configure_column('name',pinned='left',headerName = 'Name')
     builder.configure_column('district',headerName = 'District',filter='agNumberColumnFilter', headerClass='left-align-header') # left align to make sure column header is justified left like the rest of the columns
     builder.configure_column('party',headerName = 'Party',filter='agSetColumnFilter')
     builder.configure_column('chamber',headerName = 'Chamber',filter='agSetColumnFilter')
     
     # Configure how user selects rows -- turned off for legislators table
-    #builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox)
+    #builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) # no selection needed for legislator table
+    builder.configure_auto_height(autoHeight=False) # configure height of the table
     
     # Build the grid options dictionary
     grid_options = builder.build()
@@ -131,7 +132,7 @@ def draw_leg_grid(
         update_mode=GridUpdateMode.SELECTION_CHANGED | GridUpdateMode.VALUE_CHANGED, # ensures the df is updated dynamically
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=fit_columns,
-        max_height=max_height,
+        height=height,
         theme=theme,
         key=key,
         css=css
