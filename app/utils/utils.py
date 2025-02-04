@@ -274,7 +274,7 @@ def display_bill_info_text(selected_rows):
         with col1:
             st.markdown(f'### {bill_number}')
         with col2:
-            if st.button('Add to Dashboard', use_container_width=True,):
+            if st.button('Add to Dashboard', use_container_width=True,type='primary'):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_dashboard(bill_number, name, author, coauthors, status, date, chamber, link, text, history)
     
@@ -283,7 +283,7 @@ def display_bill_info_text(selected_rows):
     st.write("")
     
     st.markdown('#### Main Bill Details')
-    st.write("")
+    st.write('_This section features bill details generated from public sources._')
     # Container for bill number and chamber
     with st.container(key='main_details_container'):
         # Display columns with spacers
@@ -349,45 +349,59 @@ def display_bill_info_text(selected_rows):
 
     # Form for custom user-entered fields
     st.markdown('#### Custom Bill Details')
-    st.write('Use this section to enter custom details for this bill.')
+    st.write('_Use this section to enter custom details for this bill._')
     with st.form(key='custom_fields', clear_on_submit=False, enter_to_submit=True, border=True):
-        col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
+        with st.container(key='custom_fields_container1'):
+            col1, col2, col3, col4 = st.columns([2, 2, 2, 2])
 
-        with col1:
-            st.markdown('##### Org Position')
-            org_position = st.selectbox('Select Org Position', 
-                                        ['','Needs Decision', 'Neutral/No Position', 'Support', 
-                                        'Support, if Amended', 'Oppose', 'Oppose, unless Amended'],
-                                        index=(['','Needs Decision', 'Neutral/No Position', 'Support', 
-                                                'Support, if Amended', 'Oppose', 'Oppose, unless Amended']
-                                            .index(custom_details['org_position']) if custom_details else 0))
+            with col1:
+                st.markdown('##### Org Position')
+                org_position = st.selectbox('_Select Org Position_', 
+                                            ['','Needs Decision', 'Neutral/No Position', 'Support', 
+                                            'Support, if Amended', 'Oppose', 'Oppose, unless Amended'],
+                                            index=(['','Needs Decision', 'Neutral/No Position', 'Support', 
+                                                    'Support, if Amended', 'Oppose', 'Oppose, unless Amended']
+                                                .index(custom_details['org_position']) if custom_details else 0))
 
-        with col2:
-            st.markdown('##### Priority Tier')
-            priority_tier = st.selectbox('Select Priority Tier', 
-                                        ['','Sponsored', 'Priority', 'Position', 'No Priority'],
-                                        index=(['','Sponsored', 'Priority', 'Position', 'No Priority']
-                                                .index(custom_details['priority_tier']) if custom_details else 0))
+            with col2:
+                st.markdown('##### Priority Tier')
+                priority_tier = st.selectbox('_Select Priority Tier_', 
+                                            ['','Sponsored', 'Priority', 'Position', 'No Priority'],
+                                            index=(['','Sponsored', 'Priority', 'Position', 'No Priority']
+                                                    .index(custom_details['priority_tier']) if custom_details else 0))
 
-        with col3:
-            st.markdown('##### Community Sponsor')
-            community_sponsor = st.text_input('Enter Community Sponsor', 
-                                            value=custom_details['community_sponsor'] if custom_details else '')
+            with col3:
+                st.markdown('##### Community Sponsor')
+                community_sponsor = st.text_input('_Enter Community Sponsor_', 
+                                                value=custom_details['community_sponsor'] if custom_details else '')
 
-        with col4:
-            st.markdown('##### Coalition')
-            coalition = st.text_input('Enter Coalition', 
-                                    value=custom_details['coalition'] if custom_details else '')
+            with col4:
+                st.markdown('##### Coalition')
+                coalition = st.text_input('_Enter Coalition_', 
+                                        value=custom_details['coalition'] if custom_details else '')
+        
+        st.write("")
 
-        with col5:
-            st.markdown('##### Letter of Support')
-            letter_of_support = st.text_input('Link to Letter of Support', 
-                                            value=custom_details['letter_of_support'] if custom_details else '')
+        with st.container(key='custom_fields_container2'):
+            col1, col2 = st.columns([4, 2])
+            with col1:
+                st.markdown('##### Letter of Support')
+                letter_of_support = st.text_input('_Enter url_', 
+                                                    value=custom_details['letter_of_support'] if custom_details else '')
+            with col2:
+                if letter_of_support:
+                    st.write("")
+                    st.write("")
+                    st.write("")
+                    st.write("")
+                    st.link_button('View Letter of Support', url=letter_of_support, type='secondary')
+                else:
+                    st.empty()
 
         # Submit button
         submitted = st.form_submit_button("Save Custom Bill Details", 
                                         help='Click to save/update custom details for this bill', 
-                                        type='secondary')
+                                        type='primary')
 
         if submitted:
             save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support)
@@ -400,7 +414,7 @@ def display_bill_info_text(selected_rows):
     # Expander for bill text
     with st.container(key='bill_text_text'):
         st.markdown('##### Bill Excerpt')
-        expander = st.expander('Click to view bill excerpt')
+        expander = st.expander('_Click to view bill excerpt_')
         expander.write(text)
 
     # Add empty rows of space    
@@ -409,7 +423,7 @@ def display_bill_info_text(selected_rows):
     # Expander for bill history
     with st.container(key='bill_history_text'):
         st.markdown('##### Bill History')
-        expander = st.expander('Click to view bill history')
+        expander = st.expander('_Click to view bill history_')
         expander.markdown(history)
 
 

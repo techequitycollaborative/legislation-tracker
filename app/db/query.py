@@ -98,14 +98,15 @@ def get_custom_bill_details(bill_id):
     
     if result:
         return {
-            "bill_number": result[2],
             "org_position": result[3],
             "priority_tier": result[4],
             "community_sponsor": result[5],
             "coalition": result[6],
             "letter_of_support": result[7]
         }
-    return None
+    
+    else:
+        return None
 
 ###############################################################################
 
@@ -124,17 +125,24 @@ def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, 
     print("Connected to the PostgreSQL database.")
     cursor = conn.cursor()
     
-    cursor.execute("""
-        INSERT INTO public.bill_custom_details (bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (bill_id) 
-        DO UPDATE SET 
-            org_position = EXCLUDED.org_position,
-            priority_tier = EXCLUDED.priority_tier,
-            community_sponsor = EXCLUDED.community_sponsor,
-            coalition = EXCLUDED.coalition,
-            letter_of_support = EXCLUDED.letter_of_support;
-    """, (bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support))
-    
+    # Check if the record exists in database
+    cursor.execute("SELECT * FROM public.bill_custom_details WHERE bill_id = %s", (bill_id,))
+    existing_record = cursor.fetchone()
+
+    if existing_record:
+            # If it exists, update the record
+            cursor.execute("""
+                UPDATE public.bill_custom_details
+                SET org_position = %s, priority_tier = %s, community_sponsor = %s,
+                    coalition = %s, letter_of_support = %s
+                WHERE bill_id = %s
+            """, (bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, bill_id))
+    else:
+            # If it doesn't exist, insert a new record
+            cursor.execute("""
+                INSERT INTO public.bill_custom_details (bill_id, org_position, priority_tier, community_sponsor, coalition, letter_of_support)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support))
+
     conn.commit()
     conn.close()
