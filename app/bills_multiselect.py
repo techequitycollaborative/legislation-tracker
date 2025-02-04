@@ -28,10 +28,7 @@ st.write(
 ############################ LOAD AND PROCESS BILLS DATA #############################
 
 # get data
-bills, history = get_data()
-
-# process data
-bills = process_bills_data(bills, history)
+bills = get_data()
 
 ############################### FILTER DATA FRAMES BY TOPIC ###############################
 
@@ -41,7 +38,7 @@ def get_filtered_df(df, filter_terms):
     
     # filter df by if the bill name contains specific terms
     filtered_df = df[df['bill_name'].str.contains('|'.join(filter_terms), na=False, case=False)]
-    
+
     return filtered_df
 
 # Filtered dataframes for each category
@@ -76,6 +73,10 @@ selected_categories = st.multiselect(
 def get_combined_df(selected_categories):
     # Concatenate and deduplicate only when categories change
     combined_df = pd.concat([category_mapping[category] for category in selected_categories]).drop_duplicates()
+
+    # remove timestampe from date introduced
+    combined_df['date_introduced'] = pd.to_datetime(combined_df['date_introduced']).dt.strftime('%Y-%m-%d')
+
     return combined_df
 
 # only combine the dataframe when the user selection changes
