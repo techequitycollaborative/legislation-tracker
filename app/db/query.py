@@ -58,24 +58,23 @@ def query_table(schema, table):
 ###############################################################################
 
 
-# Query bill and bill_history tables
+# Query bill tables -- processing of which has already been done in postgres database
 # Cache these functions so database query functions don't reload every time the app
 # reruns (i.e. if the user interacts with the table)
 
 def get_data():
     """
-    Use query_table to load main bills table and cache it.
+    Use query_table to load main bills table (or view) and cache it.
     """
     # Cache the function that retrieves the data
     @st.cache_data
-    def get_bills_and_history():
-        # Query the database for bills and history
-        bills = query_table('ca_dev', 'bill')
-        history = query_table('ca_dev', 'bill_history')
-        return bills, history
+    def get_bills():
+        # Query the database for bills
+        bills = query_table('public', 'processed_bills_20252026') # this is pulling a view, not a table
+        return bills
     
     # Call the cached function to get the data
-    bills, history = get_bills_and_history()
+    bills = get_bills()
     
-    return bills, history
+    return bills
 

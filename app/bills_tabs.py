@@ -11,7 +11,7 @@ Bill into page with:
 """
 
 import streamlit as st
-#import pandas as pd
+import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
 from utils.utils import display_bill_info_text, display_bill_info_expander, display_bill_info_dialog, to_csv, process_bills_data
@@ -28,10 +28,10 @@ st.write(
 ############################ LOAD AND PROCESS BILLS DATA #############################
 
 # get data
-bills, history = get_data()
+bills = get_data()
 
-# process data
-bills = process_bills_data(bills, history)
+# remove timestampe from date introduced
+bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d')
 
 
 ############################### FILTER DATA FRAMES BY TOPIC ###############################
