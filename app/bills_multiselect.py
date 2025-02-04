@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.utils import display_bill_info_text, display_bill_info_expander, display_bill_info_dialog, to_csv, process_bills_data
+from utils.utils import display_bill_info_text, to_csv, format_bill_history
 
 # Page title and description
 st.title('Bills')
@@ -29,6 +29,9 @@ st.write(
 
 # get data
 bills = get_data()
+
+# Format bill history
+bills['bill_history'] = bills['bill_history'].apply(format_bill_history) 
 
 ############################### FILTER DATA FRAMES BY TOPIC ###############################
 

@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.utils import display_bill_info_text, get_bill_topics, to_csv, keywords
+from utils.utils import display_bill_info_text, get_bill_topics, to_csv, keywords, format_bill_history
 
 # Page title and description
 st.title('Bills')
@@ -27,14 +27,13 @@ st.write(
 
 ############################ LOAD AND PROCESS BILLS DATA #############################
 
-# get data
+# Get data
 bills = get_data()
 
-# remove timestampe from date introduced
-bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d')
-
-# get bill topics
-bills = get_bill_topics(bills, keyword_dict= keywords)  
+# Minor data processing 
+bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
+bills = get_bill_topics(bills, keyword_dict= keywords)  # Get bill topics
+bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
 
 # Initialize session state for selected bills
 if 'selected_bills' not in st.session_state:

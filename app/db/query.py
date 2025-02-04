@@ -57,7 +57,6 @@ def query_table(schema, table):
 
 ###############################################################################
 
-
 # Query bill tables -- processing of which has already been done in postgres database
 # Cache these functions so database query functions don't reload every time the app
 # reruns (i.e. if the user interacts with the table)
@@ -78,3 +77,64 @@ def get_data():
     
     return bills
 
+###############################################################################
+
+def get_custom_bill_details(bill_id):
+    '''
+    Fetches custom bill details for a specific bill_id from the bill_custom_details table in postgres and adds to the bills details page
+    '''
+    # Load the database configuration
+    db_config = config('postgres')
+    
+    # Establish connection to the PostgreSQL server
+    conn = psycopg2.connect(**db_config)
+    print("Connected to the PostgreSQL database.")
+    
+    # Query
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM public.bill_custom_details WHERE bill_id = %s", (int(bill_id),))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        return {
+            "bill_number": result[2],
+            "org_position": result[3],
+            "priority_tier": result[4],
+            "community_sponsor": result[5],
+            "coalition": result[6],
+            "letter_of_support": result[7]
+        }
+    return None
+
+###############################################################################
+
+def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support):
+    '''
+    Saves custom fields that a user enters on the bills details page to the bill_custom_details table in postgres
+    '''
+    # Load the database configuration
+    db_config = config('postgres')
+
+    # Ensure bill_id is an integer
+    bill_id = int(bill_id)
+    
+    # Establish connection to the PostgreSQL server
+    conn = psycopg2.connect(**db_config)
+    print("Connected to the PostgreSQL database.")
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO public.bill_custom_details (bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (bill_id) 
+        DO UPDATE SET 
+            org_position = EXCLUDED.org_position,
+            priority_tier = EXCLUDED.priority_tier,
+            community_sponsor = EXCLUDED.community_sponsor,
+            coalition = EXCLUDED.coalition,
+            letter_of_support = EXCLUDED.letter_of_support;
+    """, (bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support))
+    
+    conn.commit()
+    conn.close()
