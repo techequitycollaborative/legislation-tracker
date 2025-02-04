@@ -41,7 +41,7 @@ unsafe_allow_html=True)
 st.markdown("### Pages:")
 
 pages = [
-    {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "bills_tabs.py"},
+    {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "bills_topic.py"},
     {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "legislators.py"},
     {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "calendar2.py"},
     {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "dashboard.py"},

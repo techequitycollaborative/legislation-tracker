@@ -79,6 +79,7 @@ def get_data():
 
 ###############################################################################
 
+@st.cache_data # cache the function to help increase load time. Optional argument: add seconds expiration time (ttl=60)
 def get_custom_bill_details(bill_id):
     '''
     Fetches custom bill details for a specific bill_id from the bill_custom_details table in postgres and adds to the bills details page
