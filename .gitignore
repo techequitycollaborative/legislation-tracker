@@ -1,6 +1,7 @@
 secrets.toml
 password.txt
 credentials.ini
+auth/
 google_credentials.json
 .DS_Store
 

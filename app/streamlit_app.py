@@ -23,7 +23,7 @@ st.logo(
 
 # Google Authenticator Setup -- cookies are not being stored properly; need to fix this
 authenticator = Authenticate(
-    secret_credentials_path='google_credentials.json',
+    secret_credentials_path='auth/google_credentials.json',
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
     redirect_uri='http://localhost:8501',  # Change this for production
