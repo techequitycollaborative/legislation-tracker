@@ -8,20 +8,21 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  streamlit_app: # Name of the app
+  streamlit_app:
     build:
       context: .
-      dockerfile: Dockerfile # path to Dockerfile in the repo
-    image: leg-tracker:latest  # Name and optional tag for the image
+      dockerfile: Dockerfile
+    image: leg-tracker:latest
     ports:
       - 8501:8501
     volumes:
-      - .streamlit:/app/.streamlit # copies files from .streamlit folder to container -- for development/testing only
-      - ./:/app # copies files from /app folder to container -- for development/testing only
+      - .streamlit:/app/.streamlit  # copies files from .streamlit folder to container -- for development/testing only
+      - ./:/app  # copies files from /app folder to container -- for development/testing only
+      - ./app/auth/google_credentials.json:/app/auth/google_credentials.json  # Mount the google_credentials.json file for user auth
     environment:
       - ENV=development
-    command: streamlit run /app/streamlit_app.py # command to launch app
-
+      - GOOGLE_CREDENTIALS_PATH=/app/auth/google_credentials.json  # Set the environment variable for the credentials path
+    command: streamlit run /app/streamlit_app.py
 
 
 # The commented out section below is an example of how to define a PostgreSQL
