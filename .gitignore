@@ -1,7 +1,7 @@
 secrets.toml
 password.txt
 credentials.ini
-*credentials.json
+google_credentials.json
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
