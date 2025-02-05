@@ -1,15 +1,20 @@
 import paramiko
 import os
+import io
 
-# Set up SSH connection to your Droplet and retrieve the google_credentials.json file
 def fetch_google_credentials_from_droplet():
-    # Set up SSH connection
+    # Load private key from environment variable
+    private_key = os.getenv("PRIVATE_SSH_KEY")
+
+    # Convert the string to a file-like object
+    private_key_file = io.StringIO(private_key)  # Use StringIO for string input
+
+    # Initialize the SSH client and load the private key
+    key = paramiko.RSAKey.from_private_key(private_key_file)
+
+    # Set up SSH connection to your Droplet
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    # Load private key from environment variables (or secrets manager)
-    private_key = os.getenv("SSH_KEY")
-    key = paramiko.RSAKey.from_private_key(private_key)
 
     # Connect to Droplet on port 6022 (adjust if necessary)
     ssh.connect('143.198.149.149', port=6022, username='root', pkey=key)
