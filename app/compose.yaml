@@ -18,7 +18,7 @@ services:
     volumes:
       - .streamlit:/app/.streamlit  # copies files from .streamlit folder to container -- for development/testing only
       - ./:/app  # copies files from /app folder to container -- for development/testing only
-      - ./app/auth/google_credentials.json:/app/auth/google_credentials.json  # Mount the google_credentials.json file for user auth
+      - ./auth/google_credentials.json:/app/auth/google_credentials.json  # Mount the google_credentials.json file for user auth
     environment:
       - ENV=development
       - GOOGLE_CREDENTIALS_PATH=/app/auth/google_credentials.json  # Set the environment variable for the credentials path
