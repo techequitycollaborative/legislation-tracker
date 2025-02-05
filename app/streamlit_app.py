@@ -12,7 +12,7 @@ Streamlit, an open-source framework to build data apps in Python.
 import os
 import streamlit as st
 from streamlit_google_auth import Authenticate
-from auth.auth import fetch_google_credentials_from_droplet
+from utils.auth import fetch_google_credentials_from_droplet
 
 # Set page config
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
