@@ -12,6 +12,7 @@ Streamlit, an open-source framework to build data apps in Python.
 import os
 import streamlit as st
 from streamlit_google_auth import Authenticate
+from auth.auth import fetch_google_credentials_from_droplet
 
 # Set page config
 st.set_page_config(page_title='Legislation Tracker', layout='wide')
@@ -22,9 +23,12 @@ st.logo(
         logo,
         link="https://techequity.us")
 
+# Ensure the credentials are fetched and available locally
+google_credentials_path = fetch_google_credentials_from_droplet()
+
 # Google Authenticator Setup -- cookies are not being stored properly; need to fix this
 authenticator = Authenticate(
-    secret_credentials_path = os.getenv("GOOGLE_CREDENTIALS_PATH", "./auth/google_credentials.json") # replace with 'auth/google_credentials.json' for local development
+    secret_credentials_path = google_credentials_path, # replace with 'auth/google_credentials.json' for local development
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
     redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app',  # Change to 'http://localhost:8501' for local development
