@@ -106,6 +106,9 @@ calendar_html = f"""
       var calendarEl = document.getElementById('calendar');
       var calendar = new FullCalendar.Calendar(calendarEl, {{
         initialView: 'dayGridMonth',
+        contentHeight: 'auto',
+        aspectRatio: 2,
+        dayMaxEventsRows: true,
         headerToolbar: {{
           left: 'prev,next today',
           center: 'title',
@@ -125,4 +128,4 @@ calendar_html = f"""
 
 
 # render the calendar in Streamlit
-html(calendar_html, height=800)
+html(calendar_html) #height=800, width=1000) #optional hard coded dimensions
