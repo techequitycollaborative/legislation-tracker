@@ -14,7 +14,18 @@ import streamlit as st
 from streamlit_google_auth import Authenticate
 from utils.auth import fetch_google_credentials_from_droplet
 
-
+# page configuration
+st.set_page_config(
+    page_title='CA Legislation Tracker',
+    page_icon=':scales:',
+    layout='wide',
+    #initial_sidebar_state='collapsed',
+    menu_items={
+        'Get help': None,
+        'Report a bug': 'https://github.com/techequitycollaborative/legislation-tracker/issues',
+        'About': "The CA Legislation Tracker is a project by TechEquity. Learn more about our organization [here](https://techequity.us). Special thanks to Danya Sherbini and Jessica Wang for their work on this project, as well as previous TechEquity volunteers who worked on version 1 of this tool."
+    }
+)
 
 # Add logo
 logo = './assets/logo.png'

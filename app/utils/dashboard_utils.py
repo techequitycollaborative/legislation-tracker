@@ -11,6 +11,7 @@ Functions for displaying bill details in different formats and on different page
 import streamlit as st
 import pandas as pd
 from db.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard_with_db, remove_bill_from_dashboard  
+from utils.utils import format_bill_history
 
 def display_bill_info_text(selected_rows):
     '''
@@ -200,7 +201,7 @@ def display_dashboard_details(selected_rows):
     chamber = selected_rows['chamber'].iloc[0]
     leginfo_link = selected_rows['leginfo_link'].iloc[0]
     full_text = selected_rows['full_text'].iloc[0]
-    bill_history = selected_rows['bill_history'].iloc[0]
+    bill_history = format_bill_history(selected_rows['bill_history'].iloc[0]) #make sure to format bill history here
     bill_topic = selected_rows['bill_topic'].iloc[0]
     
     # Display Bill Info Below the Table

@@ -41,7 +41,22 @@ db_bills = get_my_dashboard_bills(user_email)
 # Minor data processing to match bills table
 db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
 db_bills = get_bill_topics(db_bills, keyword_dict= keywords)  # Get bill topics
-db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
+#db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
+
+# Buttom to download selected bills
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.markdown("")
+
+with col2:
+    st.download_button(
+            label='Download Data as CSV',
+            data=to_csv(db_bills),
+            file_name='my_bills.csv',
+            mime='text/csv',
+            use_container_width=True
+        )
+
 
 if not db_bills.empty:
     st.write('Your saved bills:')
@@ -55,20 +70,6 @@ if not db_bills.empty:
 
     if selected_rows is not None and len(selected_rows) != 0:
             display_dashboard_details(selected_rows)
-
-    # Buttom to download selected bills
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        st.markdown("")
-
-    with col2:
-        st.download_button(
-                label='Download Data as CSV',
-                data=to_csv(db_bills),
-                file_name='my_bills.csv',
-                mime='text/csv',
-                use_container_width=True
-            )
 
 else:
     st.write('No bills selected yet.')
