@@ -15,26 +15,6 @@ import streamlit as st
 from streamlit.components.v1 import html
 
 
-# page configuration
-st.set_page_config(
-    page_title='CA Legislation Tracker',
-    page_icon=':scales:',
-    layout='centered',
-    #initial_sidebar_state='collapsed',
-    menu_items={
-        'Get help': None,
-        'Report a bug': 'https://github.com/techequitycollaborative/legislation-tracker/issues',
-        'About': """
-        The CA Legislation Tracker is a project by [TechEquity](https://techequity.us). Special thanks to Danya Sherbini and Jessica Wang for their work on this project, as well as former TechEquity volunteers who worked on the previous version of this tool.
-        
-        Copyright (c) 2025 TechEquity.
-
-
-        [Terms of Use](https://github.com/techequitycollaborative/legislation-tracker/blob/main/LICENSE)
-        """
-    }
-)
-
 # Show the page title and description
 #st.set_page_config(page_title='Legislation Tracker', layout='wide') #can add page_icon argument
 st.title('Calendar')
@@ -160,4 +140,4 @@ calendar_html = f"""
 
 
 # render the calendar in Streamlit
-html(calendar_html, height=800) # default aspect ratio is 1.35 -- must set height to at least 600 to see the calendar in local testing
+html(calendar_html, height=1000) # default aspect ratio is 1.35 -- must set height to at least 600 to see the calendar in local testing
