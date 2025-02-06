@@ -118,6 +118,7 @@ calendar_html = f"""
       var calendarEl = document.getElementById('calendar');
       var calendar = new FullCalendar.Calendar(calendarEl, {{
         themeSystem: 'standard',
+        aspectRatio: 1,<!--default aspect ratio is 1.35 -->
         initialView: 'dayGridMonth',
         dayMaxEventsRows: true,
         handleWindowResize: true,
@@ -140,4 +141,4 @@ calendar_html = f"""
 
 
 # render the calendar in Streamlit
-html(calendar_html, height=1000) # default aspect ratio is 1.35 -- must set height to at least 600 to see the calendar in local testing
+html(calendar_html, height=1000) 
