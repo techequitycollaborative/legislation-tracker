@@ -30,7 +30,7 @@ authenticator = Authenticate(
     secret_credentials_path = google_credentials_path, # replace with 'auth/google_credentials.json' for local development
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
-    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/welcome',  # Change to 'http://localhost:8501/welcome' for local development
+    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/Home',  # Change to 'http://localhost:8501/welcome' for local development
     cookie_expiry_days=30,
 )
 
@@ -97,6 +97,12 @@ else:
         with col2:
             st.markdown(item["description"])
 
+    # Add pages to the sidebar
+    for item in pages:
+        st.sidebar.markdown(f"### {item['label']}")
+        st.sidebar.markdown(item['description'])
+        st.sidebar.markdown("")  # Blank line between pages
+        st.sidebar.button(f"Go to {item['label']}", key=item["label"], on_click=lambda page=item["page"]: st.session_state.page_to_load(page))
 
 
     ############################# ABOUT TECH EQUITY ###############################
@@ -111,7 +117,10 @@ else:
     ############################# END OF WELCOME CONTENT ###############################
 
     # Run the pages
-    pg.run()
+    if 'page_to_load' in st.session_state:
+        page = st.session_state.page_to_load
+        exec(open(page).read())  # Dynamically load and run the selected page
+
 
     # Add the logout button to the bottom of the navigation bar
     # Adding spaces to push the button to the bottom (this is a hack, could be improved)
