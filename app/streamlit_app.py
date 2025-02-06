@@ -31,7 +31,7 @@ authenticator = Authenticate(
     secret_credentials_path = google_credentials_path, # replace with 'auth/google_credentials.json' for local development
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
-    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app',  # Change to 'http://localhost:8501' for local development
+    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/_oauth',  # Change to 'http://localhost:8501/_oauth' for local development
     cookie_expiry_days=30,
 )
 
