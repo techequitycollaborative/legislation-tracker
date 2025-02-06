@@ -31,12 +31,16 @@ authenticator = Authenticate(
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
     # This is the URL to redirect to after a successful login
-    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/home',  # Change to 'http://localhost:8501/home' for local development
+    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/?nav=home',  # Change to 'http://localhost:8501/?nav=home' for local development
     cookie_expiry_days=30,
 )
 
 # Authenticate user
 authenticator.check_authentification()
+
+# Extract query parameters
+query_params = st.query_params
+nav_page = query_params.get("nav", "home")  # Default to "home" if no query param is set
 
 # Define login page as a function
 def login_page():
@@ -73,36 +77,15 @@ else:
     # Build navigation bar
     pg = st.navigation([login, home, bills, legislators, calendar, dashboard])
 
-    # Run the pages
-    pg.run()
+    # Clear query parameters after successful login to prevent infinite loops
+    if st.session_state.get('connected'):
+        st.query_params.clear()
 
+    # Run the correct page based on query parameter navigation
+    pg.run(nav_page)
 
     # Add the logout button to the bottom of the navigation bar
-    # Adding spaces to push the button to the bottom (this is a hack, could be improved)
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
-    st.sidebar.markdown('')
+    st.sidebar.markdown("<br>" * 20, unsafe_allow_html=True)  # Push logout button down
     st.sidebar.button('Log out', key='logout', on_click=authenticator.logout)
 
 
