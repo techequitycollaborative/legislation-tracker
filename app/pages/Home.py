@@ -41,13 +41,13 @@ unsafe_allow_html=True)
 st.markdown("### Pages:")
 
 pages = [
-    {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "pages/1_📝 Bills.py"},
-    {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "pages/2_💼 Legislators.pyy"},
-    {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "pages/3_📅 Calendar.py"},
-    {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "pages/4_📌 My Dashboard.py"},
-]
+        {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "pages/1_Bills.py"},
+        {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "pages/2_Legislators.pyy"},
+        {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "pages/3_Calendar.py"},
+        {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "pages/4_Dashboard.py"},
+    ]
 
-# Loop through and display the data in columns
+    # Loop through and display the data in columns
 for item in pages:
     col1, col_space, col2 = st.columns([1, 0.1, 4])  # Thin blank column between the two
     with col1:
