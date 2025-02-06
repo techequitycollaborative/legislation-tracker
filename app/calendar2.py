@@ -53,20 +53,32 @@ calendar_events = [
 custom_css = """
     /* Background and toolbar styling */
     #calendar {
-      font-family: 'Georgia', serif;
+      font-family: "source-sans-pro", sans-serif;
+      font-weight: 300;
+      font-style: normal;
       font-size: 14px;
     }
     .fc-toolbar {
+      font-family: "source-sans-pro", sans-serif;
+      font-weight: 600;
+      font-style: normal;
+      font-size: 16px;
       color: black;
-      font-family: 'Georgia', serif;
-      font-size: 18px;
+  
     }
     .fc-toolbar-title {
+      font-family: "source-sans-pro", sans-serif;
+      font-weight: 600;
+      font-style: normal;
+      font-size: 20px;
       color: black;
     }
 
     /* Event styling */
     .fc-event {
+      font-family: "source-sans-pro", sans-serif;
+      font-weight: 400;
+      font-style: normal;
       color: black;
       padding: 5px;  /* Add padding to give space for wrapping */
       white-space: normal !important;  /* Allow text wrapping */
@@ -74,7 +86,9 @@ custom_css = """
       word-break: break-word;  /* Ensure long words break onto the next line */
     }
     .fc-event-title {
-      font-family: 'Georgia',
+      font-family: "source-sans-pro", sans-serif;
+      font-weight: 400;
+      font-style: normal;
       font-size: 12x;
       word-wrap: break-word;  /* Allow event title to wrap */
       white-space: normal;  /* Ensure text wraps properly */
@@ -105,10 +119,10 @@ calendar_html = f"""
     document.addEventListener('DOMContentLoaded', function() {{
       var calendarEl = document.getElementById('calendar');
       var calendar = new FullCalendar.Calendar(calendarEl, {{
+        themeSystem: 'standard',
         initialView: 'dayGridMonth',
-        contentHeight: 'auto',
-        aspectRatio: 2,
         dayMaxEventsRows: true,
+        handleWindowResize: true,
         headerToolbar: {{
           left: 'prev,next today',
           center: 'title',
@@ -128,4 +142,4 @@ calendar_html = f"""
 
 
 # render the calendar in Streamlit
-html(calendar_html) #height=800, width=1000) #optional hard coded dimensions
+html(calendar_html, height=800) # default aspect ratio is 1.35 -- must set height to at least 600 to see the calendar in local testing
