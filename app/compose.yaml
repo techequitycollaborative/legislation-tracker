@@ -20,7 +20,7 @@ services:
       - ./:/app  # copies files from /app folder to container -- for development/testing only
     environment:
       - ENV=development
-    command: streamlit run /app/Home.py
+    command: streamlit run /app/main.py
 
 
 # The commented out section below is an example of how to define a PostgreSQL
