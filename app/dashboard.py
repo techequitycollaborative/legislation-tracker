@@ -13,7 +13,7 @@ import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
 from utils.utils import format_bill_history, get_bill_topics, keywords, to_csv
 from db.query import get_my_dashboard_bills
-from utils.dashboard_utils import display_dashboard_details
+from utils.display_utils import display_dashboard_details, format_bill_history_dashboard
 
 
 # Page title
@@ -41,7 +41,7 @@ db_bills = get_my_dashboard_bills(user_email)
 # Minor data processing to match bills table
 db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
 db_bills = get_bill_topics(db_bills, keyword_dict= keywords)  # Get bill topics
-#db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
+db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history_dashboard) #Format bill history
 
 # Buttom to download selected bills
 col1, col2 = st.columns([4, 1])

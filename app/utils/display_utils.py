@@ -11,7 +11,6 @@ Functions for displaying bill details in different formats and on different page
 import streamlit as st
 import pandas as pd
 from db.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard_with_db, remove_bill_from_dashboard  
-from utils.utils import format_bill_history
 
 def display_bill_info_text(selected_rows):
     '''
@@ -185,6 +184,35 @@ def display_bill_info_text(selected_rows):
 
 ###############################################################################
 
+import re
+
+def format_bill_history_dashboard(bill_history):
+    '''
+    Reformats bill_history variable into a descending chronological list for the bill history section of the DASHBOARD bill details page.
+    '''
+    if not bill_history:
+        return ""
+
+    # Split entries by new lines
+    entries = bill_history.strip().split("\n")
+
+    formatted_entries = []
+    for entry in entries:
+        # Match date and event in the format: YYYY-MM-DD: Event
+        match = re.match(r"^(\d{4}-\d{2}-\d{2}):\s*(.+)", entry)
+        if match:
+            date, event = match.groups()
+            formatted_entries.append((date, event))
+
+    # Sort entries by date in descending order
+    formatted_entries.sort(reverse=True, key=lambda x: x[0])
+
+    # Format back into readable Markdown-style text
+    return "\n\n".join([f"**{date}:** {event}" for date, event in formatted_entries])
+
+
+###############################################################################
+
 def display_dashboard_details(selected_rows):
     '''
     Displays bill details on the dashboard page when a row is selected; features a button to remove a bill from your dashboard.
@@ -201,7 +229,7 @@ def display_dashboard_details(selected_rows):
     chamber = selected_rows['chamber'].iloc[0]
     leginfo_link = selected_rows['leginfo_link'].iloc[0]
     full_text = selected_rows['full_text'].iloc[0]
-    bill_history = format_bill_history(selected_rows['bill_history'].iloc[0]) #make sure to format bill history here
+    bill_history = selected_rows['bill_history'].iloc[0]
     bill_topic = selected_rows['bill_topic'].iloc[0]
     
     # Display Bill Info Below the Table

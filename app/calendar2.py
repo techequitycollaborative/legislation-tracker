@@ -125,4 +125,4 @@ calendar_html = f"""
 
 
 # render the calendar in Streamlit
-html(calendar_html, height=400)
+html(calendar_html, height=800)
