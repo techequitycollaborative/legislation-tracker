@@ -41,10 +41,10 @@ unsafe_allow_html=True)
 st.markdown("### Pages:")
 
 pages = [
-    {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "bills_topic.py"},
-    {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "legislators.py"},
-    {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "calendar2.py"},
-    {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "dashboard.py"},
+    {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "pages/1_📝 Bills.py"},
+    {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "pages/2_💼 Legislators.pyy"},
+    {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "pages/3_📅 Calendar.py"},
+    {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "pages/4_📌 My Dashboard.py"},
 ]
 
 # Loop through and display the data in columns

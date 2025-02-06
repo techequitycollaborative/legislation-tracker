@@ -20,6 +20,7 @@ from utils.dashboard_utils import display_dashboard_details
 st.title('Dashboard')
 
 # Get user email
+user_info = st.session_state['user_info']
 user_email = st.session_state["user_info"].get("email")
 
 # Clear dashboard button
