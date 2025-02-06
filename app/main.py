@@ -67,7 +67,7 @@ else:
 
     # Add page navigation for the authenticated user
     # Pages
-    login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=True) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
+    login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=(nav_page == "login")) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
     home = st.Page('home.py', title='Home', icon='🏠', url_path='home')
     bills = st.Page('bills_topic.py', title='Bills', icon='📝', url_path='bills')
     legislators = st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators')
@@ -82,7 +82,7 @@ else:
         st.query_params.clear()
 
     # Run the correct page based on query parameter navigation
-    pg.run(nav_page)
+    pg.run()
 
     # Add the logout button to the bottom of the navigation bar
     st.sidebar.markdown("<br>" * 20, unsafe_allow_html=True)  # Push logout button down
