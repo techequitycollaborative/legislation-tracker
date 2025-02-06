@@ -57,14 +57,14 @@ else:
 
     # Add page navigation for the authenticated user
     # Pages
-    welcome = st.Page('welcome.py', title='Welcome', icon='📜')
-    bills_tabs_expander = st.Page('bills_tabs.py', title='Bills - Tabs + Expander', icon='📝')
-    bills_tabs_dialog = st.Page('bills_tabs_dialog.py', title='Bills - Tabs + Dialog', icon='📝')
-    bills_multi = st.Page('bills_multiselect.py', title='Bills - Multiselect + Text', icon='📝')
-    bills_topic = st.Page('bills_topic.py', title='Bills', icon='📝')
-    legislators = st.Page('legislators.py', title='Legislators', icon='💼')
-    calendar = st.Page('calendar2.py', title='Calendar', icon='📅')
-    dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌')
+    welcome = st.Page('pages/welcome.py', title='Welcome', icon='📜')
+    bills_tabs_expander = st.Page('pages/bills_tabs.py', title='Bills - Tabs + Expander', icon='📝')
+    bills_tabs_dialog = st.Page('pages/bills_tabs_dialog.py', title='Bills - Tabs + Dialog', icon='📝')
+    bills_multi = st.Page('pages/bills_multiselect.py', title='Bills - Multiselect + Text', icon='📝')
+    bills_topic = st.Page('pages/bills_topic.py', title='Bills', icon='📝')
+    legislators = st.Page('pages/legislators.py', title='Legislators', icon='💼')
+    calendar = st.Page('pages/calendar2.py', title='Calendar', icon='📅')
+    dashboard = st.Page('pages/dashboard.py', title='My Dashboard', icon='📌')
 
     # Build navigation bar
     pg = st.navigation([welcome, bills_topic, legislators, calendar, dashboard])
