@@ -67,15 +67,15 @@ else:
 
     # Add page navigation for the authenticated user
     # Pages
-    login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=(nav_page == "login")) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
-    home = st.Page('home.py', title='Home', icon='🏠', url_path='home')
+    #login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=(nav_page == "login")) 
+    home = st.Page('home.py', title='Home', icon='🏠', url_path='home', default=(nav_page == "home")) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
     bills = st.Page('bills_topic.py', title='Bills', icon='📝', url_path='bills')
     legislators = st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators')
     calendar = st.Page('calendar2.py', title='Calendar', icon='📅', url_path='calendar')
     dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌', url_path='dashboard')
 
     # Build navigation bar
-    pg = st.navigation([login, home, bills, legislators, calendar, dashboard])
+    pg = st.navigation([home, bills, legislators, calendar, dashboard])
 
     # Clear query parameters after successful login to prevent infinite loops
     if st.session_state.get('connected'):
