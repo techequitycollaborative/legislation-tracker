@@ -22,7 +22,7 @@ def fetch_google_credentials_from_droplet():
     # Use SFTP to fetch the google_credentials.json from Droplet
     sftp = ssh.open_sftp()
     local_path = './google_credentials.json'  # Save file locally
-    sftp.get('root/auth/google_credentials.json', local_path)
+    sftp.get('/root/auth/google_credentials.json', local_path)
     sftp.close()
     ssh.close()
     return local_path
