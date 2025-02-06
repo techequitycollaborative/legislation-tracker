@@ -30,15 +30,16 @@ authenticator = Authenticate(
     secret_credentials_path = google_credentials_path, # replace with 'auth/google_credentials.json' for local development
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
-    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/Home',  # Change to 'http://localhost:8501/Home' for local development
+    # This is the URL to redirect to after a successful login
+    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/home',  # Change to 'http://localhost:8501/home' for local development
     cookie_expiry_days=30,
 )
 
 # Authenticate user
 authenticator.check_authentification()
 
-# If the user is not authenticated, show login page
-if not st.session_state.get('connected', False):
+# Define login page as a function
+def login_page():
     # Set the login page title + center it
     st.markdown(
     """
@@ -48,33 +49,32 @@ if not st.session_state.get('connected', False):
     # Show the login button and handle the login
     authenticator.login()
 
+
+# If the user is not authenticated, show login page
+if not st.session_state.get('connected', False):
+    # Show the login page
+    login_page()
+
 else:
     # User is authenticated, show the main content
     user_info = st.session_state['user_info']
     user_email = user_info.get('email')  # This will be used as the unique user identifier
 
 
-    # Pages for navigation bar
-    pages = [
-        {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "pages/1_Bills.py"},
-        {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "pages/2_Legislators.pyy"},
-        {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "pages/3_Calendar.py"},
-        {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "pages/4_Dashboard.py"},
-    ]
+    # Add page navigation for the authenticated user
+    # Pages
+    login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=True) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
+    home = st.Page('home.py', title='Home', icon='🏠', url_path='home')
+    bills = st.Page('bills_topic.py', title='Bills', icon='📝', url_path='bills')
+    legislators = st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators')
+    calendar = st.Page('calendar2.py', title='Calendar', icon='📅', url_path='calendar')
+    dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌', url_path='dashboard')
 
-
-    # Add pages to the sidebar
-    for item in pages:
-        st.sidebar.markdown(f"### {item['label']}")
-        st.sidebar.markdown(item['description'])
-        st.sidebar.markdown("")  # Blank line between pages
-        st.sidebar.button(f"Go to {item['label']}", key=item["label"], on_click=lambda page=item["page"]: st.session_state.page_to_load(page))
-
+    # Build navigation bar
+    pg = st.navigation([login, home, bills, legislators, calendar, dashboard])
 
     # Run the pages
-    if 'page_to_load' in st.session_state:
-        page = st.session_state.page_to_load
-        exec(open(page).read())  # Dynamically load and run the selected page
+    pg.run()
 
 
     # Add the logout button to the bottom of the navigation bar

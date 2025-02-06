@@ -5,20 +5,18 @@ Welcome Page
 Created on January 23, 2025
 @author: danyasherbini
 
-Welcome page for the legislation tracker
+Home page for the legislation tracker
 """
-
 
 import streamlit as st
 
 ############################ TITLE & WELCOME TEXT #############################
 
 # Page title
-st.title('Welcome')
+st.title('About the California Legislation Tracker')
 
 
 st.markdown("""
-## About the California Legislation Tracker
 Although information about California legislative bills is publicly available, it's spread across numerous state senate and assembly websites, making it difficult to parse or collect. The legislation tracker serves as a comprehensive source for California bill data, pulling data from various sources and updating in real time. 
 """)
 
@@ -41,13 +39,13 @@ unsafe_allow_html=True)
 st.markdown("### Pages:")
 
 pages = [
-        {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "pages/1_Bills.py"},
-        {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "pages/2_Legislators.pyy"},
-        {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "pages/3_Calendar.py"},
-        {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "pages/4_Dashboard.py"},
+        {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "bills_topic.py"},
+        {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "legislators.py"},
+        {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "calendar2.py"},
+        {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "dashboard.py"},
     ]
 
-    # Loop through and display the data in columns
+# Loop through pages and display them as streamlit page_link buttons
 for item in pages:
     col1, col_space, col2 = st.columns([1, 0.1, 4])  # Thin blank column between the two
     with col1:
