@@ -23,7 +23,12 @@ st.set_page_config(
     menu_items={
         'Get help': None,
         'Report a bug': 'https://github.com/techequitycollaborative/legislation-tracker/issues',
-        'About': "The CA Legislation Tracker is a project by TechEquity. Learn more about our organization [here](https://techequity.us). Special thanks to Danya Sherbini and Jessica Wang for their work on this project, as well as previous TechEquity volunteers who worked on version 1 of this tool."
+        'About': """
+        The CA Legislation Tracker is a project by [TechEquity](https://techequity.us). Special thanks to Danya Sherbini and Jessica Wang for their work on this project, as well as former TechEquity volunteers who worked on the previous version of this tool.
+        
+        Copyright (c) 2025 TechEquity
+        [License](https://github.com/techequitycollaborative/legislation-tracker/blob/main/LICENSE)
+        """
     }
 )
 
@@ -96,7 +101,7 @@ else:
     pg.run()
 
     # Add the logout button to the bottom of the navigation bar
-    st.sidebar.markdown("<br>" * 20, unsafe_allow_html=True)  # Push logout button down
+    st.sidebar.markdown("<br>" * 16, unsafe_allow_html=True)  # Push logout button down
     st.sidebar.button('Log out', key='logout', on_click=authenticator.logout)
 
 

@@ -15,9 +15,6 @@ import streamlit as st
 from streamlit.components.v1 import html
 
 
-#PATH = '.'
-#os.chdir(PATH)
-#os.getcwd()
 
 
 # Show the page title and description
@@ -128,4 +125,4 @@ calendar_html = f"""
 
 
 # render the calendar in Streamlit
-html(calendar_html, height=600)
+html(calendar_html, height=400)
