@@ -34,7 +34,7 @@ def get_and_clean_leg_data():
         # Query the database for bills and history
         legislators = query_table('ca_dev', 'legislator')
         legislators['chamber'] = np.where(legislators['chamber_id']==1,'Assembly','Senate') # change chamber id to actual chamber values
-        legislators = legislators.drop(['legislator_id','chamber_id'],axis=1) # drop these two columns
+        legislators = legislators.drop(['legislator_id','chamber_id', 'openstates_people_id'],axis=1) # drop these ID columns
         return legislators
     
     # Call the cached function to get the data
