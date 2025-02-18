@@ -28,24 +28,45 @@ import io
 #    return local_path
 
 
+import os
+import io
+import paramiko
+import platform
+
 def fetch_google_credentials_from_droplet():
-    private_key = os.getenv("PRIVATE_SSH_KEY")
+    """Fetch Google credentials from the remote server using SSH."""
 
-    if not private_key:
-        raise ValueError("PRIVATE_SSH_KEY is empty or not set.")
+    # Detect if running locally (Mac/Linux)
+    is_local = os.getenv("ENV") == "local" or platform.system() in ["Darwin", "Linux"]
 
-    private_key_file = io.StringIO(private_key)
+    if is_local:
+        private_key_path = os.path.expanduser("~/.ssh/id_rsa")
+        
+        if not os.path.exists(private_key_path):
+            raise ValueError(f"Local private key not found at {private_key_path}. "
+                             f"Ensure you have SSH access set up.")
 
-    # Load the key with Paramiko, letting it auto-detect the format
-    try:
-        key = paramiko.PKey.from_private_key(private_key_file)
-    except Exception as e:
-        raise ValueError(f"Error loading SSH private key: {e}")
+        try:
+            key = paramiko.RSAKey.from_private_key_file(private_key_path)
+        except Exception as e:
+            raise ValueError(f"Error loading local SSH key: {e}")
+    
+    else:
+        private_key = os.getenv("PRIVATE_SSH_KEY")
+        if not private_key:
+            raise ValueError("PRIVATE_SSH_KEY is empty or not set.")
+        
+        private_key_file = io.StringIO(private_key)
+        
+        try:
+            key = paramiko.PKey.from_private_key(private_key_file)
+        except Exception as e:
+            raise ValueError(f"Error loading SSH private key: {e}")
 
+    # Set up SSH client
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    # Try connecting
     try:
         ssh.connect('143.198.149.149', port=6022, username='root', pkey=key)
     except Exception as e:
@@ -59,3 +80,4 @@ def fetch_google_credentials_from_droplet():
     ssh.close()
 
     return local_path
+
