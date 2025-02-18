@@ -1,10 +1,26 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+auth.py
+February 2025
+@author: danyasherbini
+
+This script locates and fetches Google credentials from a remote server, which are used to build the Google
+authentication mechanism for the legislation tracker app. The server is accessed via SSH with the paramiko library.
+"""
+
 import os
 import io
 import paramiko
 import platform
 
 def fetch_google_credentials_from_droplet():
-    """Fetch Google credentials from the remote server using SSH."""
+    """
+    Fetches Google credentials file from the remote server via SSH.
+
+    Parameters: None
+    Outputs: Local path to google credentials file, used to build Google authenticator widget.
+    """
 
     # Detect if running locally (Mac/Linux)
     is_local = os.getenv("ENV") == "local" or platform.system() in ["Darwin", "Linux"]
