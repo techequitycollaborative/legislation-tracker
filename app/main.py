@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Sketching Leg Tracker using Streamlit
+main.py
 Created on Oct 2, 2024
-@author: danyasherbini
 
-This script sketches a prototype of the Legislation Tracker app using 
-Streamlit, an open-source framework to build data apps in Python.
+This is the main script of the Legislation Tracker. To run the app locally, run: 'streamlit run main.py'
 """
 
-import os
-import platform
 import streamlit as st
 from streamlit_google_auth import Authenticate
 from utils.auth import fetch_google_credentials_from_droplet

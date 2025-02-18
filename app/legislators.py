@@ -3,7 +3,6 @@
 """
 Legislator Page
 Created on Oct 2, 2024
-@author: danyasherbini
 
 This page of the app contains legislator information.
 """
@@ -19,7 +18,7 @@ from utils.utils import to_csv
 st.title('Legislators')
 st.write(
     '''
-    This page shows California legislators for the 2025-2026 legislative session. 
+    This page shows legislator information for the current legislative session. 
     '''
 )
 

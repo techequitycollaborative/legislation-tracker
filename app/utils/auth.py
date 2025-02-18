@@ -7,6 +7,8 @@ February 2025
 
 This script locates and fetches Google credentials from a remote server, which are used to build the Google
 authentication mechanism for the legislation tracker app. The server is accessed via SSH with the paramiko library.
+
+A private OPENSSH key is required in order to access the droplet.
 """
 
 import os
@@ -27,7 +29,7 @@ def fetch_google_credentials_from_droplet():
 
     # If running locally, then get ssh key from local file
     if is_local:
-        private_key_path = os.path.expanduser("~/.ssh/id_rsa")
+        private_key_path = os.path.expanduser("~/.ssh/id_rsa") #  replace path to local ssh key as needed
         
         if not os.path.exists(private_key_path):
             raise ValueError(f"Local private key not found at {private_key_path}. "
