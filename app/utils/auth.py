@@ -40,7 +40,7 @@ def fetch_google_credentials_from_droplet():
     is_local = os.getenv("ENV") == "local" or platform.system() in ["Darwin", "Linux"]
 
     if is_local:
-        private_key_path = os.path.expanduser("~/.ssh/id_rsa")
+        private_key_path = os.path.expanduser("/Users/danyasherbini/.ssh/id_rsa")
         
         if not os.path.exists(private_key_path):
             raise ValueError(f"Local private key not found at {private_key_path}. "
