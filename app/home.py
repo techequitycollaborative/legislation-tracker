@@ -15,7 +15,7 @@ import streamlit as st
 st.title('Welcome to the California Legislation Tracker')
 
 st.markdown("""
-Tired of clicking through endless rabbit holes on California legislative websites? Or scrolling through long PDF files? You're in luck! The CA Legislation Tracker serves as a comprehensive source for California bill data, pulling from various sources and updating in real time. 
+Tired of clicking through endless rabbit holes on California legislative websites? Or scrolling through long PDF files? You're in luck! The CA Legislation Tracker is a comprehensive source for California bill data, pulling from various sources and updating in real time. 
 """)
 
 
