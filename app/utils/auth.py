@@ -39,6 +39,7 @@ def fetch_google_credentials_from_droplet():
     # Detect if running locally (Mac/Linux)
     is_local = os.getenv("ENV") == "local" or platform.system() in ["Darwin", "Linux"]
 
+    # If running locally, then get ssh key from local file
     if is_local:
         private_key_path = os.path.expanduser("~/.ssh/id_rsa")
         
@@ -50,7 +51,8 @@ def fetch_google_credentials_from_droplet():
             key = paramiko.RSAKey.from_private_key_file(private_key_path)
         except Exception as e:
             raise ValueError(f"Error loading local SSH key: {e}")
-    
+
+    # Or if running on remote server, get ssh key from remote environment 
     else:
         private_key = os.getenv("PRIVATE_SSH_KEY")
         if not private_key:
@@ -72,10 +74,10 @@ def fetch_google_credentials_from_droplet():
     except Exception as e:
         raise ValueError(f"SSH connection failed: {e}")
 
-    # Fetch the credentials file
+    # Fetch the credentials file from server
     sftp = ssh.open_sftp()
     local_path = './google_credentials.json'
-    sftp.get('/root/auth/google_credentials.json', local_path)
+    sftp.get('/root/auth/google_credentials.json', local_path) # save it locally
     sftp.close()
     ssh.close()
 

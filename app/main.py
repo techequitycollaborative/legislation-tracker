@@ -10,16 +10,17 @@ Streamlit, an open-source framework to build data apps in Python.
 """
 
 import os
+import platform
 import streamlit as st
 from streamlit_google_auth import Authenticate
 from utils.auth import fetch_google_credentials_from_droplet
 
-# page configuration
+# Page configuration
 st.set_page_config(
     page_title='CA Legislation Tracker',
     page_icon=':scales:',
     layout='wide',
-    #initial_sidebar_state='collapsed',
+    initial_sidebar_state='collapsed',
     menu_items={
         'Get help': None,
         'Report a bug': 'https://github.com/techequitycollaborative/legislation-tracker/issues',
@@ -43,13 +44,13 @@ st.logo(
 # Ensure the credentials are fetched and available locally
 google_credentials_path = fetch_google_credentials_from_droplet()
 
-# Google Authenticator Setup -- cookies are not being stored properly; need to fix this
+# Google authenticator setup
 authenticator = Authenticate(
-    secret_credentials_path = google_credentials_path, # replace with 'auth/google_credentials.json' for local development
+    secret_credentials_path = 'auth/google_credentials.json', # replace with 'auth/google_credentials.json' for local development
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
     # This is the URL to redirect to after a successful login
-    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/?nav=home',  # Change to 'http://localhost:8501/?nav=home' for local development
+    redirect_uri='http://localhost:8501/?nav=home',  # Change to 'http://localhost:8501/?nav=home' for local development
     cookie_expiry_days=30,
 )
 
@@ -71,7 +72,6 @@ def login_page():
     # Show the login button and handle the login
     authenticator.login()
 
-
 # If the user is not authenticated, show login page
 if not st.session_state.get('connected', False):
     # Show the login page
@@ -82,10 +82,8 @@ else:
     user_info = st.session_state['user_info']
     user_email = user_info.get('email')  # This will be used as the unique user identifier
 
-
     # Add page navigation for the authenticated user
-    # Pages
-    #login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=(nav_page == "login")) 
+    #login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=(nav_page == "login")) # turn off login page
     home = st.Page('home.py', title='Home', icon='🏠', url_path='home', default=(nav_page == "home")) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
     bills = st.Page('bills_topic.py', title='Bills', icon='📝', url_path='bills')
     legislators = st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators')
