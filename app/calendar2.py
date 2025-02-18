@@ -6,21 +6,20 @@ Created on Nov 27, 2024
 @author: danyasherbini
 
 This page of the app features a calendar of legislative deadlines and/or events, built with
-html code (via streamlit html component)
+a custom streamlit calendar component.
 """
 
-import os
 import pandas as pd
 import streamlit as st
-from streamlit.components.v1 import html
+from streamlit_calendar import calendar
 
 
 # Show the page title and description
-#st.set_page_config(page_title='Legislation Tracker', layout='wide') #can add page_icon argument
+# st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
 st.title('Calendar')
 st.write(
     '''
-    This page shows important events and deadlines in the 2025-2026 legislative cycle.
+    This page shows important dates and deadlines for the current legislative cycle.
     '''
 )
 
@@ -35,7 +34,7 @@ def load_calendar_data():
 
 assembly_data = load_calendar_data()
 
-# convert from csv to json format
+# Convert from csv to json format
 calendar_events = [
     {
         'title': row['title'],
@@ -46,61 +45,47 @@ calendar_events = [
     for _, row in assembly_data.iterrows()
 ]
 
-################################## CALENDAR ###################################
+################################## CSS ###################################
 
-custom_css = """
-    /* Background and toolbar styling */
-    #calendar {
-      font-family: "source-sans-pro", sans-serif;
-      font-weight: 300;
-      font-style: normal;
-      font-size: 14px;
-    }
-    .fc-toolbar {
-      font-family: "source-sans-pro", sans-serif;
-      font-weight: 600;
-      font-style: normal;
-      font-size: 16px;
-      color: black;
-  
-    }
-    .fc-toolbar-title {
-      font-family: "source-sans-pro", sans-serif;
-      font-weight: 600;
-      font-style: normal;
-      font-size: 20px;
-      color: black;
-    }
+# Load external CSS file
+def load_css(file_path):
+    with open(file_path, "r") as f:
+        return f"<style>{f.read()}</style>"
 
-    /* Event styling */
-    .fc-event {
-      font-family: "source-sans-pro", sans-serif;
-      font-weight: 400;
-      font-style: normal;
-      color: black;
-      padding: 5px;  /* Add padding to give space for wrapping */
-      white-space: normal !important;  /* Allow text wrapping */
-      word-wrap: break-word;  /* Allow long words to break and wrap */
-      word-break: break-word;  /* Ensure long words break onto the next line */
-    }
-    .fc-event-title {
-      font-family: "source-sans-pro", sans-serif;
-      font-weight: 400;
-      font-style: normal;
-      font-size: 12x;
-      word-wrap: break-word;  /* Allow event title to wrap */
-      white-space: normal;  /* Ensure text wraps properly */
-    }
+# Read the CSS file
+custom_css = load_css("./styles/calendar.css")
 
-    /* Highlight today's date */
-    .fc-day-today {
-      background-color: #ffffcc !important;
-    }
 
-"""
+################################## BUILD CALENDAR ###################################
+# This streamlit component is built from FullCalendar: https://fullcalendar.io
 
-# FullCalendar html with eventClick handling
-# https://fullcalendar.io
+# Calendar options
+calendar_options = {
+  "selectable":True,
+  "themeSystem": 'standard',
+  "initialView": 'dayGridMonth',
+  "dayMaxEventsRows": True,
+  "handleWindowResize": True, #Ensures calendar resizes on window resize
+  "headerToolbar": {
+    "left": 'today prev,next',
+    "center": 'title',
+    "right": 'dayGridMonth,dayGridWeek,listMonth',
+    }}
+
+# Render the calendar
+calendar = calendar(
+    events=calendar_events,
+    options=calendar_options,
+    custom_css=custom_css,
+    key='calendar', # Assign a widget key to prevent state loss
+    )
+
+################################################################################################
+
+# Alternate option to build calendar with html
+
+from streamlit.components.v1 import html
+
 calendar_html = f"""
 <!DOCTYPE html>
 <html>
@@ -120,7 +105,7 @@ calendar_html = f"""
         themeSystem: 'standard',
         initialView: 'dayGridMonth',
         dayMaxEventsRows: true,
-        handleWindowResize: true,
+        handleWindowResize: true,  // Ensures calendar resizes on window resize
         headerToolbar: {{
           left: 'prev,next today',
           center: 'title',
@@ -138,6 +123,5 @@ calendar_html = f"""
 </html>
 """
 
-
-# render the calendar in Streamlit
-html(calendar_html, height=800, width=800) 
+# render the calendar with html
+#html(calendar_html, height=800, width=800)
