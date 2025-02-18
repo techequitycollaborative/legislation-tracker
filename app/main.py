@@ -20,7 +20,7 @@ st.set_page_config(
     page_title='CA Legislation Tracker',
     page_icon=':scales:',
     layout='wide',
-    initial_sidebar_state='collapsed',
+    #initial_sidebar_state='collapsed',
     menu_items={
         'Get help': None,
         'Report a bug': 'https://github.com/techequitycollaborative/legislation-tracker/issues',
@@ -46,11 +46,11 @@ google_credentials_path = fetch_google_credentials_from_droplet()
 
 # Google authenticator setup
 authenticator = Authenticate(
-    secret_credentials_path = 'auth/google_credentials.json', # replace with 'auth/google_credentials.json' for local development
+    secret_credentials_path = google_credentials_path, 
     cookie_name='my_cookie_name',
     cookie_key='this_is_secret',
     # This is the URL to redirect to after a successful login
-    redirect_uri='http://localhost:8501/?nav=home',  # Change to 'http://localhost:8501/?nav=home' for local development
+    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/?nav=home',  # Change to 'http://localhost:8501/?nav=home' for local development
     cookie_expiry_days=30,
 )
 
