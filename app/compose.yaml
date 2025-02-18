@@ -18,6 +18,7 @@ services:
     volumes:
       - .streamlit:/app/.streamlit  # copies files from .streamlit folder to container -- for development/testing only
       - ./:/app  # copies files from /app folder to container -- for development/testing only
+      - ~/.ssh/id_rsa:/root/.ssh/id_rsa:ro  # Mount the SSH key (read-only)
     environment:
       - ENV=development
     command: streamlit run /app/main.py

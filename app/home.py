@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Welcome Page
+home.py
 Created on January 23, 2025
-@author: danyasherbini
 
-Home page for the legislation tracker
+Home page for the Legislation Tracker.
 """
 
 import streamlit as st
@@ -13,11 +12,10 @@ import streamlit as st
 ############################ TITLE & WELCOME TEXT #############################
 
 # Page title
-st.title('About the California Legislation Tracker')
-
+st.title('Welcome to the California Legislation Tracker')
 
 st.markdown("""
-Although information about California legislative bills is publicly available, it's spread across numerous state senate and assembly websites, making it difficult to parse or collect. The legislation tracker serves as a comprehensive source for California bill data, pulling data from various sources and updating in real time. 
+Tired of clicking through endless rabbit holes on California legislative websites? Or scrolling through long PDF files? You're in luck! The CA Legislation Tracker is a comprehensive source for California bill data, pulling from various sources and updating in real time. 
 """)
 
 
@@ -28,18 +26,18 @@ st.header("How to Use This App")
 # key features
 st.markdown(
 """
-### Key Features:
-- **Explore Bills:** Use the search and filtering tools to find legislative bills that matter to you.
-- **Track Progress:** Monitor the status and history of selected bills in real time.
+### Key Features
+- **Explore Bills:** Use the search and filtering tools to find bills relevant to your work.
+- **Track Progress:** Monitor the status and history of bills in real time.
 - **Build Your Dashboard:** Add bills to your personalized dashboard for quick access.
 """,
 unsafe_allow_html=True)
     
 # Pages
-st.markdown("### Pages:")
+st.markdown("### Pages")
 
 pages = [
-        {"label": "Bills", "icon": "📝", "description": "Explore and search for legislative bills.", "page": "bills_topic.py"},
+        {"label": "Bills", "icon": "📝", "description": "Search, sort, and filter bills.", "page": "bills_topic.py"},
         {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "legislators.py"},
         {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "calendar2.py"},
         {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "dashboard.py"},
@@ -59,7 +57,6 @@ for item in pages:
 st.divider()
 
 st.markdown("""
-## About TechEquity
-TechEquity was founded in 2016 to answer a simple but ambitious question: what would it take for the growth of the tech industry to benefit everyone? We raise public consciousness about economic equity issues resulting from the tech industry’s products and practices and advocate for change that ensures tech’s evolution benefits everyone.
-If you'd like to learn more about us, visit [our website](https://techequity.us).
+## FAQs
+Add some FAQs here.
 """)
