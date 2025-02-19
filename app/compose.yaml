@@ -21,8 +21,8 @@ services:
       - .streamlit:/app/.streamlit  # Copy files from .streamlit folder to container -- for local development/testing only
       - ./:/app  # Copy files from /app folder to container -- for local development/testing only
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa:ro  # Mount the local SSH key to the docker container (as a read-only file)
-#    environment:
-#      - ENV=development # shouldn't need this since we added .env file above
+    environment:
+      - ENV=development # specifies development environment
     command: streamlit run /app/main.py
 
 

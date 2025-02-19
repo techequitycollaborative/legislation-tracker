@@ -15,6 +15,7 @@ import os
 import io
 import paramiko
 import platform
+from dotenv import load_dotenv
 
 def fetch_google_credentials_v1():
     """
@@ -132,7 +133,9 @@ def fetch_google_credentials_v2():
     return local_path
 
 
-def fetch_google_credentials_from_droplet():
+
+
+def fetch_google_credentials_v3():
     """
     Fetches Google credentials file from the remote server via SSH.
 
@@ -144,26 +147,27 @@ def fetch_google_credentials_from_droplet():
     """
 
     # Detect current environment
-    ENV = os.getenv("ENV","production") #default to production
-    print(f"Detected environment: {ENV}")
+    #ENV = os.getenv("ENV","production") #default to production
+    #print(f"Detected environment: {ENV}")
 
     # If running on Digital Ocean, get ssh key:
-    if ENV == "production":
-        print("Running on DigitalOcean - Using PRIVATE_SSH_KEY from environment.")
+    #if ENV == "production":
+        #print("Running on DigitalOcean - Using PRIVATE_SSH_KEY from environment.")
+    private_key = os.getenv("PRIVATE_SSH_KEY")
+    if not private_key:
+        raise ValueError("Error: PRIVATE_SSH_KEY is not set in the environment.")
 
-        private_key = os.getenv("PRIVATE_SSH_KEY")
-        if not private_key:
-            raise ValueError("Error: PRIVATE_SSH_KEY is not set in the environment.")
+    private_key_file = io.StringIO(private_key)
 
-        private_key_file = io.StringIO(private_key)
-
-        try:
-            key = paramiko.RSAKey.from_private_key(private_key_file)
-        except Exception as e:
-            raise ValueError(f"Error loading SSH private key from environment: {e}")
+    try:
+        key = paramiko.RSAKey.from_private_key(private_key_file)
+    except Exception as e:
+        raise ValueError(f"Error loading SSH private key from environment: {e}")
 
     # If running locally, find local ssh file:
     local_key_path = os.path.expanduser("~/.ssh/id_rsa") # local SSH file path
+    load_dotenv()  # Load environment variable from .env file
+    ENV = os.getenv("ENV", "production")  # Default to "production" if not set
     if ENV == "local":
         print(f"Running locally - Using SSH key file at {local_key_path}.")
 
@@ -196,3 +200,70 @@ def fetch_google_credentials_from_droplet():
     ssh.close()
 
     return local_path
+
+
+def fetch_google_credentials_from_droplet():
+    """
+    Fetches Google credentials file from the remote server via SSH.
+
+    - If running locally, uses ~/.ssh/id_rsa.
+    - If running on DigitalOcean, uses PRIVATE_SSH_KEY from environment variables.
+
+    Returns:
+        str: Local path to the Google credentials file.
+    """
+   
+    # Load .env file **only if ENV is not already set**
+    if not os.getenv("ENV"):
+        load_dotenv()
+
+    # Default to "production" unless explicitly set
+    ENV = os.getenv("ENV", "production")  
+    local_key_path = os.path.expanduser("~/.ssh/id_rsa")  # Local SSH key path
+
+    key = None  # Define key variable
+
+    if ENV == "local":
+        print(f"Running locally - Using SSH key file at {local_key_path}.")
+        
+        if not os.path.exists(local_key_path):
+            raise ValueError(f"Error: Local private key not found at {local_key_path}. "
+                             f"Ensure you have SSH access set up.")
+
+        try:
+            key = paramiko.RSAKey.from_private_key_file(local_key_path)
+        except Exception as e:
+            raise ValueError(f"Error loading local SSH key: {e}")
+
+    else:  # Assume DigitalOcean (or other production environments)
+        print("Running on DigitalOcean - Using PRIVATE_SSH_KEY from environment.")
+
+        private_key = os.getenv("PRIVATE_SSH_KEY")
+        if not private_key:
+            raise ValueError("Error: PRIVATE_SSH_KEY is not set in the environment.")
+
+        private_key_file = io.StringIO(private_key)
+
+        try:
+            key = paramiko.RSAKey.from_private_key(private_key_file)
+        except Exception as e:
+            raise ValueError(f"Error loading SSH private key from environment: {e}")
+
+    # Connect to server via SSH
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        ssh.connect('143.198.149.149', port=6022, username='root', pkey=key)
+    except Exception as e:
+        raise ValueError(f"Error: SSH connection failed: {e}")
+
+    # Fetch the Google credentials file from the server
+    sftp = ssh.open_sftp()
+    local_path = './google_credentials.json'
+    sftp.get('/root/auth/google_credentials.json', local_path)  # Save it locally
+    sftp.close()
+    ssh.close()
+
+    return local_path
+
