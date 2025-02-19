@@ -12,15 +12,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env # This tells the app where to pull the local .env file for local deployment
     image: leg-tracker:latest
     ports:
       - 8501:8501
     volumes:
-      - .streamlit:/app/.streamlit  # copies files from .streamlit folder to container -- for development/testing only
-      - ./:/app  # copies files from /app folder to container -- for development/testing only
-      - ~/.ssh/id_rsa:/root/.ssh/id_rsa:ro  # Mount the SSH key (read-only)
-    environment:
-      - ENV=development
+      - .streamlit:/app/.streamlit  # Copy files from .streamlit folder to container -- for local development/testing only
+      - ./:/app  # Copy files from /app folder to container -- for local development/testing only
+      - ~/.ssh/id_rsa:/root/.ssh/id_rsa:ro  # Mount the local SSH key to the docker container (as a read-only file)
+#    environment:
+#      - ENV=development # shouldn't need this since we added .env file above
     command: streamlit run /app/main.py
 
 

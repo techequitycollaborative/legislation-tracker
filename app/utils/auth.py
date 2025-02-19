@@ -143,22 +143,11 @@ def fetch_google_credentials_from_droplet():
         str: Local path to the Google credentials file, which is used to build Google authenticator widget.
     """
 
-    # Detect if running on Digital Ocean (droplet or app platform)
-    digital_ocean = (
-        os.getenv("DROPLET_ID") or
-        os.getenv("DIGITALOCEAN") == "true" or
-        os.getenv("HOSTNAME", "").startswith("do-")
-    )
-
-    # Detect if running locally
-    local_key_path = os.path.expanduser("~/.ssh/id_rsa")
-    local_env = (
-        os.getenv("ENV") == "local" or  # Explicit override for local
-        (platform.system() in ["Darwin", "Linux"] and os.path.exists(local_key_path))  # Unix-like OS with key
-    )
+    # Detect current environment
+    ENV = os.getenv("ENV")
 
     # If running on Digital Ocean, get ssh key:
-    if digital_ocean:
+    if ENV == "production":
         print("Running on DigitalOcean - Using PRIVATE_SSH_KEY from environment.")
 
         private_key = os.getenv("PRIVATE_SSH_KEY")
@@ -173,8 +162,9 @@ def fetch_google_credentials_from_droplet():
             raise ValueError(f"Error loading SSH private key from environment: {e}")
 
     # If running locally, find local ssh file:
-    elif local_env:
-        print(f"🔹 Running locally - Using SSH key file at {local_key_path}.")
+    local_key_path = os.path.expanduser("~/.ssh/id_rsa") # local SSH file path
+    if ENV == "local":
+        print(f"Running locally - Using SSH key file at {local_key_path}.")
 
         if not os.path.exists(local_key_path):
             raise ValueError(f"Error: Local private key not found at {local_key_path}. "
@@ -188,14 +178,14 @@ def fetch_google_credentials_from_droplet():
     else:
         raise ValueError("Error: Could not determine environment (local or DigitalOcean). Ensure correct setup.")
 
-    # Connect to droplet via SSH
+    # Connect to server via SSH
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
         ssh.connect('143.198.149.149', port=6022, username='root', pkey=key)
     except Exception as e:
-        raise ValueError(f"🚨 Error: SSH connection failed: {e}")
+        raise ValueError(f"Error: SSH connection failed: {e}")
 
     # Fetch the google credentials file from the server
     sftp = ssh.open_sftp()
@@ -205,4 +195,3 @@ def fetch_google_credentials_from_droplet():
     ssh.close()
 
     return local_path
-
