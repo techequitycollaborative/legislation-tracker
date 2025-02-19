@@ -4,6 +4,7 @@ credentials.ini
 auth/
 google_credentials.json
 .DS_Store
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
