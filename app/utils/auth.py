@@ -73,7 +73,7 @@ def fetch_google_credentials_v1():
 
 
 
-def fetch_google_credentials_from_droplet():
+def fetch_google_credentials_v2():
     """
     Fetches Google credentials file from the remote server via SSH.
 
@@ -130,3 +130,79 @@ def fetch_google_credentials_from_droplet():
     ssh.close()
 
     return local_path
+
+
+def fetch_google_credentials_from_droplet():
+    """
+    Fetches Google credentials file from the remote server via SSH.
+
+    - If running locally (Mac/Linux), uses ~/.ssh/id_rsa.
+    - If running on Digital Ocean, uses PRIVATE_SSH_KEY from environment variables.
+
+    Returns:
+        str: Local path to the Google credentials file, which is used to build Google authenticator widget.
+    """
+
+    # Detect if running on Digital Ocean (droplet or app platform)
+    digital_ocean = (
+        os.getenv("DROPLET_ID") or
+        os.getenv("DIGITALOCEAN") == "true" or
+        os.getenv("HOSTNAME", "").startswith("do-")
+    )
+
+    # Detect if running locally
+    local_key_path = os.path.expanduser("~/.ssh/id_rsa")
+    local_env = (
+        os.getenv("ENV") == "local" or  # Explicit override for local
+        (platform.system() in ["Darwin", "Linux"] and os.path.exists(local_key_path))  # Unix-like OS with key
+    )
+
+    # If running on Digital Ocean, get ssh key:
+    if digital_ocean:
+        print("Running on DigitalOcean - Using PRIVATE_SSH_KEY from environment.")
+
+        private_key = os.getenv("PRIVATE_SSH_KEY")
+        if not private_key:
+            raise ValueError("Error: PRIVATE_SSH_KEY is not set in the environment.")
+
+        private_key_file = io.StringIO(private_key)
+
+        try:
+            key = paramiko.RSAKey.from_private_key(private_key_file)
+        except Exception as e:
+            raise ValueError(f"Error loading SSH private key from environment: {e}")
+
+    # If running locally, find local ssh file:
+    elif local_env:
+        print(f"🔹 Running locally - Using SSH key file at {local_key_path}.")
+
+        if not os.path.exists(local_key_path):
+            raise ValueError(f"Error: Local private key not found at {local_key_path}. "
+                             f"Ensure you have SSH access set up.")
+
+        try:
+            key = paramiko.RSAKey.from_private_key_file(local_key_path)
+        except Exception as e:
+            raise ValueError(f"Error loading local SSH key: {e}")
+
+    else:
+        raise ValueError("Error: Could not determine environment (local or DigitalOcean). Ensure correct setup.")
+
+    # Connect to droplet via SSH
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        ssh.connect('143.198.149.149', port=6022, username='root', pkey=key)
+    except Exception as e:
+        raise ValueError(f"🚨 Error: SSH connection failed: {e}")
+
+    # Fetch the google credentials file from the server
+    sftp = ssh.open_sftp()
+    local_path = './google_credentials.json'
+    sftp.get('/root/auth/google_credentials.json', local_path)  # Save credentials file locally
+    sftp.close()
+    ssh.close()
+
+    return local_path
+
