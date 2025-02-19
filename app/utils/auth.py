@@ -144,7 +144,7 @@ def fetch_google_credentials_from_droplet():
     """
 
     # Detect current environment
-    ENV = os.getenv("ENV")
+    ENV = os.getenv("ENV","production") #default to production
     print(f"Detected environment: {ENV}")
 
     # If running on Digital Ocean, get ssh key:
