@@ -72,10 +72,16 @@ def get_data():
         bills = query_table('public', 'processed_bills_20252026') # this is pulling a view, not a table
         return bills
     
+    @st.cache_data
+    def get_bill_events():
+        bill_events = query_table('public', 'upcoming_bill_events_20252026')
+        return bill_events
+    
     # Call the cached function to get the data
     bills = get_bills()
+    bill_events = get_bill_events()
     
-    return bills
+    return bills, bill_events
 
 ###############################################################################
 
@@ -101,7 +107,7 @@ def get_custom_bill_details(bill_id):
             "org_position": result[3],
             "priority_tier": result[4],
             "community_sponsor": result[5],
-            "coalition": result[6],
+            #"coalition": result[6],
             "letter_of_support": result[7]
         }
     
@@ -110,7 +116,7 @@ def get_custom_bill_details(bill_id):
 
 ###############################################################################
 
-def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support):
+def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support):
     '''
     Saves custom fields that a user enters on the bills details page to the bill_custom_details table in postgres
     '''
@@ -133,16 +139,15 @@ def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, 
             # If it exists, update the record
             cursor.execute("""
                 UPDATE public.bill_custom_details
-                SET org_position = %s, priority_tier = %s, community_sponsor = %s,
-                    coalition = %s, letter_of_support = %s
+                SET org_position = %s, priority_tier = %s, community_sponsor = %s, letter_of_support = %s
                 WHERE bill_id = %s
-            """, (bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, bill_id))
+            """, (bill_number, org_position, priority_tier, community_sponsor, letter_of_support, bill_id))
     else:
             # If it doesn't exist, insert a new record
             cursor.execute("""
-                INSERT INTO public.bill_custom_details (bill_id, org_position, priority_tier, community_sponsor, coalition, letter_of_support)
+                INSERT INTO public.bill_custom_details (bill_id, org_position, priority_tier, community_sponsor, letter_of_support)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support))
+            """, (bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support))
 
     conn.commit()
     conn.close()

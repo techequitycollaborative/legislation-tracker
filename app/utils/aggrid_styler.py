@@ -44,7 +44,7 @@ def draw_bill_grid(
         )
     
     # Configure special settings for certain columns (batch)
-    builder.configure_columns(['full_text','leginfo_link','coauthors','bill_history','leg_session','bill_id','chamber'],hide=True) # hide these columns in the initial dataframe
+    builder.configure_columns(['full_text','leginfo_link','coauthors','bill_history','leg_session','bill_id','chamber','referred_committee'],hide=True) # hide these columns in the initial dataframe
     
     # Configure special settings for individual columns
     #builder.configure_column('checkbox', headerName='', checkboxSelection=True, width=50, pinned='left') # option to add a specific checkbox column
@@ -57,6 +57,8 @@ def draw_bill_grid(
     builder.configure_column('leginfo_link',headerName = 'Link')
     builder.configure_column('leg_session',headerName = 'Session')
     builder.configure_column('date_introduced',headerName = 'Date Introduced')#,filter='agDateColumnFilter') # text filter for now
+    builder.configure_column('upcoming_comm_mtg',headerName = 'Upcoming Committee Meeting')
+    builder.configure_column('referred_committee',headerName = 'Referred Committee')
     builder.configure_column('chamber',headerName = 'Chamber',filter='agSetColumnFilter')
     builder.configure_column('full_text',headerName = 'Bill Text')
     builder.configure_column('bill_history',headerName = 'Bill History')
