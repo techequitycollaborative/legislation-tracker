@@ -29,10 +29,14 @@ st.write(
 ############################ LOAD AND PROCESS BILLS DATA #############################
 
 # Get data
-bills = get_data()
+bills, bill_events = get_data()
+
+# Add bill events to the bills table
+bills = bills.merge(bill_events[['bill_id', 'upcoming_comm_mtg','referred_committee']], on='bill_id', how='left')
 
 # Minor data processing 
-bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
+bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+bills['upcoming_comm_mtg'] = pd.to_datetime(bills['upcoming_comm_mtg']).dt.strftime('%Y-%m-%d') # Remove timestamp from upcoming committee meeting date
 bills = get_bill_topics(bills, keyword_dict= keywords)  # Get bill topics
 bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
 
