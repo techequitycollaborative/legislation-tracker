@@ -72,16 +72,16 @@ def get_data():
         bills = query_table('public', 'processed_bills_20252026') # this is pulling a view, not a table
         return bills
     
-    @st.cache_data
-    def get_bill_events():
-        bill_events = query_table('public', 'upcoming_bill_events_20252026')
-        return bill_events
+    #@st.cache_data
+    #def get_bill_events():
+    #    bill_events = query_table('public', 'upcoming_bill_events_20252026')
+    #    return bill_events
     
     # Call the cached function to get the data
     bills = get_bills()
-    bill_events = get_bill_events()
+    #bill_events = get_bill_events()
     
-    return bills, bill_events
+    return bills
 
 ###############################################################################
 
