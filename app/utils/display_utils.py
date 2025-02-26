@@ -73,6 +73,8 @@ def display_bill_info_text(selected_rows):
             st.markdown('##### Status')
             st.markdown(status)
 
+            st.markdown('')
+
             if upcoming_comm_mtg is not None:
                 st.markdown('##### Upcoming Committee Meeting')
                 st.markdown(upcoming_comm_mtg)
@@ -96,6 +98,8 @@ def display_bill_info_text(selected_rows):
 
             st.markdown('##### Date Introduced')
             st.markdown(date_introduced)
+
+            st.markdown('')
 
             if referred_committee is not None:
                 st.markdown('##### Referred Committee')
