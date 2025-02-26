@@ -72,16 +72,16 @@ def get_data():
         bills = query_table('public', 'processed_bills_20252026') # this is pulling a view, not a table
         return bills
     
-    @st.cache_data
-    def get_bill_events():
-        bill_events = query_table('public', 'upcoming_bill_events_20252026')
-        return bill_events
+    #@st.cache_data
+    #def get_bill_events():
+    #    bill_events = query_table('public', 'upcoming_bill_events_20252026')
+    #    return bill_events
     
     # Call the cached function to get the data
     bills = get_bills()
-    bill_events = get_bill_events()
+    #bill_events = get_bill_events()
     
-    return bills, bill_events
+    return bills
 
 ###############################################################################
 
@@ -164,7 +164,7 @@ def get_my_dashboard_bills(user_email):
         # Fetch bills for the user
         cursor.execute("""
             SELECT bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
-                   author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic
+                   author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, upcoming_comm_mtg, referred_committee
             FROM public.user_bill_dashboard
             WHERE user_email = %s;
         """, (user_email,))
@@ -177,11 +177,11 @@ def get_my_dashboard_bills(user_email):
         if rows:
             df = pd.DataFrame(rows, columns=['bill_id', 'bill_number', 'bill_name', 'status', 'date_introduced', 
                                              'leg_session', 'author', 'coauthors', 'chamber', 'leginfo_link', 
-                                             'full_text', 'bill_history', 'bill_topic'])
+                                             'full_text', 'bill_history', 'bill_topic','upcoming_comm_mtg','referred_committee'])
         else:
             df = pd.DataFrame(columns=['bill_id', 'bill_number', 'bill_name', 'status', 'date_introduced', 
                                        'leg_session', 'author', 'coauthors', 'chamber', 'leginfo_link', 
-                                       'full_text', 'bill_history', 'bill_topic'])
+                                       'full_text', 'bill_history', 'bill_topic','upcoming_comm_mtg','referred_committee'])
 
         return df
 
@@ -189,13 +189,13 @@ def get_my_dashboard_bills(user_email):
         print(f"Error fetching dashboard bills: {e}")
         return pd.DataFrame(columns=['bill_id', 'bill_number', 'bill_name', 'status', 'date_introduced', 
                                      'leg_session', 'author', 'coauthors', 'chamber', 'leginfo_link', 
-                                     'full_text', 'bill_history', 'bill_topic'])  # Return an empty DataFrame
+                                     'full_text', 'bill_history', 'bill_topic','upcoming_comm_mtg','referred_committee'])  # Return an empty DataFrame
 
 
 ###############################################################################
 
 def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
-                              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic):
+                              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, upcoming_comm_mtg, referred_committee):
     """
     Adds a selected bill to the user's dashboard, persists it to the database, and updates session state.
     """
@@ -224,10 +224,10 @@ def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_
         cursor.execute("""
             INSERT INTO public.user_bill_dashboard (user_email, bill_id, bill_number, bill_name, status, date_introduced, 
                                              leg_session, author, coauthors, chamber, leginfo_link, full_text, 
-                                             bill_history, bill_topic)
+                                             bill_history, bill_topic, upcoming_comm_mtg, referred_committee)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """, (user_email, bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
-              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic))
+              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, upcoming_comm_mtg, referred_committee))
 
         conn.commit()  # Commit the transaction
         st.success(f'Bill {bill_number} added to dashboard!')
@@ -250,7 +250,9 @@ def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_
                 'leginfo_link': leginfo_link,
                 'full_text': full_text,
                 'bill_history': bill_history,
-                'bill_topic': bill_topic
+                'bill_topic': bill_topic,
+                'upcoming_comm_mtg': upcoming_comm_mtg, 
+                'referred_committee': referred_committee
             }
             st.session_state.selected_bills.append(bill)
 

@@ -7,6 +7,7 @@
 -- Input: 
 ----- ca_dev.bill: bill info
 ----- public.bill_history_20252026: filtered and processed bill history events
+----- public.upcoming_bill_events_20252026: filtered and processed bill events
 
 -- Output: 
 ----- schema: public
@@ -73,8 +74,11 @@ SELECT
     b.chamber,
 	b.leginfo_link,
 	b.full_text,
-    h.bill_history
+    h.bill_history,
+	u.upcoming_comm_mtg,
+    u.referred_committee  
 FROM temp_bills b
 LEFT JOIN latest_status s ON b.bill_id = s.bill_id
 LEFT JOIN earliest_date e ON b.bill_id = e.bill_id
 LEFT JOIN full_history h ON b.bill_id = h.bill_id
+LEFT JOIN public.upcoming_bill_events_20252026 u ON b.bill_id = u.bill_id;
