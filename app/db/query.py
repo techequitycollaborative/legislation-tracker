@@ -195,7 +195,7 @@ def get_my_dashboard_bills(user_email):
 ###############################################################################
 
 def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
-                              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, bill_event, committee):
+                              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, upcoming_comm_mtg, referred_committee):
     """
     Adds a selected bill to the user's dashboard, persists it to the database, and updates session state.
     """
@@ -227,7 +227,7 @@ def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_
                                              bill_history, bill_topic, upcoming_comm_mtg, referred_committee)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """, (user_email, bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
-              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, bill_event, committee))
+              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, upcoming_comm_mtg, referred_committee))
 
         conn.commit()  # Commit the transaction
         st.success(f'Bill {bill_number} added to dashboard!')
@@ -251,8 +251,8 @@ def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_
                 'full_text': full_text,
                 'bill_history': bill_history,
                 'bill_topic': bill_topic,
-                'upcoming_comm_mtg': bill_event, 
-                'referred_committee': committee
+                'upcoming_comm_mtg': upcoming_comm_mtg, 
+                'referred_committee': referred_committee
             }
             st.session_state.selected_bills.append(bill)
 

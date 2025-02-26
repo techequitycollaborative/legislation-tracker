@@ -31,8 +31,8 @@ def display_bill_info_text(selected_rows):
     full_text = selected_rows['full_text'].iloc[0]
     bill_history = selected_rows['bill_history'].iloc[0]
     bill_topic = selected_rows['bill_topic'].iloc[0]
-    bill_event = selected_rows['upcoming_comm_mtg'].iloc[0]
-    committee = selected_rows['referred_committee'].iloc[0]
+    upcoming_comm_mtg = selected_rows['upcoming_comm_mtg'].iloc[0]
+    referred_committee = selected_rows['referred_committee'].iloc[0]
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -73,9 +73,9 @@ def display_bill_info_text(selected_rows):
             st.markdown('##### Status')
             st.markdown(status)
 
-            if bill_event is not None:
+            if upcoming_comm_mtg is not None:
                 st.markdown('##### Upcoming Committee Meeting')
-                st.markdown(bill_event)
+                st.markdown(upcoming_comm_mtg)
             else:
                 st.markdown('#### ')
                 st.markdown('')
@@ -97,9 +97,9 @@ def display_bill_info_text(selected_rows):
             st.markdown('##### Date Introduced')
             st.markdown(date_introduced)
 
-            if committee is not None:
+            if referred_committee is not None:
                 st.markdown('##### Referred Committee')
-                st.markdown(committee)
+                st.markdown(referred_committee)
             else:
                 st.markdown('#### ')
                 st.markdown('')
@@ -251,8 +251,8 @@ def display_dashboard_details(selected_rows):
     full_text = selected_rows['full_text'].iloc[0]
     bill_history = format_bill_history_dashboard(selected_rows['bill_history'].iloc[0])
     bill_topic = selected_rows['bill_topic'].iloc[0]
-    bill_event = selected_rows['upcoming_comm_mtg'].iloc[0]
-    committee = selected_rows['referred_committee'].iloc[0]
+    upcoming_comm_mtg = selected_rows['upcoming_comm_mtg'].iloc[0]
+    referred_committee = selected_rows['referred_committee'].iloc[0]
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -299,9 +299,9 @@ def display_dashboard_details(selected_rows):
 
             st.markdown('')
 
-            if bill_event is not None:
+            if upcoming_comm_mtg is not None:
                 st.markdown('##### Upcoming Committee Meeting')
-                st.markdown(bill_event)
+                st.markdown(upcoming_comm_mtg)
             else:
                 st.markdown('#### ')
                 st.markdown('')
@@ -325,9 +325,9 @@ def display_dashboard_details(selected_rows):
 
             st.markdown('')
 
-            if committee is not None:
+            if referred_committee is not None:
                 st.markdown('##### Referred Committee')
-                st.markdown(committee)
+                st.markdown(referred_committee)
             else:
                 st.markdown('#### ')
                 st.markdown('')
