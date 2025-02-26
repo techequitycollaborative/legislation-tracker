@@ -4,7 +4,7 @@
 -- clean bills table AS A VIEW (not as a table) including latest status, date introduced, and properly formatted bill 
 -- history columns.
 
--- Input: 
+-- Inputs: 
 ----- ca_dev.bill: bill info
 ----- public.bill_history_20252026: filtered and processed bill history events
 ----- public.upcoming_bill_events_20252026: filtered and processed bill events
@@ -64,6 +64,7 @@ full_history AS (
 
 -- Step 5: Combine all processed data into a single view
 SELECT 
+	b.bill_id,
     b.bill_number,
 	b.bill_name,
 	s.status,
@@ -76,7 +77,7 @@ SELECT
 	b.full_text,
     h.bill_history,
 	u.upcoming_comm_mtg,
-    u.referred_committee  
+    u.referred_committee
 FROM temp_bills b
 LEFT JOIN latest_status s ON b.bill_id = s.bill_id
 LEFT JOIN earliest_date e ON b.bill_id = e.bill_id
