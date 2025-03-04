@@ -12,7 +12,7 @@ a custom streamlit component.
 import os
 import pandas as pd
 import streamlit as st
-from streamlit_calendar import calendar
+#from streamlit_calendar import calendar
 
 
 # Show the page title and description
