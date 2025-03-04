@@ -81,9 +81,9 @@ else:
     # Add page navigation for the authenticated user
     #login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=(nav_page == "login")) # turn off login page
     home = st.Page('home.py', title='Home', icon='🏠', url_path='home', default=(nav_page == "home")) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
-    bills = st.Page('bills_topic.py', title='Bills', icon='📝', url_path='bills')
+    bills = st.Page('bills.py', title='Bills', icon='📝', url_path='bills')
     legislators = st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators')
-    calendar = st.Page('calendar2.py', title='Calendar', icon='📅', url_path='calendar')
+    calendar = st.Page('calendar_page.py', title='Calendar', icon='📅', url_path='calendar')
     dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌', url_path='dashboard')
 
     # Build navigation bar
