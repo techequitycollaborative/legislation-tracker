@@ -253,7 +253,7 @@ def display_dashboard_details(selected_rows):
     chamber = selected_rows['chamber'].iloc[0]
     leginfo_link = selected_rows['leginfo_link'].iloc[0]
     full_text = selected_rows['full_text'].iloc[0]
-    bill_history = format_bill_history_dashboard(selected_rows['bill_history'].iloc[0])
+    bill_history = selected_rows['bill_history'].iloc[0]
     bill_topic = selected_rows['bill_topic'].iloc[0]
     bill_event = selected_rows['bill_event'].iloc[0]
     event_text = selected_rows['event_text'].iloc[0]
