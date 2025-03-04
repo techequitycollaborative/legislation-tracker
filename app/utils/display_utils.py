@@ -31,8 +31,8 @@ def display_bill_info_text(selected_rows):
     full_text = selected_rows['full_text'].iloc[0]
     bill_history = selected_rows['bill_history'].iloc[0]
     bill_topic = selected_rows['bill_topic'].iloc[0]
-    upcoming_comm_mtg = selected_rows['upcoming_comm_mtg'].iloc[0]
-    referred_committee = selected_rows['referred_committee'].iloc[0]
+    bill_event = selected_rows['bill_event'].iloc[0]
+    event_text = selected_rows['event_text'].iloc[0]
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -47,7 +47,7 @@ def display_bill_info_text(selected_rows):
             if st.button('Add to My Dashboard', use_container_width=True,type='primary'):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
-                              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic)
+                              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, bill_event, event_text)
     
     # Add empty rows of space  
     st.write("")
@@ -75,9 +75,9 @@ def display_bill_info_text(selected_rows):
 
             st.markdown('')
 
-            if upcoming_comm_mtg is not None:
+            if bill_event is not None:
                 st.markdown('##### Upcoming Committee Meeting')
-                st.markdown(upcoming_comm_mtg)
+                st.markdown(bill_event)
             else:
                 st.markdown('#### ')
                 st.markdown('')
@@ -101,9 +101,9 @@ def display_bill_info_text(selected_rows):
 
             st.markdown('')
 
-            if referred_committee is not None:
+            if event_text is not None:
                 st.markdown('##### Referred Committee')
-                st.markdown(referred_committee)
+                st.markdown(event_text)
             else:
                 st.markdown('#### ')
                 st.markdown('')
@@ -255,8 +255,8 @@ def display_dashboard_details(selected_rows):
     full_text = selected_rows['full_text'].iloc[0]
     bill_history = format_bill_history_dashboard(selected_rows['bill_history'].iloc[0])
     bill_topic = selected_rows['bill_topic'].iloc[0]
-    upcoming_comm_mtg = selected_rows['upcoming_comm_mtg'].iloc[0]
-    referred_committee = selected_rows['referred_committee'].iloc[0]
+    bill_event = selected_rows['bill_event'].iloc[0]
+    event_text = selected_rows['event_text'].iloc[0]
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -303,9 +303,9 @@ def display_dashboard_details(selected_rows):
 
             st.markdown('')
 
-            if upcoming_comm_mtg is not None:
+            if bill_event is not None:
                 st.markdown('##### Upcoming Committee Meeting')
-                st.markdown(upcoming_comm_mtg)
+                st.markdown(bill_event)
             else:
                 st.markdown('#### ')
                 st.markdown('')
@@ -329,9 +329,9 @@ def display_dashboard_details(selected_rows):
 
             st.markdown('')
 
-            if referred_committee is not None:
+            if event_text is not None:
                 st.markdown('##### Referred Committee')
-                st.markdown(referred_committee)
+                st.markdown(event_text)
             else:
                 st.markdown('#### ')
                 st.markdown('')
@@ -436,6 +436,9 @@ def display_dashboard_details(selected_rows):
 
 ###############################################################################
 
+# WARNING! THIS FUNCTION IS NOT UP TO DATE TO REFLECT LATEST CAPABILITIES OF DASHBOARD, ETC.
+# USE display_bill_info_text() !
+
 def display_bill_info_expander(selected_rows):
     '''
     Displays bill information in an expander when a row is selected in
@@ -533,6 +536,9 @@ def display_bill_info_expander(selected_rows):
             st.text_area('For more details, refer to bill link.', history, height=300)
 
 ###############################################################################
+
+# WARNING! THIS FUNCTION IS NOT UP TO DATE TO REFLECT LATEST CAPABILITIES OF DASHBOARD, ETC.
+# USE display_bill_info_text() !
 
 @st.dialog('Bill Details', width='large')
 def display_bill_info_dialog(selected_rows):
