@@ -99,16 +99,32 @@ custom_css = load_css("./styles/calendar.css")
 
 # Calendar options
 calendar_options = {
-  "selectable":True,
-  "themeSystem": 'standard',
-  "initialView": 'dayGridMonth',
-  "dayMaxEventsRows": True,
-  "handleWindowResize": True, #Ensures calendar resizes on window resize
-  "headerToolbar": {
-    "left": 'today prev,next',
-    "center": 'title',
-    "right": 'dayGridMonth,dayGridWeek,listMonth',
-    }}
+    "selectable": True,
+    # JavaScript function for event click -- this isn't working and needs to be reconfigured
+    "eventClick": """
+        function(info) {
+            alert('Event: ' + info.event.title);  // Show event title on click
+        }
+    """,  
+    "themeSystem": "standard",
+    "initialView": "dayGridMonth",
+    "dayMaxEventsRows": True,  
+    "handleWindowResize": True,  
+    "headerToolbar": {
+        "left": "today prev,next",
+        "center": "title",
+        "right": "dayGridMonth,dayGridWeek,listMonth"
+    },
+
+    # Customize toolbar button text
+    "buttonText": {
+        "today": "Today",
+        "dayGridMonth": "Month",  # Customize the text for the month view button
+        "dayGridWeek": "Week",  # Customize the text for the week view button
+        "listMonth": "Day",  # Customize the text for the list view button
+    }
+}
+
 
 # Render the calendar
 calendar = calendar(
@@ -117,6 +133,7 @@ calendar = calendar(
     custom_css=custom_css,
     key='calendar', # Assign a widget key to prevent state loss
     )
+
 
 ################################################################################################
 
