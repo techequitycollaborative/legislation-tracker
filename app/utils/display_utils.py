@@ -18,6 +18,8 @@ def display_bill_info_text(selected_rows):
     an Ag Grid data frame.
     '''
     # Extract the values from the selected row
+    bill_details = selected_rows.iloc[0].to_dict()  # Convert selected row to a dictionary
+
     bill_id = selected_rows['bill_id'].iloc[0]
     bill_number = selected_rows['bill_number'].iloc[0]
     bill_name = selected_rows['bill_name'].iloc[0]
@@ -46,8 +48,7 @@ def display_bill_info_text(selected_rows):
         with col2:
             if st.button('Add to My Dashboard', use_container_width=True,type='primary'):
                 # Call the function to add the bill to the dashboard
-                add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
-                              author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, bill_event, event_text)
+                add_bill_to_dashboard_with_db(*bill_details.values())
     
     # Add empty rows of space  
     st.write("")
@@ -76,7 +77,7 @@ def display_bill_info_text(selected_rows):
             st.markdown('')
 
             if bill_event is not None:
-                st.markdown('##### Upcoming Committee Meeting')
+                st.markdown('##### Bill Event Date')
                 st.markdown(bill_event)
             else:
                 st.markdown('#### ')
@@ -102,7 +103,8 @@ def display_bill_info_text(selected_rows):
             st.markdown('')
 
             if event_text is not None:
-                st.markdown('##### Referred Committee')
+                st.markdown('##### Bill Event Type/Location')
+                st.markdown('_Committee hearing, floor session, etc._')
                 st.markdown(event_text)
             else:
                 st.markdown('#### ')
@@ -304,7 +306,7 @@ def display_dashboard_details(selected_rows):
             st.markdown('')
 
             if bill_event is not None:
-                st.markdown('##### Upcoming Committee Meeting')
+                st.markdown('##### Bill Event Date')
                 st.markdown(bill_event)
             else:
                 st.markdown('#### ')
@@ -330,7 +332,8 @@ def display_dashboard_details(selected_rows):
             st.markdown('')
 
             if event_text is not None:
-                st.markdown('##### Referred Committee')
+                st.markdown('##### Bill Event Type/Location')
+                st.markdown('_Committee hearing, floor session, etc._')
                 st.markdown(event_text)
             else:
                 st.markdown('#### ')

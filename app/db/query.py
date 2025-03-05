@@ -79,6 +79,111 @@ def get_data():
 
 ###############################################################################
 
+# REFACTORED FUNCTIONS: 
+
+# All columns in the bill table
+BILL_COLUMNS = [
+    'bill_id', 
+    'bill_number', 
+    'bill_name', 
+    'status', 
+    'date_introduced', 
+    'leg_session',
+    'author', 
+    'coauthors', 
+    'chamber', 
+    'leginfo_link', 
+    'full_text', 
+    'bill_history',
+    'bill_topic', 
+    'bill_event', 
+    'event_text'
+]
+
+def get_my_dashboard_bills(user_email):
+    try:
+        db_config = config('postgres')
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        cursor.execute(f"""
+            SELECT {', '.join(BILL_COLUMNS)}
+            FROM public.user_bill_dashboard
+            WHERE user_email = %s;
+        """, (user_email,))
+
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
+    
+    except Exception as e:
+        print(f"Error fetching dashboard bills: {e}")
+        return pd.DataFrame(columns=BILL_COLUMNS)
+
+
+def add_bill_to_dashboard_with_db(*bill_values):
+    user_email = st.session_state['user_info'].get('email')
+    db_config = config('postgres')
+    bill_id = int(bill_values[0])
+
+    conn = psycopg2.connect(**db_config)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT COUNT(*) FROM public.user_bill_dashboard 
+        WHERE bill_id = %s AND user_email = %s;
+    """, (bill_id, user_email))
+    count = cursor.fetchone()[0]
+
+    if count == 0:
+        cursor.execute(f"""
+            INSERT INTO public.user_bill_dashboard (user_email, {', '.join(BILL_COLUMNS)})
+            VALUES (%s, {', '.join(['%s'] * len(BILL_COLUMNS))});
+        """, (user_email, *bill_values))
+
+        conn.commit()
+        st.success(f'Bill {bill_values[1]} added to dashboard!')
+
+        if 'selected_bills' not in st.session_state:
+            st.session_state.selected_bills = []
+
+        if not any(bill['bill_id'] == bill_id for bill in st.session_state.selected_bills):
+            st.session_state.selected_bills.append(dict(zip(BILL_COLUMNS, bill_values)))
+    else:
+        st.warning(f'Bill {bill_values[1]} is already in your dashboard.')
+    
+    cursor.close()
+    conn.close()
+
+
+def remove_bill_from_dashboard(bill_id):
+    user_email = st.session_state['user_info'].get('email')
+    db_config = config('postgres')
+    bill_id = int(bill_id)
+
+    conn = psycopg2.connect(**db_config)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        DELETE FROM public.user_bill_dashboard 
+        WHERE bill_id = %s AND user_email = %s;
+    """, (bill_id, user_email))
+    
+    conn.commit()
+    st.success(f'Bill {bill_id} removed from dashboard!')
+
+    if 'selected_bills' in st.session_state:
+        st.session_state.selected_bills = [bill for bill in st.session_state.selected_bills if bill['bill_id'] != bill_id]
+    
+    cursor.close()
+    conn.close()
+
+
+
+###############################################################################
+
 def get_custom_bill_details(bill_id):
     '''
     Fetches custom bill details for a specific bill_id from the bill_custom_details table in postgres and adds to the bills details page
@@ -147,7 +252,7 @@ def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, 
     conn.close()
 
 ###############################################################################
-
+'''
 def get_my_dashboard_bills(user_email):
     try:
         # Load the database configuration
@@ -185,9 +290,9 @@ def get_my_dashboard_bills(user_email):
                                      'leg_session', 'author', 'coauthors', 'chamber', 'leginfo_link', 
                                      'full_text', 'bill_history', 'bill_topic','bill_event','event_text'])  # Return an empty DataFrame
 
-
+'''
 ###############################################################################
-
+'''
 def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
                               author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, bill_event, event_text):
     """
@@ -219,7 +324,7 @@ def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_
             INSERT INTO public.user_bill_dashboard (user_email, bill_id, bill_number, bill_name, status, date_introduced, 
                                              leg_session, author, coauthors, chamber, leginfo_link, full_text, 
                                              bill_history, bill_topic, bill_event, event_text)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """, (user_email, bill_id, bill_number, bill_name, status, date_introduced, leg_session, 
               author, coauthors, chamber, leginfo_link, full_text, bill_history, bill_topic, bill_event, event_text))
 
@@ -257,9 +362,10 @@ def add_bill_to_dashboard_with_db(bill_id, bill_number, bill_name, status, date_
     cursor.close()
     conn.close()
 
-
+'''
 ###############################################################################
 
+'''
 def remove_bill_from_dashboard(bill_id):
     """
     Removes a selected bill from the user's dashboard, deletes it from the database, and updates session state.
@@ -296,3 +402,4 @@ def remove_bill_from_dashboard(bill_id):
     cursor.close()
     conn.close()
 
+'''
