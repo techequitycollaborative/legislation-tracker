@@ -50,7 +50,7 @@ def display_bill_info_text(selected_rows):
         with col2:
             if st.button('Add to My Dashboard', use_container_width=True,type='primary'):
                 # Call the function to add the bill to the dashboard
-                add_bill_to_dashboard_with_db(*bill_values.values())
+                add_bill_to_dashboard_with_db(*bill_values)
     
     # Add empty rows of space  
     st.write("")
