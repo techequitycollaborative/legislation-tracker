@@ -10,7 +10,7 @@ Functions for displaying bill details in different formats and on different page
 """
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard_with_db, remove_bill_from_dashboard  
+from db.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard_with_db, remove_bill_from_dashboard, BILL_COLUMNS  
 
 def display_bill_info_text(selected_rows):
     '''
@@ -18,7 +18,9 @@ def display_bill_info_text(selected_rows):
     an Ag Grid data frame.
     '''
     # Extract the values from the selected row
-    bill_details = selected_rows.iloc[0].to_dict()  # Convert selected row to a dictionary
+    selected_data_dict = dict(zip(selected_rows.columns, selected_rows.iloc[0]))  # Convert selected row to a dictionary
+    bill_values = [selected_data_dict.get(col, None) for col in BILL_COLUMNS] # Ensure values align with expected order of BILL_COLUMNS, which is necessary for proper db querying
+
 
     bill_id = selected_rows['bill_id'].iloc[0]
     bill_number = selected_rows['bill_number'].iloc[0]
@@ -48,7 +50,7 @@ def display_bill_info_text(selected_rows):
         with col2:
             if st.button('Add to My Dashboard', use_container_width=True,type='primary'):
                 # Call the function to add the bill to the dashboard
-                add_bill_to_dashboard_with_db(*bill_details.values())
+                add_bill_to_dashboard_with_db(*bill_values.values())
     
     # Add empty rows of space  
     st.write("")

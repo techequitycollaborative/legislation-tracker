@@ -57,12 +57,12 @@ def draw_bill_grid(
     builder.configure_column('leginfo_link',headerName = 'Link')
     builder.configure_column('leg_session',headerName = 'Session')
     builder.configure_column('date_introduced',headerName = 'Date Introduced')#,filter='agDateColumnFilter') # text filter for now
-    builder.configure_column('bill_event',headerName = 'Upcoming Bill Event')
-    builder.configure_column('event_text',headerName = 'Event Details')
     builder.configure_column('chamber',headerName = 'Chamber',filter='agSetColumnFilter')
     builder.configure_column('full_text',headerName = 'Bill Text')
     builder.configure_column('bill_history',headerName = 'Bill History')
     builder.configure_column('bill_topic',headerName = 'Bill Topic', filter='agSetColumnFilter')
+    builder.configure_column('bill_event',headerName = 'Bill Event')
+    builder.configure_column('event_text',headerName = 'Event Details')
     
     
     builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) # Configure how user selects rows
