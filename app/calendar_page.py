@@ -47,7 +47,7 @@ def load_bill_events():
     bills = query_table('public', 'processed_bills_20252026')
 
     # Subset only these columns (for now)
-    bill_events = bills[['bill_number','bill_event','event_text']] 
+    bill_events = bills[['bill_number','bill_event','event_text','chamber']] 
 
     # Get only bills that have a bill event
     bill_events = bill_events.dropna(subset=['bill_event'])
@@ -65,6 +65,13 @@ bill_events = load_bill_events()
 # Convert data to JSON format (necessary for streamlit_calendar)
 calendar_events = []
 
+# Define event classes based on type
+event_classes = {
+    "Legislative": "legislative",
+    "Senate": "senate",
+    "Assembly": "assembly",
+}
+
 # Convert legislative events
 for _, row in leg_events.iterrows():
     calendar_events.append({
@@ -72,15 +79,20 @@ for _, row in leg_events.iterrows():
         'start': row['start'],
         'end': row['end'],
         'allDay': 'true' if row['allDay'] else 'false',  # All legislative events are all-day
+        'type': 'Legislative',
+        'className': event_classes.get('Legislative', '')  # Assign class -- corresponds to color coding from css file
     })
 
 # Convert bill events
 for _, row in bill_events.iterrows():
+    event_type = row['chamber']
     calendar_events.append({
         'title': f"{row['bill_number']} - {row['event_text']}",  # Concatenate bill_number and event_text to create title
         'start': row['bill_event'], #if pd.notna(row['bill_event']) and row['bill_event'] else None,  # Use bill_event or null
         'end': row['bill_event'], #if pd.notna(row['bill_event']) and row['bill_event'] else None,  # Use bill_event or null
         'allDay': 'true' if row['allDay'] else 'false',  # Making bill events all day for now until we can add specific event times
+        'type': event_type,
+        'className': event_classes.get(event_type, '')  # Assign class -- corresponds to color coding from css file
     })
 
 ################################## CSS ###################################
@@ -113,7 +125,7 @@ calendar_options = {
     "headerToolbar": {
         "left": "today prev,next",
         "center": "title",
-        "right": "dayGridMonth,dayGridWeek,listMonth"
+        "right": "listMonth,dayGridWeek,dayGridMonth"
     },
 
     # Customize toolbar button text

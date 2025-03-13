@@ -86,3 +86,21 @@ html, body, [class*="css"] {
 .fc-day-today {
     background-color: #ffffcc !important;
 }
+
+/* Legislative Events */
+.fc-event.legislative {
+    background-color: #1f77b4 !important; /* Blue */
+    border-color: #1f77b4 !important;
+}
+
+/* Senate Events */
+.fc-event.senate {
+    background-color: #ff7f0e !important; /* Orange */
+    border-color: #ff7f0e !important;
+}
+
+/* Assembly Events */
+.fc-event.assembly {
+    background-color: #2ca02c !important; /* Green */
+    border-color: #2ca02c !important;
+}
