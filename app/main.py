@@ -10,6 +10,10 @@ This is the main script of the Legislation Tracker. To run the app locally, run:
 import streamlit as st
 from streamlit_google_auth import Authenticate
 from utils.auth import fetch_google_credentials_from_droplet
+import datetime
+
+# Get the current year
+current_year = datetime.datetime.now().year
 
 # Page configuration
 st.set_page_config(
@@ -18,14 +22,19 @@ st.set_page_config(
     layout='wide',
     #initial_sidebar_state='collapsed',
     menu_items={
-        'Get help': None,
+        'Get help': 'mailto:info@techequity.us',
         'Report a bug': 'https://github.com/techequitycollaborative/legislation-tracker/issues',
-        'About': """
-        The CA Legislation Tracker is a project by [TechEquity](https://techequity.us). Special thanks to Danya Sherbini and Jessica Wang for their work on this project, as well as former TechEquity volunteers who worked on the previous version of this tool.
+        'About': f"""
+        The CA Legislation Tracker is a project by [TechEquity](https://techequity.us). 
+
+        **Developer Credits**
+        Danya Sherbini
+        Jessica Wang
         
-        Copyright (c) 2025 TechEquity.
+        Special thanks to Matt Brooks and the team of volunteers who contributed to the previous version of this tool.
 
-
+        Copyright (c) {current_year} TechEquity.
+        
         [Terms of Use](https://github.com/techequitycollaborative/legislation-tracker/blob/main/LICENSE)
         """
     }
