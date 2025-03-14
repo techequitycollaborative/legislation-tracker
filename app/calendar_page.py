@@ -21,13 +21,17 @@ from db.query import query_table
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
 st.title('Calendar')
-st.write(
+st.markdown(
     '''
-    This page shows important dates and deadlines for the current legislative cycle.
+    This calendar displays overall legislative events and deadlines, as well as bill-specific events such as when a bill is scheduled to be discussed in a committee meeting or floor hearing.
+    
+    Use the filters on the left to search for a specific bill event or filter by event type.
     '''
 )
+st.markdown(" ")
+st.markdown(" ")
 
-############################ LOAD AND SET UP DATA #############################
+############################ LOAD DATA #############################
 
 # Load the data from a CSV. We're caching this so it doesn't reload every time the app
 # reruns (e.g. if the user interacts with the widgets).
@@ -47,7 +51,7 @@ def load_bill_events():
     bills = query_table('public', 'processed_bills_20252026')
 
     # Subset only these columns (for now)
-    bill_events = bills[['bill_number','bill_event','event_text']] 
+    bill_events = bills[['bill_number','bill_event','event_text','chamber']] 
 
     # Get only bills that have a bill event
     bill_events = bill_events.dropna(subset=['bill_event'])
@@ -62,26 +66,171 @@ def load_bill_events():
 
 bill_events = load_bill_events()
 
-# Convert data to JSON format (necessary for streamlit_calendar)
-calendar_events = []
+######################### ADD FILTERS / SIDE BAR ###################################
 
-# Convert legislative events
-for _, row in leg_events.iterrows():
-    calendar_events.append({
-        'title': row.get('title', 'Legislative Event'),  # Default title if missing
-        'start': row['start'],
-        'end': row['end'],
-        'allDay': 'true' if row['allDay'] else 'false',  # All legislative events are all-day
-    })
+# Define event classes based on type
+event_classes = {
+    "Legislative": "legislative",
+    "Senate": "senate",
+    "Assembly": "assembly",
+}
 
-# Convert bill events
-for _, row in bill_events.iterrows():
-    calendar_events.append({
-        'title': f"{row['bill_number']} - {row['event_text']}",  # Concatenate bill_number and event_text to create title
-        'start': row['bill_event'], #if pd.notna(row['bill_event']) and row['bill_event'] else None,  # Use bill_event or null
-        'end': row['bill_event'], #if pd.notna(row['bill_event']) and row['bill_event'] else None,  # Use bill_event or null
-        'allDay': 'true' if row['allDay'] else 'false',  # Making bill events all day for now until we can add specific event times
-    })
+# Color-coding for the tags in the event type multi-select box
+st.markdown("""
+<style>
+span[data-baseweb="tag"]:has(span[title="Legislative"]) {
+  color: white;
+  background-color: #1f77b4;
+}
+
+span[data-baseweb="tag"]:has(span[title="Senate"]) {
+  color: white;
+  background-color: #ff7f0e;
+}
+
+span[data-baseweb="tag"]:has(span[title="Assembly"]) {
+  color: white;
+  background-color: #2ca02c;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# Get unique bill numbers for the bill filter -- these are the bills that have events
+unique_bills = sorted(bill_events['bill_number'].unique())
+
+with st.sidebar.container():
+    # Add bill filter with search functionality
+    st.sidebar.markdown("### Filter by Bill")
+
+    # Initialize variables to handle both filtering scenarios
+    selected_types = []
+    bill_filter_active = False
+    selected_bills_for_calendar = []
+
+    # Option to select from dashboard bills
+    show_dashboard_bills = st.sidebar.checkbox("Only show events for bills from My Dashboard")
+
+    # Determine eligibility for dashboard bill checkbox
+    if show_dashboard_bills:
+        if 'user_info' not in st.session_state:
+            st.sidebar.warning("User not authenticated. Login to see dashboard bills.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        elif 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None or len(st.session_state.dashboard_bills) == 0:
+            st.sidebar.info("No bills saved to your dashboard. Go to the Bills page to add bills to your dashboard.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        else:
+            # Use the bills directly from session state
+            dashboard_bills = st.session_state.dashboard_bills['bill_number'].unique().tolist()
+            selected_bills_for_calendar = dashboard_bills
+            bill_filter_active = True
+            #st.sidebar.success(f"Showing {len(selected_bills_for_calendar)} bills from dashboard")
+    elif not show_dashboard_bills:
+        # If not eligible for dashboard bill checkbox, show a multiselect search widget for all bills that have events
+        unique_bills = sorted(bill_events['bill_number'].unique())
+        selected_bills_for_calendar = st.sidebar.multiselect(
+            "Select specific bills:",
+            options=unique_bills,
+            default=[],  # No default selection
+            help="Type to search for specific bill numbers. Only bills that have events will appear."
+        )
+        if len(selected_bills_for_calendar) > 0: 
+            bill_filter_active = True
+
+    # If bill filter is not active (i.e. dashboard checkbox is not selected AND bill multiselect is empty), then event type filter is active:
+    if not bill_filter_active:
+        st.sidebar.markdown("### Filter by Event Type")
+        # Multi-select filter with event types
+        selected_types = st.sidebar.multiselect(
+            "Select event type(s):",
+            options=list(event_classes.keys()),
+            default=list(event_classes.keys())  # Default: Show all
+        )
+    elif bill_filter_active == True:
+        # If bill filter IS active, then turn off filter
+        # This effectively bypasses the event type filter
+        st.sidebar.markdown("### Filter by Event Type")
+        st.sidebar.info("Event type filter is disabled when specific bills are selected.")
+
+######################### CONVERT DATA ###################################
+
+def filter_events(selected_types, selected_bills_for_calendar, bill_filter_active):
+    '''
+    Filters calendar events by bill and event type, and converts data to json format for rendering in streamlit calendar.
+    '''
+    # Initiate empty list of calendar events
+    calendar_events = []
+    
+    # If filtering by bills (either dashboard bills or individually selected bills)
+    if bill_filter_active:
+        
+        # Filter the bill_events DataFrame to only include selected bills
+        filtered_bill_events = bill_events[bill_events['bill_number'].isin(selected_bills_for_calendar)]
+        
+        # Add each filtered bill event to the calendar event list 
+        for _, row in filtered_bill_events.iterrows():
+            
+            # Convert to JSON
+            calendar_events.append({
+                'title': f"{row['bill_number']} - {row['event_text']}", # Concatenate bill_number and event_text to create title
+                'start': row['bill_event'], #if pd.notna(row['bill_event']) and row['bill_event'] else None,  # Use bill_event or null
+                'end': row['bill_event'],  #if pd.notna(row['bill_event']) and row['bill_event'] else None,  # Use bill_event or null
+                'allDay': 'true' if row['allDay'] else 'false', #  Making bill events all day for now until we can add specific event times
+                'type': 'Assembly' if row['chamber'] == 'Assembly' else 'Senate',
+                'className': 'assembly' if row['chamber'] == 'Assembly' else 'senate'  # Assign class -- corresponds to color coding from css file
+            })           
+        
+    # If filtering by event type, not bill
+    elif not bill_filter_active and selected_types:
+
+        # Add legislative events if selected
+        if "Legislative" in selected_types:
+          for _, row in leg_events.iterrows():
+              calendar_events.append({
+                      'title': row.get('title', 'Legislative Event'), # Default title if missing
+                      'start': row['start'],
+                      'end': row['end'],
+                      'allDay': 'true' if row['allDay'] else 'false', # All legislative events are all-day
+                      'type': 'Legislative',
+                      'className': event_classes.get('Legislative', '') # Assign class -- corresponds to color coding from css file
+                  })
+              
+        # Add Assembly bill events if selected
+        if "Assembly" in selected_types:
+            assembly_events = bill_events[bill_events['chamber'] == 'Assembly']
+            for _, row in assembly_events.iterrows():
+                calendar_events.append({
+                    'title': f"{row['bill_number']} - {row['event_text']}",
+                    'start': row['bill_event'],
+                    'end': row['bill_event'],
+                    'allDay': 'true' if row['allDay'] else 'false', #  Making bill events all day for now until we can add specific event times
+                    'type': 'Assembly',
+                    'className': event_classes.get('Assembly', '') # Assign class -- corresponds to color coding from css file
+                })
+
+        # Add Senate bill events if selected
+        if "Senate" in selected_types:
+            senate_events = bill_events[bill_events['chamber'] == 'Senate']
+            for _, row in senate_events.iterrows():
+                calendar_events.append({
+                    'title': f"{row['bill_number']} - {row['event_text']}",
+                    'start': row['bill_event'],
+                    'end': row['bill_event'],
+                    'allDay': 'true' if row['allDay'] else 'false', #  Making bill events all day for now until we can add specific event times
+                    'type': 'Senate',
+                    'className': event_classes.get('Senate', '') # Assign class -- corresponds to color coding from css file
+                })
+    
+    return calendar_events
+
+    
+# Get filtered events
+calendar_events = filter_events(selected_types, selected_bills_for_calendar, bill_filter_active)
+
+# Display a count of filtered events (optional, for debugging)
+st.sidebar.markdown(f"**Number of events shown**: {len(calendar_events)}")
 
 ################################## CSS ###################################
 
@@ -93,6 +242,63 @@ def load_css(file_path):
 # Read the CSS file
 custom_css = load_css("./styles/calendar.css")
 
+
+################## DOWNLOAD .ICS FILE ##########################
+
+from ics import Calendar, Event
+from datetime import datetime
+
+def create_ics_file(events):
+    cal = Calendar()
+
+    for event_data in events:
+        event = Event()  # Create a new event
+        event.name = event_data["title"]  # Set the event title
+        
+        # Build the description with your specified format
+        description = f"Type: {event_data.get('type', 'Unknown')}\n"
+        description += f"Event Details: {event_data.get('title', 'No title provided')}\n"
+        
+        # Format the date range for the description (check if there's an 'end' date)
+        start_date = event_data.get('start', 'Unknown Start Date')
+        end_date = event_data.get('end', None)
+
+        description += f"Date: {start_date}"
+        if end_date and end_date != start_date:  # If the end date exists, add it to the description
+            description += f" - {end_date}"
+
+        # Set the description
+        event.description = description
+
+        # Check if the event is an all-day event
+        if event_data.get("allDay", "false") == "true":
+            event.begin = event_data["start"]
+            event.make_all_day()  # Set as all-day event
+        else:
+            # For non-all-day events, set both start and end times
+            event.begin = datetime.strptime(event_data["start"], "%Y-%m-%d")
+            event.end = datetime.strptime(event_data["end"], "%Y-%m-%d") if end_date else event.begin
+
+        cal.events.add(event)  # Add the event to the calendar
+    
+    return str(cal)  # Return the .ics content as a string
+
+ics_content = create_ics_file(calendar_events)
+
+# Create a two-column layout to position download button on upper right hand corner of page
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.markdown("")
+
+with col2:
+    # Make the button
+    st.download_button(
+        label="📅 Download Events",
+        data=ics_content,
+        file_name="events.ics",
+        mime="text/calendar",
+        use_container_width=True
+    )
 
 ################################## BUILD CALENDAR ###################################
 # This streamlit component is built from FullCalendar: https://fullcalendar.io
@@ -113,7 +319,7 @@ calendar_options = {
     "headerToolbar": {
         "left": "today prev,next",
         "center": "title",
-        "right": "dayGridMonth,dayGridWeek,listMonth"
+        "right": "listMonth,dayGridWeek,dayGridMonth"
     },
 
     # Customize toolbar button text
@@ -126,12 +332,16 @@ calendar_options = {
 }
 
 
+# Render the calendar with a key that depends on the selected filters
+# This ensures the calendar re-renders when filters change
+calendar_key = f"calendar_{'-'.join(sorted(selected_types))}"
+
 # Render the calendar
 calendar = calendar(
     events=calendar_events,
     options=calendar_options,
     custom_css=custom_css,
-    key='calendar', # Assign a widget key to prevent state loss
+    key=calendar_key, # Assign unique widget key to prevent state loss
     )
 
 
