@@ -13,6 +13,7 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 from db.config import config
+import numpy as np
 
 ###############################################################################
 
