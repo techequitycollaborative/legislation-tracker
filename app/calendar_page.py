@@ -99,59 +99,60 @@ span[data-baseweb="tag"]:has(span[title="Assembly"]) {
 # Get unique bill numbers for the bill filter -- these are the bills that have events
 unique_bills = sorted(bill_events['bill_number'].unique())
 
-# Add bill filter with search functionality
-st.sidebar.markdown("### Filter by Bill")
+with st.sidebar.container():
+    # Add bill filter with search functionality
+    st.sidebar.markdown("### Filter by Bill")
 
-# Initialize variables to handle both filtering scenarios
-selected_types = []
-bill_filter_active = False
-selected_bills_for_calendar = []
+    # Initialize variables to handle both filtering scenarios
+    selected_types = []
+    bill_filter_active = False
+    selected_bills_for_calendar = []
 
-# Option to select from dashboard bills
-show_dashboard_bills = st.sidebar.checkbox("Only show events for bills from My Dashboard")
+    # Option to select from dashboard bills
+    show_dashboard_bills = st.sidebar.checkbox("Only show events for bills from My Dashboard")
 
-# Determine eligibility for dashboard bill checkbox
-if show_dashboard_bills:
-    if 'user_info' not in st.session_state:
-        st.sidebar.warning("User not authenticated. Login to see dashboard bills.")
-        selected_bills_for_calendar = []
-        bill_filter_active = False
-    elif 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None or len(st.session_state.dashboard_bills) == 0:
-        st.sidebar.info("No bills saved to your dashboard. Go to the Bills page to add bills to your dashboard.")
-        selected_bills_for_calendar = []
-        bill_filter_active = False
-    else:
-        # Use the bills directly from session state
-        dashboard_bills = st.session_state.dashboard_bills['bill_number'].unique().tolist()
-        selected_bills_for_calendar = dashboard_bills
-        bill_filter_active = True
-        #st.sidebar.success(f"Showing {len(selected_bills_for_calendar)} bills from dashboard")
-elif not show_dashboard_bills:
-    # If not eligible for dashboard bill checkbox, show a multiselect search widget for all bills that have events
-    unique_bills = sorted(bill_events['bill_number'].unique())
-    selected_bills_for_calendar = st.sidebar.multiselect(
-        "Select specific bills:",
-        options=unique_bills,
-        default=[],  # No default selection
-        help="Type to search for specific bill numbers. Only bills that have events will appear."
-    )
-    if len(selected_bills_for_calendar) > 0: 
-        bill_filter_active = True
+    # Determine eligibility for dashboard bill checkbox
+    if show_dashboard_bills:
+        if 'user_info' not in st.session_state:
+            st.sidebar.warning("User not authenticated. Login to see dashboard bills.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        elif 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None or len(st.session_state.dashboard_bills) == 0:
+            st.sidebar.info("No bills saved to your dashboard. Go to the Bills page to add bills to your dashboard.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        else:
+            # Use the bills directly from session state
+            dashboard_bills = st.session_state.dashboard_bills['bill_number'].unique().tolist()
+            selected_bills_for_calendar = dashboard_bills
+            bill_filter_active = True
+            #st.sidebar.success(f"Showing {len(selected_bills_for_calendar)} bills from dashboard")
+    elif not show_dashboard_bills:
+        # If not eligible for dashboard bill checkbox, show a multiselect search widget for all bills that have events
+        unique_bills = sorted(bill_events['bill_number'].unique())
+        selected_bills_for_calendar = st.sidebar.multiselect(
+            "Select specific bills:",
+            options=unique_bills,
+            default=[],  # No default selection
+            help="Type to search for specific bill numbers. Only bills that have events will appear."
+        )
+        if len(selected_bills_for_calendar) > 0: 
+            bill_filter_active = True
 
-# If bill filter is not active (i.e. dashboard checkbox is not selected AND bill multiselect is empty), then event type filter is active:
-if not bill_filter_active:
-    st.sidebar.markdown("### Filter by Event Type")
-    # Multi-select filter with event types
-    selected_types = st.sidebar.multiselect(
-        "Select event type(s):",
-        options=list(event_classes.keys()),
-        default=list(event_classes.keys())  # Default: Show all
-    )
-elif bill_filter_active == True:
-    # If bill filter IS active, then turn off filter
-    # This effectively bypasses the event type filter
-    st.sidebar.markdown("### Filter by Event Type")
-    st.sidebar.info("Event type filter is disabled when specific bills are selected.")
+    # If bill filter is not active (i.e. dashboard checkbox is not selected AND bill multiselect is empty), then event type filter is active:
+    if not bill_filter_active:
+        st.sidebar.markdown("### Filter by Event Type")
+        # Multi-select filter with event types
+        selected_types = st.sidebar.multiselect(
+            "Select event type(s):",
+            options=list(event_classes.keys()),
+            default=list(event_classes.keys())  # Default: Show all
+        )
+    elif bill_filter_active == True:
+        # If bill filter IS active, then turn off filter
+        # This effectively bypasses the event type filter
+        st.sidebar.markdown("### Filter by Event Type")
+        st.sidebar.info("Event type filter is disabled when specific bills are selected.")
 
 ######################### CONVERT DATA ###################################
 
@@ -241,6 +242,63 @@ def load_css(file_path):
 # Read the CSS file
 custom_css = load_css("./styles/calendar.css")
 
+
+################## DOWNLOAD .ICS FILE ##########################
+
+from ics import Calendar, Event
+from datetime import datetime
+
+def create_ics_file(events):
+    cal = Calendar()
+
+    for event_data in events:
+        event = Event()  # Create a new event
+        event.name = event_data["title"]  # Set the event title
+        
+        # Build the description with your specified format
+        description = f"Type: {event_data.get('type', 'Unknown')}\n"
+        description += f"Event Details: {event_data.get('title', 'No title provided')}\n"
+        
+        # Format the date range for the description (check if there's an 'end' date)
+        start_date = event_data.get('start', 'Unknown Start Date')
+        end_date = event_data.get('end', None)
+
+        description += f"Date: {start_date}"
+        if end_date and end_date != start_date:  # If the end date exists, add it to the description
+            description += f" - {end_date}"
+
+        # Set the description
+        event.description = description
+
+        # Check if the event is an all-day event
+        if event_data.get("allDay", "false") == "true":
+            event.begin = event_data["start"]
+            event.make_all_day()  # Set as all-day event
+        else:
+            # For non-all-day events, set both start and end times
+            event.begin = datetime.strptime(event_data["start"], "%Y-%m-%d")
+            event.end = datetime.strptime(event_data["end"], "%Y-%m-%d") if end_date else event.begin
+
+        cal.events.add(event)  # Add the event to the calendar
+    
+    return str(cal)  # Return the .ics content as a string
+
+ics_content = create_ics_file(calendar_events)
+
+# Create a two-column layout to position download button on upper right hand corner of page
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.markdown("")
+
+with col2:
+    # Make the button
+    st.download_button(
+        label="📅 Download Events",
+        data=ics_content,
+        file_name="events.ics",
+        mime="text/calendar",
+        use_container_width=True
+    )
 
 ################################## BUILD CALENDAR ###################################
 # This streamlit component is built from FullCalendar: https://fullcalendar.io

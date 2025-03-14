@@ -255,4 +255,3 @@ def to_csv(df) -> bytes:
     output.seek(0)
     return output.getvalue()
 
-
