@@ -38,6 +38,10 @@ with col2:
 # Fetch the user's saved bills from the database
 db_bills = get_my_dashboard_bills(user_email)
 
+# Store in session state for use in other pages
+if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
+    st.session_state.dashboard_bills = db_bills
+
 # Minor data processing to match bills table
 db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
 db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
