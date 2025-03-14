@@ -27,15 +27,11 @@ st.set_page_config(
         'About': f"""
         The CA Legislation Tracker is a project by [TechEquity](https://techequity.us). 
 
-        **Developer Credits**
-        Danya Sherbini
-        Jessica Wang
+        **Developer Credits**: Danya Sherbini, Jessica Wang
         
         Special thanks to Matt Brooks and the team of volunteers who contributed to the previous version of this tool.
 
-        Copyright (c) {current_year} TechEquity.
-        
-        [Terms of Use](https://github.com/techequitycollaborative/legislation-tracker/blob/main/LICENSE)
+        Copyright (c) {current_year} TechEquity. [Terms of Use](https://github.com/techequitycollaborative/legislation-tracker/blob/main/LICENSE)
         """
     }
 )
