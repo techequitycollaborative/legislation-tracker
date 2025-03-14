@@ -126,11 +126,20 @@ def get_my_dashboard_bills(user_email):
 def add_bill_to_dashboard_with_db(*bill_values):
     user_email = st.session_state['user_info'].get('email')
     db_config = config('postgres')
-    bill_id = int(bill_values[0])
+    
+    # Bill ID should be left as a string
+    bill_id = bill_values[0]  # Keep it as it is, assuming it's a string or alphanumeric
+
+    # Ensure other values are converted to appropriate types (e.g., integers, floats)
+    bill_values = tuple(
+        int(val) if isinstance(val, np.int64) else val
+        for val in bill_values
+    )
 
     conn = psycopg2.connect(**db_config)
     cursor = conn.cursor()
     
+    # Check if the bill is already in the dashboard
     cursor.execute("""
         SELECT COUNT(*) FROM public.user_bill_dashboard 
         WHERE bill_id = %s AND user_email = %s;
@@ -138,6 +147,7 @@ def add_bill_to_dashboard_with_db(*bill_values):
     count = cursor.fetchone()[0]
 
     if count == 0:
+        # If the bill is not already in the dashboard, insert it
         cursor.execute(f"""
             INSERT INTO public.user_bill_dashboard (user_email, {', '.join(BILL_COLUMNS)})
             VALUES (%s, {', '.join(['%s'] * len(BILL_COLUMNS))});
@@ -146,6 +156,7 @@ def add_bill_to_dashboard_with_db(*bill_values):
         conn.commit()
         st.success(f'Bill {bill_values[1]} added to dashboard!')
 
+        # Update the session state with the new bill
         if 'selected_bills' not in st.session_state:
             st.session_state.selected_bills = []
 
