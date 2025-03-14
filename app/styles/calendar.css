@@ -56,7 +56,7 @@ html, body, [class*="css"] {
 
 /* Make past events faded */
 .fc-event-past {
-    opacity: 0.8;
+    opacity: 0.5;
 }
 
 /* Event block */

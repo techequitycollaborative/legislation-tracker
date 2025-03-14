@@ -66,10 +66,7 @@ def load_bill_events():
 
 bill_events = load_bill_events()
 
-
-######################### ADD FILTER / SIDE BAR ###################################
-
-######################### ADD FILTER / SIDE BAR ###################################
+######################### ADD FILTERS / SIDE BAR ###################################
 
 # Define event classes based on type
 event_classes = {
@@ -77,6 +74,27 @@ event_classes = {
     "Senate": "senate",
     "Assembly": "assembly",
 }
+
+# Color-coding for the tags in the event type multi-select box
+st.markdown("""
+<style>
+span[data-baseweb="tag"]:has(span[title="Legislative"]) {
+  color: white;
+  background-color: #1f77b4;
+}
+
+span[data-baseweb="tag"]:has(span[title="Senate"]) {
+  color: white;
+  background-color: #ff7f0e;
+}
+
+span[data-baseweb="tag"]:has(span[title="Assembly"]) {
+  color: white;
+  background-color: #2ca02c;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # Get unique bill numbers for the bill filter -- these are the bills that have events
 unique_bills = sorted(bill_events['bill_number'].unique())
@@ -132,7 +150,6 @@ if not bill_filter_active:
 elif bill_filter_active == True:
     # If bill filter IS active, then turn off filter
     # This effectively bypasses the event type filter
-    #selected_types = list(event_classes.keys())
     st.sidebar.markdown("### Filter by Event Type")
     st.sidebar.info("Event type filter is disabled when specific bills are selected.")
 
