@@ -72,7 +72,7 @@ def get_data():
     @st.cache_data
     def get_bills():
         # Query the database for bills
-        bills = query_table('public', 'processed_bills_20252026') # this is pulling a view, not a table
+        bills = query_table('public', 'processed_bills_from_snapshot_2025_2026') # this is pulling a view, not a table
         return bills
     
     # Call the cached function to get the data
@@ -86,7 +86,7 @@ def get_data():
 
 # All columns in the bill table
 BILL_COLUMNS = [
-    'bill_id', 
+    'openstates_bill_id', 
     'bill_number', 
     'bill_name', 
     'status', 
@@ -129,15 +129,16 @@ def get_my_dashboard_bills(user_email):
 def add_bill_to_dashboard_with_db(*bill_values):
     user_email = st.session_state['user_info'].get('email')
     db_config = config('postgres')
-    bill_id = int(bill_values[0])
+    #bill_id = int(bill_values[0]) # don't need this line for openstates_bill_id bc its text, not an integer
+    openstates_bill_id = bill_values[0]
 
     conn = psycopg2.connect(**db_config)
     cursor = conn.cursor()
     
     cursor.execute("""
         SELECT COUNT(*) FROM public.user_bill_dashboard 
-        WHERE bill_id = %s AND user_email = %s;
-    """, (bill_id, user_email))
+        WHERE openstates_bill_id = %s AND user_email = %s;
+    """, (openstates_bill_id, user_email))
     count = cursor.fetchone()[0]
 
     if count == 0:
@@ -152,7 +153,7 @@ def add_bill_to_dashboard_with_db(*bill_values):
         if 'selected_bills' not in st.session_state:
             st.session_state.selected_bills = []
 
-        if not any(bill['bill_id'] == bill_id for bill in st.session_state.selected_bills):
+        if not any(bill['openstates_bill_id'] == openstates_bill_id for bill in st.session_state.selected_bills):
             st.session_state.selected_bills.append(dict(zip(BILL_COLUMNS, bill_values)))
     else:
         st.warning(f'Bill {bill_values[1]} is already in your dashboard.')
@@ -161,24 +162,24 @@ def add_bill_to_dashboard_with_db(*bill_values):
     conn.close()
 
 
-def remove_bill_from_dashboard(bill_id):
+def remove_bill_from_dashboard(openstates_bill_id):
     user_email = st.session_state['user_info'].get('email')
     db_config = config('postgres')
-    bill_id = int(bill_id)
+    #bill_id = int(bill_id) # don't need this line for openstates_bill_id bc its text, not an integer
 
     conn = psycopg2.connect(**db_config)
     cursor = conn.cursor()
     
     cursor.execute("""
         DELETE FROM public.user_bill_dashboard 
-        WHERE bill_id = %s AND user_email = %s;
-    """, (bill_id, user_email))
+        WHERE openstates_bill_id = %s AND user_email = %s;
+    """, (openstates_bill_id, user_email))
     
     conn.commit()
-    st.success(f'Bill {bill_id} removed from dashboard!')
+    st.success(f'Bill removed from dashboard!')
 
     if 'selected_bills' in st.session_state:
-        st.session_state.selected_bills = [bill for bill in st.session_state.selected_bills if bill['bill_id'] != bill_id]
+        st.session_state.selected_bills = [bill for bill in st.session_state.selected_bills if bill['openstates_bill_id'] != openstates_bill_id]
     
     cursor.close()
     conn.close()
@@ -187,9 +188,9 @@ def remove_bill_from_dashboard(bill_id):
 
 ###############################################################################
 
-def get_custom_bill_details(bill_id):
+def get_custom_bill_details(openstates_bill_id):
     '''
-    Fetches custom bill details for a specific bill_id from the bill_custom_details table in postgres and adds to the bills details page
+    Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and adds to the bills details page
     '''
     # Load the database configuration
     db_config = config('postgres')
@@ -200,7 +201,7 @@ def get_custom_bill_details(bill_id):
     
     # Query
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM public.bill_custom_details WHERE bill_id = %s", (int(bill_id),))
+    cursor.execute("SELECT * FROM public.bill_custom_details WHERE openstates_bill_id = %s", (openstates_bill_id,))
     result = cursor.fetchone()
     conn.close()
     
@@ -218,7 +219,7 @@ def get_custom_bill_details(bill_id):
 
 ###############################################################################
 
-def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support):
+def save_custom_bill_details(openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support):
     '''
     Saves custom fields that a user enters on the bills details page to the bill_custom_details table in postgres
     '''
@@ -226,7 +227,7 @@ def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, 
     db_config = config('postgres')
 
     # Ensure bill_id is an integer
-    bill_id = int(bill_id)
+    #bill_id = int(bill_id)
     
     # Establish connection to the PostgreSQL server
     conn = psycopg2.connect(**db_config)
@@ -234,7 +235,7 @@ def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, 
     cursor = conn.cursor()
     
     # Check if the record exists in database
-    cursor.execute("SELECT * FROM public.bill_custom_details WHERE bill_id = %s", (bill_id,))
+    cursor.execute("SELECT * FROM public.bill_custom_details WHERE openstates_bill_id = %s", (openstates_bill_id,))
     existing_record = cursor.fetchone()
 
     if existing_record:
@@ -242,19 +243,21 @@ def save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, 
             cursor.execute("""
                 UPDATE public.bill_custom_details
                 SET org_position = %s, priority_tier = %s, community_sponsor = %s, letter_of_support = %s
-                WHERE bill_id = %s
-            """, (bill_number, org_position, priority_tier, community_sponsor, letter_of_support, bill_id))
+                WHERE openstates_bill_id = %s
+            """, (bill_number, org_position, priority_tier, community_sponsor, letter_of_support, openstates_bill_id))
     else:
             # If it doesn't exist, insert a new record
             cursor.execute("""
-                INSERT INTO public.bill_custom_details (bill_id, org_position, priority_tier, community_sponsor, letter_of_support)
+                INSERT INTO public.bill_custom_details (openstates_bill_id, org_position, priority_tier, community_sponsor, letter_of_support)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support))
+            """, (openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support))
 
     conn.commit()
     conn.close()
 
 ###############################################################################
+
+## old code, should be able to remove this
 '''
 def get_my_dashboard_bills(user_email):
     try:

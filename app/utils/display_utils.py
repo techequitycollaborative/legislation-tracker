@@ -22,7 +22,7 @@ def display_bill_info_text(selected_rows):
     bill_values = [selected_data_dict.get(col, None) for col in BILL_COLUMNS] # Ensure values align with expected order of BILL_COLUMNS, which is necessary for proper db querying
 
 
-    bill_id = selected_rows['bill_id'].iloc[0]
+    openstates_bill_id = selected_rows['openstates_bill_id'].iloc[0]
     bill_number = selected_rows['bill_number'].iloc[0]
     bill_name = selected_rows['bill_name'].iloc[0]
     author = selected_rows['author'].iloc[0]
@@ -32,7 +32,7 @@ def display_bill_info_text(selected_rows):
     leg_session = selected_rows['leg_session'].iloc[0]
     chamber = selected_rows['chamber'].iloc[0]
     leginfo_link = selected_rows['leginfo_link'].iloc[0]
-    full_text = selected_rows['full_text'].iloc[0]
+    bill_text = selected_rows['bill_text'].iloc[0]
     bill_history = selected_rows['bill_history'].iloc[0]
     bill_topic = selected_rows['bill_topic'].iloc[0]
     bill_event = selected_rows['bill_event'].iloc[0]
@@ -142,7 +142,7 @@ def display_bill_info_text(selected_rows):
     st.write("")
 
     # Retrieve saved custom details
-    custom_details = get_custom_bill_details(bill_id)
+    custom_details = get_custom_bill_details(openstates_bill_id)
 
     # Form for custom user-entered fields
     st.markdown('#### Custom Bill Details')
@@ -187,7 +187,7 @@ def display_bill_info_text(selected_rows):
                                         type='secondary')
 
         if submitted:
-            save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support)
+            save_custom_bill_details(openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support)
             st.success("Custom details saved successfully!")
 
     # Add empty rows of space    
@@ -198,7 +198,7 @@ def display_bill_info_text(selected_rows):
     with st.container(key='bill_text_text'):
         st.markdown('##### Bill Excerpt')
         expander = st.expander('Click to view bill excerpt')
-        expander.write(full_text)
+        expander.write(bill_text)
 
     # Add empty rows of space    
     st.write("")
@@ -246,7 +246,7 @@ def display_dashboard_details(selected_rows):
     Displays bill details on the dashboard page when a row is selected; features a button to remove a bill from your dashboard.
     '''
     # Extract the values from the selected row
-    bill_id = selected_rows['bill_id'].iloc[0]
+    openstates_bill_id = selected_rows['openstates_bill_id'].iloc[0]
     bill_number = selected_rows['bill_number'].iloc[0]
     bill_name = selected_rows['bill_name'].iloc[0]
     author = selected_rows['author'].iloc[0]
@@ -256,7 +256,7 @@ def display_dashboard_details(selected_rows):
     leg_session = selected_rows['leg_session'].iloc[0]
     chamber = selected_rows['chamber'].iloc[0]
     leginfo_link = selected_rows['leginfo_link'].iloc[0]
-    full_text = selected_rows['full_text'].iloc[0]
+    bill_text = selected_rows['bill_text'].iloc[0]
     bill_history = selected_rows['bill_history'].iloc[0]
     bill_topic = selected_rows['bill_topic'].iloc[0]
     bill_event = selected_rows['bill_event'].iloc[0]
@@ -275,7 +275,7 @@ def display_dashboard_details(selected_rows):
             # If button is clicked: 
             if st.button('Remove from My Dashboard', use_container_width=True, type='primary'):
                 # Call the function to remove the bill from the dashboard
-                remove_bill_from_dashboard(bill_id)
+                remove_bill_from_dashboard(openstates_bill_id)
                 
                 # Deselect the row and stop execution
                 st.session_state.selected_rows = None
@@ -371,7 +371,7 @@ def display_dashboard_details(selected_rows):
     st.write("")
 
     # Retrieve saved custom details
-    custom_details = get_custom_bill_details(bill_id)
+    custom_details = get_custom_bill_details(openstates_bill_id)
 
     # Form for custom user-entered fields
     st.markdown('#### Custom Bill Details')
@@ -416,7 +416,7 @@ def display_dashboard_details(selected_rows):
                                         type='secondary')
 
         if submitted:
-            save_custom_bill_details(bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support)
+            save_custom_bill_details(openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, letter_of_support)
             st.success("Custom details saved successfully!")
 
     # Add empty rows of space    
@@ -427,7 +427,7 @@ def display_dashboard_details(selected_rows):
     with st.container(key='bill_text_text'):
         st.markdown('##### Bill Excerpt')
         expander = st.expander('Click to view bill excerpt')
-        expander.write(full_text)
+        expander.write(bill_text)
 
     # Add empty rows of space    
     st.write("")
@@ -461,7 +461,7 @@ def display_bill_info_expander(selected_rows):
     session = selected_rows['leg_session'].iloc[0]
     chamber = selected_rows['chamber'].iloc[0]
     link = selected_rows['leginfo_link'].iloc[0]
-    text = selected_rows['full_text'].iloc[0]
+    text = selected_rows['bill_text'].iloc[0]
     history = selected_rows['bill_history'].iloc[0]
       
     with st.expander("View Bill Details", expanded=True):
@@ -563,7 +563,7 @@ def display_bill_info_dialog(selected_rows):
     session = selected_rows['leg_session'].iloc[0]
     chamber = selected_rows['chamber'].iloc[0]
     link = selected_rows['leginfo_link'].iloc[0]
-    text = selected_rows['full_text'].iloc[0]
+    text = selected_rows['bill_text'].iloc[0]
     history = selected_rows['bill_history'].iloc[0]
       
     # Containter with add to dashboard button in the top-right corner

@@ -13,7 +13,92 @@ import pandas as pd
 import numpy as np
 import re
 
+
+
 ###############################################################################
+
+def get_bill_topics(df, keyword_dict):
+    """
+    Tags each bill in the DataFrame with a topic based on keywords found in the bill_name column.
+
+    Parameters:
+        - df (DataFrame): Input DataFrame containing a 'bill_name' column.
+        - keywords (dict): A dictionary where keys are tuples of keywords and
+                            values are the corresponding topics to apply.
+
+    Returns:
+        -df (DataFrame): A DataFrame with a new 'bill_topic' column containing the assigned topic.
+    """
+
+    # Initialize the 'bill_topic' column with default value (e.g., "Uncategorized")
+    df['bill_topic'] = 'Uncategorized'
+
+    for keywords, label in keyword_dict.items():
+        # Ensure the keywords are joined into a single string for regex
+        pattern = '|'.join(re.escape(word) for word in keywords)
+        # Apply the label where the pattern matches in the bill_name column
+        df.loc[df['bill_name'].str.contains(pattern, na=False, case=False), 'bill_topic'] = label
+
+    return df
+
+
+# Keyword/topic mapping
+keywords = {
+    ('artificial intelligence', 'algorithm', 'automated'): 'AI',
+    ('housing', 'eviction', 'tenant', 'renter'): 'Housing',
+    ('worker', 'labor', 'gig economy', 'contract workers', 'content moderator', 'data labeler', 'data labeller', 'ghost work'): 'Labor'
+}
+
+###############################################################################
+
+def add_bill_to_dashboard(number, name, author, coauthors, status, date, chamber, link, text, history):
+    """
+    Adds a selected bill from the bills page to the dashboard page via the 'Add to Dashboad' button.
+    """
+    # Check if the bill is already in the selected_bills list
+    if not any(bill['bill_number'] == number for bill in st.session_state.selected_bills):
+        bill = {
+            'bill_number': number,
+            'bill_name': name,
+            'author': author,
+            'coauthors': coauthors,
+            'status': status,
+            'date_introduced': date,
+            'chamber': chamber,
+            'leginfo_link': link,
+            'bill_text': text,
+            'bill_history': history
+        }
+        
+        # Add the bill to the session state
+        st.session_state.selected_bills.append(bill)
+        st.success(f'Bill {number} added to dashboard!')
+    else:
+        st.warning(f'Bill {number} is already in the dashboard.')
+
+
+###############################################################################
+
+from io import BytesIO
+
+def to_csv(df) -> bytes:
+    '''
+    Downloads data from the app to csv file. To be used with st.download_button()
+    '''
+    output = BytesIO()
+    df.to_csv(output, index=False)
+    output.seek(0)
+    return output.getvalue()
+
+
+
+#############################################################################################################
+#############################################################################################################
+# DEPRECATED FUNCTIONS: No longer using these as data manipulation was moved to sql scripts in db folder
+
+# Note: If these are to be reactived, need to replace bill_id with openstates_bill_id
+#############################################################################################################
+#############################################################################################################
 
 def clean_bill_data(bills):
     """
@@ -74,7 +159,6 @@ def get_bill_status(bills, history):
     
     return bills
 
-###############################################################################
 
 def get_date_introduced(bills, history):
     """
@@ -107,7 +191,6 @@ def get_date_introduced(bills, history):
     # Return the result
     return bills
 
-###############################################################################
 
 def create_bill_history(bills, history):
     """
@@ -168,42 +251,6 @@ def format_bill_history(bill_history):
     return "\n\n".join([f"**{date}:** {event}" for date, event in formatted_entries])
 
 
-###############################################################################
-
-def get_bill_topics(df, keyword_dict):
-    """
-    Tags each bill in the DataFrame with a topic based on keywords found in the bill_name column.
-
-    Parameters:
-        - df (DataFrame): Input DataFrame containing a 'bill_name' column.
-        - keywords (dict): A dictionary where keys are tuples of keywords and
-                            values are the corresponding topics to apply.
-
-    Returns:
-        -df (DataFrame): A DataFrame with a new 'bill_topic' column containing the assigned topic.
-    """
-
-    # Initialize the 'bill_topic' column with default value (e.g., "Uncategorized")
-    df['bill_topic'] = 'Uncategorized'
-
-    for keywords, label in keyword_dict.items():
-        # Ensure the keywords are joined into a single string for regex
-        pattern = '|'.join(re.escape(word) for word in keywords)
-        # Apply the label where the pattern matches in the bill_name column
-        df.loc[df['bill_name'].str.contains(pattern, na=False, case=False), 'bill_topic'] = label
-
-    return df
-
-
-# Keyword/topic mapping
-keywords = {
-    ('artificial intelligence', 'algorithm', 'automated'): 'AI',
-    ('housing', 'eviction', 'tenant', 'renter'): 'Housing',
-    ('worker', 'labor', 'gig economy', 'contract workers', 'content moderator', 'data labeler', 'data labeller', 'ghost work'): 'Labor'
-}
-
-
-###############################################################################
 
 def process_bills_data(bills, history):
     bills = clean_bill_data(bills)  # Step 1: Clean the bills data
@@ -213,45 +260,3 @@ def process_bills_data(bills, history):
     bills['bill_history'] = bills['bill_history'].apply(ensure_set).apply(format_bill_history) #Step 5: Format bill history
     bills = get_bill_topics(bills, keywords) # Step 6: Get bill topics
     return bills
-
-###############################################################################
-
-def add_bill_to_dashboard(number, name, author, coauthors, status, date, chamber, link, text, history):
-    """
-    Adds a selected bill from the bills page to the dashboard page via the 'Add to Dashboad' button.
-    """
-    # Check if the bill is already in the selected_bills list
-    if not any(bill['bill_number'] == number for bill in st.session_state.selected_bills):
-        bill = {
-            'bill_number': number,
-            'bill_name': name,
-            'author': author,
-            'coauthors': coauthors,
-            'status': status,
-            'date_introduced': date,
-            'chamber': chamber,
-            'leginfo_link': link,
-            'full_text': text,
-            'bill_history': history
-        }
-        
-        # Add the bill to the session state
-        st.session_state.selected_bills.append(bill)
-        st.success(f'Bill {number} added to dashboard!')
-    else:
-        st.warning(f'Bill {number} is already in the dashboard.')
-
-
-###############################################################################
-
-from io import BytesIO
-
-def to_csv(df) -> bytes:
-    '''
-    Downloads data from the app to csv file. To be used with st.download_button()
-    '''
-    output = BytesIO()
-    df.to_csv(output, index=False)
-    output.seek(0)
-    return output.getvalue()
-
