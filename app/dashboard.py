@@ -20,13 +20,14 @@ from utils.display_utils import display_dashboard_details, format_bill_history_d
 st.title('Dashboard')
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
-if 'user_info' not in st.session_state:
+if 'authenticated' not in st.session_state:
     st.error("User not authenticated. Please log in.")
     st.stop()  # Stop execution if the user is not authenticated
 
 # Access user info
-user_info = st.session_state['user_info']
-user_email = st.session_state["user_info"].get("email")
+#user_info = st.session_state['user_info']
+#user_email = st.session_state["user_info"].get("email")
+user_email = st.session_state['user_email']
 
 # Clear dashboard button
 col1, col2 = st.columns([4, 1])
