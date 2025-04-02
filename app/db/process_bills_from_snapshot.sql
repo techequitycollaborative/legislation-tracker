@@ -9,7 +9,7 @@
 ----- snapshot.bill: for most bill info
 ----- public.processed_bill_action_2025_2026: for filtered/processed bill history/bill action
 ----- snapshot.bill_sponsor: for author, coauthors
------ ca_dev.bill_schedule: for upcoming bill events for the current legislative session (senate & assembly)
+----- ca_dev.bill_schedule_new: for upcoming bill events for the current legislative session (senate & assembly)
 
 -- Output: 
 ----- schema: public
@@ -89,4 +89,4 @@ FROM temp_bills b
 LEFT JOIN latest_status s ON b.openstates_bill_id = s.openstates_bill_id
 LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
 LEFT JOIN bill_authors a ON b.openstates_bill_id = a.openstates_bill_id
-LEFT JOIN ca_dev.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id; -- Add bill events from bill schedule table
+LEFT JOIN ca_dev.bill_schedule_new bs ON b.openstates_bill_id = bs.openstates_bill_id; -- Add bill events from bill schedule table (the updated one that includes openstates_bill_id)
