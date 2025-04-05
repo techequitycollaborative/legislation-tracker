@@ -48,7 +48,7 @@ leg_events = load_leg_events()
 @st.cache_data
 def load_bill_events():
     # Query processed_bills table which contains both bill and bill events info
-    bills = query_table('public', 'processed_bills_20252026')
+    bills = query_table('public', 'processed_bills_from_snapshot_2025_2026')
 
     # Subset only these columns (for now)
     bill_events = bills[['bill_number','bill_event','event_text','chamber']] 
