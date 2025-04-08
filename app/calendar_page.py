@@ -113,7 +113,7 @@ with st.sidebar.container():
 
     # Determine eligibility for dashboard bill checkbox
     if show_dashboard_bills:
-        if 'user_info' not in st.session_state:
+        if 'authenticated' not in st.session_state:
             st.sidebar.warning("User not authenticated. Login to see dashboard bills.")
             selected_bills_for_calendar = []
             bill_filter_active = False
