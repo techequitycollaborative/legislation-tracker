@@ -36,12 +36,15 @@ with col2:
         st.session_state.selected_bills = []  # Clear session state
         st.success('Dashboard cleared!')
 
+# Initialize session state for dashboard bills
+if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
+    st.session_state.dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
+
 # Fetch the user's saved bills from the database
 db_bills = get_my_dashboard_bills(user_email)
 
-# Store in session state for use in other pages
-if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
-    st.session_state.dashboard_bills = db_bills
+# Update session state with user's dashboard bills
+st.session_state.dashboard_bills = db_bills
 
 # Minor data processing to match bills table
 db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
@@ -77,7 +80,7 @@ if not db_bills.empty:
     if selected_rows is not None and len(selected_rows) != 0:
             display_dashboard_details(selected_rows)
 
-else:
+elif db_bills.empty:
     st.write('No bills selected yet.')
 
 

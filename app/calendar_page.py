@@ -16,7 +16,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_calendar import calendar
 from db.query import query_table
-
+from db.query import get_my_dashboard_bills
 
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
@@ -30,6 +30,21 @@ st.markdown(
 )
 st.markdown(" ")
 st.markdown(" ")
+
+############################ INITIALIZE SESSION STATE VARS #############################
+
+# Access user info
+user_email = st.session_state['user_email']
+
+# Initialize session state for dashboard bills
+if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
+    st.session_state.selected_bills = pd.DataFrame()  # Initialize as empty DataFrame
+
+# Fetch the user's saved bills from the database
+db_bills = get_my_dashboard_bills(user_email)
+
+# Update session state with user's dashboard bills
+st.session_state.dashboard_bills = db_bills
 
 ############################ LOAD DATA #############################
 
