@@ -179,7 +179,7 @@ def create_user(name: str, email: str, password: str, org_id: int) -> Optional[i
     
     try:
         password_hash = hash_password(password)
-        c.execute("INSERT INTO users (name, email, password_hash, org_id) VALUES (%s, %s, %s, %s) RETURNING id", 
+        c.execute("INSERT INTO logged_users (name, email, password_hash, org_id) VALUES (%s, %s, %s, %s) RETURNING id", 
                   (name, email, password_hash, org_id))
         conn.commit()
         return c.fetchone()[0]
