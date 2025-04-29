@@ -356,3 +356,5 @@ def logout():
     Clear session state and log out the user.
     """
     st.session_state.logged_out = True  # Set a flag instead of calling st.rerun()
+
+    
