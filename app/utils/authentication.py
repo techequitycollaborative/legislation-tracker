@@ -103,7 +103,7 @@ def get_user(email: str) -> Optional[Tuple]:
         return None
     
     try:
-        c.execute("SELECT id, name, email, password_hash, org_id FROM users WHERE email=%s", (email,))
+        c.execute("SELECT id, name, email, password_hash, org_id FROM logged_users WHERE email=%s", (email,))
         user = c.fetchone()
         return user
     except psycopg2.Error as e:
