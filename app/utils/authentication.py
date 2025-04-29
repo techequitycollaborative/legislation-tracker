@@ -150,7 +150,7 @@ def get_all_organizations() -> List[Tuple]:
         return []
     
     try:
-        c.execute("SELECT id, name FROM organizations ORDER BY name")
+        c.execute("SELECT id, name FROM approved_organizations ORDER BY name")
         orgs = c.fetchall()
         return orgs
     except psycopg2.Error as e:
@@ -210,7 +210,7 @@ def get_organization_by_id(org_id: int) -> Optional[Tuple]:
         return None
     
     try:
-        c.execute("SELECT id, name, domain FROM organizations WHERE id=%s", (org_id,))
+        c.execute("SELECT id, name, domain FROM approved_organizations WHERE id=%s", (org_id,))
         org = c.fetchone()
         return org
     except psycopg2.Error as e:
