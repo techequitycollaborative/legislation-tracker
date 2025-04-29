@@ -8,19 +8,16 @@ This is the main script of the Legislation Tracker. To run the app locally, run:
 """
 
 import streamlit as st
-from streamlit_google_auth import Authenticate
-from utils.auth import fetch_google_credentials_from_droplet
 import datetime
+from utils.authentication import login_page, signup_page, logout, get_organization_by_id, get_logged_in_user, get_user
 
-# Get the current year
-current_year = datetime.datetime.now().year
 
 # Page configuration
 st.set_page_config(
     page_title='CA Legislation Tracker',
     page_icon=':scales:',
     layout='wide',
-    #initial_sidebar_state='collapsed',
+    initial_sidebar_state='collapsed',
     menu_items={
         'Get help': 'mailto:info@techequity.us',
         'Report a bug': 'https://github.com/techequitycollaborative/legislation-tracker/issues',
@@ -31,7 +28,7 @@ st.set_page_config(
         
         Special thanks to Matt Brooks and the team of volunteers who contributed to the previous version of this tool.
 
-        Copyright (c) {current_year} TechEquity. [Terms of Use](https://github.com/techequitycollaborative/legislation-tracker/blob/main/LICENSE)
+        Copyright (c) {datetime.datetime.now().year} TechEquity. [Terms of Use](https://github.com/techequitycollaborative/legislation-tracker/blob/main/LICENSE)
         """
     }
 )
@@ -42,57 +39,57 @@ st.logo(
         logo,
         link="https://techequity.us")
 
-# Ensure the credentials are fetched and available locally
-google_credentials_path = fetch_google_credentials_from_droplet()
-
-# Google authenticator setup
-authenticator = Authenticate(
-    secret_credentials_path = google_credentials_path, 
-    cookie_name='my_cookie_name',
-    cookie_key='this_is_secret',
-    # This is the URL to redirect to after a successful login
-    redirect_uri='https://leg-tracker-wqjxl.ondigitalocean.app/?nav=home',  # Change to 'http://localhost:8501/?nav=home' for local development
-    cookie_expiry_days=30,
-)
-
-# Authenticate user
-authenticator.check_authentification()
-
 # Extract query parameters
 query_params = st.query_params
 nav_page = query_params.get("nav", "home")  # Default to "home" if no query param is set
 
-# Define login page as a function
-def login_page():
-    # Set the login page title + center it
-    st.markdown(
-    """
-    <h3 style="text-align: center;">Login to the CA Legislation Tracker</h3>
-    """, 
-    unsafe_allow_html=True)
-    # Show the login button and handle the login
-    authenticator.login()
+# Check if the user has triggered a logout and rerun if necessary
+if "logged_out" in st.session_state and st.session_state.logged_out:
+    st.session_state.clear()
+    st.rerun()  # Use experimental_rerun() to restart execution
 
-# If the user is not authenticated, show login page
-if not st.session_state.get('connected', False):
-    # Show the login page
-    login_page()
-
+# Main authentication flow remains largely the same
+if 'authenticated' not in st.session_state:
+    email = get_logged_in_user()
+    if email:
+        user = get_user(email)
+        if user:
+            st.session_state['authenticated'] = True
+            st.session_state['user_id'] = user[0]
+            st.session_state['user_name'] = user[1]
+            st.session_state['user_email'] = user[2]
+            st.session_state['org_id'] = user[4]
+            org = get_organization_by_id(user[4])
+            if org:
+                st.session_state['org_name'] = org[1]
+            st.rerun()
+    
+    if st.session_state.get('show_signup', False):
+        signup_page()
+    else:
+        login_page()
 else:
-    # User is authenticated, show the main content
-    user_info = st.session_state['user_info']
-    user_email = user_info.get('email')  # This will be used as the unique user identifier
+    # Get org_id from session state
+    org_id = st.session_state.get('org_id')
+    user_org = st.session_state.get('user_org')
+    
+    # Get organization info using the correct function
+    org_info = get_organization_by_id(org_id) if org_id else None
 
     # Add page navigation for the authenticated user
-    #login = st.Page(login_page, title='Login', icon='🔑', url_path='login', default=(nav_page == "login")) # turn off login page
-    home = st.Page('home.py', title='Home', icon='🏠', url_path='home', default=(nav_page == "home")) # Set page to default so it doesn't appear in the navigation menu. This will also ignore the url path
+    home = st.Page('home.py', title='Home', icon='🏠', url_path='home', default=(nav_page == "home")) 
     bills = st.Page('bills.py', title='Bills', icon='📝', url_path='bills')
     legislators = st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators')
     calendar = st.Page('calendar_page.py', title='Calendar', icon='📅', url_path='calendar')
-    dashboard = st.Page('dashboard.py', title='My Dashboard', icon='📌', url_path='dashboard')
+    dashboard = st.Page('my_dashboard.py', title='My Dashboard', icon='📌', url_path='my_dashboard')
+
+    if org_info:
+        org_dashboard = st.Page("org_dashboard.py", title=f"{org_info[1]} Dashboard", icon="🏢", url_path="org_dashboard")
+    else:
+        org_dashboard = st.Page("org_dashboard.py", title="Organization Dashboard", icon="🏢", url_path="org_dashboard", default=False)
 
     # Build navigation bar
-    pg = st.navigation([home, bills, legislators, calendar, dashboard])
+    pg = st.navigation([home, bills, legislators, calendar, dashboard, org_dashboard])
 
     # Clear query parameters after successful login to prevent infinite loops
     if st.session_state.get('connected'):
@@ -103,8 +100,5 @@ else:
 
     # Add the logout button to the bottom of the navigation bar
     st.sidebar.markdown("<br>" * 16, unsafe_allow_html=True)  # Push logout button down
-    st.sidebar.button('Log out', key='logout', on_click=authenticator.logout)
-
-
-
-
+    if st.sidebar.button('Log out', key='logout'):
+        logout()

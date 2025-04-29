@@ -29,18 +29,23 @@ st.markdown(
 ### Key Features
 - **Explore Bills:** Use the search and filtering tools to find bills relevant to your work.
 - **Track Progress:** Monitor the status and history of bills in real time.
-- **Build Your Dashboard:** Add bills to your personalized dashboard for quick access.
+- **Build Your Dashboard:** Add bills to your private dashboard for quick access.
 """,
 unsafe_allow_html=True)
     
 # Pages
 st.markdown("### Pages")
 
+# Access user info
+org_id = st.session_state.get('org_id')
+org_name = st.session_state['org_name']
+
 pages = [
         {"label": "Bills", "icon": "📝", "description": "Search, sort, and filter bills.", "page": "bills.py"},
         {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "legislators.py"},
         {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "calendar_page.py"},
-        {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "dashboard.py"},
+        {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "my_dashboard.py"},
+        {"label": f"{org_name}'s Dashboard", "icon": "🏢", "description": "Collaborate with your team to track bills together.", "page": "org_dashboard.py"},
     ]
 
 # Loop through pages and display them as streamlit page_link buttons
@@ -58,5 +63,11 @@ st.divider()
 
 st.markdown("""
 ## FAQs
-Add some FAQs here.
 """)
+
+st.expander("Where is the data sourced from?", expanded=False).markdown("We source data from the OpenStates REST API and directly from the California LegInfo websites.")
+
+st.expander("How often is the data updated?", expanded=False).markdown("Data is updated twice per day: first between 2-3 AM Pacific Time and again between 2-3 PM Pacific Time.")
+
+st.expander("I noticed some data was incorrect or outdated.", expanded=False).markdown("This is possible. The California legislative websites may contain errors, or may not be updated on a timely basis, so there may be discrepencies from time to time. We do our best to ensure accuracy. However, we encourage advocacy professionals to double check information such as timing and location of Assembly and Senate meetings and hearings, or other time-sensitive information. If you notice recurring issues, please contact info@techequity.us.")
+

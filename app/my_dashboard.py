@@ -20,13 +20,14 @@ from utils.display_utils import display_dashboard_details, format_bill_history_d
 st.title('Dashboard')
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
-if 'user_info' not in st.session_state:
+if 'authenticated' not in st.session_state:
     st.error("User not authenticated. Please log in.")
     st.stop()  # Stop execution if the user is not authenticated
 
 # Access user info
-user_info = st.session_state['user_info']
-user_email = st.session_state["user_info"].get("email")
+#user_info = st.session_state['user_info']
+#user_email = st.session_state["user_info"].get("email")
+user_email = st.session_state['user_email']
 
 # Clear dashboard button
 col1, col2 = st.columns([4, 1])
@@ -35,12 +36,15 @@ with col2:
         st.session_state.selected_bills = []  # Clear session state
         st.success('Dashboard cleared!')
 
+# Initialize session state for dashboard bills
+if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
+    st.session_state.dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
+
 # Fetch the user's saved bills from the database
 db_bills = get_my_dashboard_bills(user_email)
 
-# Store in session state for use in other pages
-if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
-    st.session_state.dashboard_bills = db_bills
+# Update session state with user's dashboard bills
+st.session_state.dashboard_bills = db_bills
 
 # Minor data processing to match bills table
 db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
@@ -76,7 +80,7 @@ if not db_bills.empty:
     if selected_rows is not None and len(selected_rows) != 0:
             display_dashboard_details(selected_rows)
 
-else:
+elif db_bills.empty:
     st.write('No bills selected yet.')
 
 

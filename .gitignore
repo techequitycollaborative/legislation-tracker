@@ -5,6 +5,7 @@ auth/
 google_credentials.json
 .DS_Store
 .env
+email_credentials.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -144,6 +145,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*_venv/
 
 # Spyder project settings
 .spyderproject

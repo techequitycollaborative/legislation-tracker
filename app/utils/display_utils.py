@@ -10,7 +10,7 @@ Functions for displaying bill details in different formats and on different page
 """
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard_with_db, remove_bill_from_dashboard, BILL_COLUMNS  
+from db.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard, remove_bill_from_dashboard, BILL_COLUMNS  
 
 def display_bill_info_text(selected_rows):
     '''
@@ -50,7 +50,7 @@ def display_bill_info_text(selected_rows):
         with col2:
             if st.button('Add to My Dashboard', use_container_width=True,type='primary'):
                 # Call the function to add the bill to the dashboard
-                add_bill_to_dashboard_with_db(*bill_values)
+                add_bill_to_dashboard(openstates_bill_id, bill_number)
     
     # Add empty rows of space  
     st.write("")
@@ -275,7 +275,7 @@ def display_dashboard_details(selected_rows):
             # If button is clicked: 
             if st.button('Remove from My Dashboard', use_container_width=True, type='primary'):
                 # Call the function to remove the bill from the dashboard
-                remove_bill_from_dashboard(openstates_bill_id)
+                remove_bill_from_dashboard(openstates_bill_id, bill_number)
                 
                 # Deselect the row and stop execution
                 st.session_state.selected_rows = None
