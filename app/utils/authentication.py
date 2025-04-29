@@ -12,8 +12,98 @@ import streamlit as st
 import bcrypt
 import psycopg2
 import re
+import os
 from db.config import config
 from typing import Optional, Tuple, List
+
+# Cookies functions for keeping users logged in
+from streamlit_cookies_manager import EncryptedCookieManager
+from datetime import datetime, timedelta
+
+# Get secret key from environment variable or use a generated one
+def get_secret_key():
+    # Try to get from environment variable first (recommended)
+    secret_key = os.environ.get("COOKIE_SECRET_KEY")
+    
+    # If not set, generate a pseudo-random key based on user's session
+    if not secret_key:
+        if "cookie_secret" not in st.session_state:
+            import secrets
+            # Generate a new/temporary secret key for this session. Ensures app does not crash if it cannot access cookie secret from server.
+            st.session_state["cookie_secret"] = secrets.token_hex(16)
+            #st.warning("⚠️ Using temporary secret key. Set COOKIE_SECRET_KEY environment variable for persistent logins.") #optional warning message
+        secret_key = st.session_state["cookie_secret"]
+    
+    return secret_key
+
+# Initialize cookies manager with secret key
+cookies = EncryptedCookieManager(
+    prefix="auth_", 
+    password=get_secret_key()
+)
+
+# Safe cookie set function with proper error handling
+def set_login_cookie(email: str):
+    """Set login cookies with 30-day expiration."""
+    try:
+        if not cookies.ready():
+            # Initialize cookies first if not ready
+            cookies.init()
+            
+        # Set up expiration date
+        expires_at = (datetime.utcnow() + timedelta(days=30)).isoformat()
+        
+        # Set cookies safely
+        cookies["email"] = email
+        cookies["auth_expiry"] = expires_at
+        cookies.save()
+        return True
+    except Exception as e:
+        st.warning(f"⚠️ Could not set persistent login cookie: {str(e)}")
+        # Store in session state as fallback
+        st.session_state["backup_user_email"] = email
+        return False
+
+# Safe cookie retrieval function
+def get_logged_in_user() -> Optional[str]:
+    """Get logged in user email from cookies if valid."""
+    # Check session state first (fallback if cookies failed)
+    if "backup_user_email" in st.session_state:
+        return st.session_state["backup_user_email"]
+        
+    try:
+        # Cookies aren't ready, can't get user
+        if not cookies.ready():
+            return None
+            
+        expiry = cookies.get("auth_expiry")
+        email = cookies.get("email")
+        
+        if not email or not expiry:
+            return None
+            
+        # Check if cookie is expired
+        if datetime.utcnow() > datetime.fromisoformat(expiry):
+            clear_login_cookies()
+            return None
+        return email
+    except Exception:
+        # Any error with cookies, return None
+        return None
+
+def clear_login_cookies():
+    """Clear all authentication cookies."""
+    try:
+        if cookies.ready():
+            cookies.clear()
+            cookies.save()
+    except Exception:
+        pass
+    
+    # Clear backup in session state too
+    if "backup_user_email" in st.session_state:
+        del st.session_state["backup_user_email"]
+
 
 # Improved security and validation functions
 def validate_email(email: str) -> bool:
@@ -342,6 +432,7 @@ def login_page():
             if org:
                 st.session_state['org_name'] = org[1]
             
+            set_login_cookie(user[2])  # <-- Persist login
             st.rerun()
         else:
             st.error("Invalid email or password. Please try again.")
@@ -355,6 +446,7 @@ def logout():
     """
     Clear session state and log out the user.
     """
+    clear_login_cookies() # clear cookies
     st.session_state.logged_out = True  # Set a flag instead of calling st.rerun()
 
     

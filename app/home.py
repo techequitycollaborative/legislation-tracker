@@ -67,7 +67,7 @@ st.markdown("""
 
 st.expander("Where is the data sourced from?", expanded=False).markdown("We source data from the OpenStates REST API and directly from the California LegInfo websites.")
 
-st.expander("How often is the data updated?", expanded=False).markdown("Data is updated once a day between 5-6 AM PST.")
+st.expander("How often is the data updated?", expanded=False).markdown("Data is updated twice per day: first between 2-3 AM Pacific Time and again between 2-3 PM Pacific Time.")
 
-st.expander("I noticed some data was incorrect or outdated.", expanded=False).markdown("This can happen. Often times, the California legislative websites are not updated properly or on a timely basis, so there may be discrepencies from time to time. We do our best to ensure accuracy. However, we encourage advocacy professionals to double check information such as timing and location of Assembly and Senate meetings and hearings, or other time-sensitive information. If you notice recurring issues, please contact info@techequity.us.")
+st.expander("I noticed some data was incorrect or outdated.", expanded=False).markdown("This is possible. The California legislative websites may contain errors, or may not be updated on a timely basis, so there may be discrepencies from time to time. We do our best to ensure accuracy. However, we encourage advocacy professionals to double check information such as timing and location of Assembly and Senate meetings and hearings, or other time-sensitive information. If you notice recurring issues, please contact info@techequity.us.")
 
