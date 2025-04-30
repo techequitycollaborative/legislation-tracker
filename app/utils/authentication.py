@@ -122,20 +122,31 @@ def validate_email(email: str) -> bool:
 def validate_password(password: str) -> bool:
     """
     Validate password strength.
-    
+
     Args:
         password (str): Password to validate
-    
+
     Returns:
         bool: True if password meets complexity requirements
     """
-    # Require:
-    # - At least 8 characters
-    # - At least one uppercase letter
-    # - At least one lowercase letter
-    # - At least one number
-    # - At least one special character
-    password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+    # Expanded set of special characters allowed in the password
+    special_chars = r"""@$!%*?&#^()_+=[]{}:;'"<>,./\|~"""
+
+    # Escape special characters to safely use them in regex
+    escaped_special_chars = re.escape(special_chars)
+
+    # Build the password validation regex:
+    password_regex = (
+        rf'^'                                 # Start of string
+        rf'(?=.*[a-z])'                        # At least one lowercase letter
+        rf'(?=.*[A-Z])'                        # At least one uppercase letter
+        rf'(?=.*\d)'                           # At least one digit
+        rf'(?=.*[{escaped_special_chars}])'    # At least one special character from the allowed set
+        rf'[A-Za-z\d{escaped_special_chars}]'  # Allow only letters, digits, and allowed special characters
+        rf'{{8,}}'                             # Minimum length of 8 characters
+        rf'$'                                  # End of string
+    )
+
     return re.match(password_regex, password) is not None
 
 def hash_password(password: str) -> str:
