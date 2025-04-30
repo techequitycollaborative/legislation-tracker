@@ -9,7 +9,7 @@ This is the main script of the Legislation Tracker. To run the app locally, run:
 
 import streamlit as st
 import datetime
-from utils.authentication import login_page, signup_page, logout, get_organization_by_id, get_logged_in_user, get_user
+from utils.authentication import login_page, signup_page, logout, get_organization_by_id
 
 
 # Page configuration
@@ -50,19 +50,20 @@ if "logged_out" in st.session_state and st.session_state.logged_out:
 
 # Main authentication flow remains largely the same
 if 'authenticated' not in st.session_state:
-    email = get_logged_in_user()
-    if email:
-        user = get_user(email)
-        if user:
-            st.session_state['authenticated'] = True
-            st.session_state['user_id'] = user[0]
-            st.session_state['user_name'] = user[1]
-            st.session_state['user_email'] = user[2]
-            st.session_state['org_id'] = user[4]
-            org = get_organization_by_id(user[4])
-            if org:
-                st.session_state['org_name'] = org[1]
-            st.rerun()
+    # Logic for checking if the user is logged in in order to keep them logged in across sessions via cookies -- TURNED OFF FOR NOW BC THIS IS STILL IN DEVELOPMENT!!
+    #email = get_logged_in_user()
+    #if email:
+    #    user = get_user(email)
+    #    if user:
+    #        st.session_state['authenticated'] = True
+    #        st.session_state['user_id'] = user[0]
+    #        st.session_state['user_name'] = user[1]
+    #        st.session_state['user_email'] = user[2]
+    #        st.session_state['org_id'] = user[4]
+    #        org = get_organization_by_id(user[4])
+    #        if org:
+    #            st.session_state['org_name'] = org[1]
+    #        st.rerun()
     
     if st.session_state.get('show_signup', False):
         signup_page()

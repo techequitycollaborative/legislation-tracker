@@ -15,10 +15,12 @@ import re
 import os
 from db.config import config
 from typing import Optional, Tuple, List
-
-# Cookies functions for keeping users logged in
-from streamlit_cookies_manager import EncryptedCookieManager
 from datetime import datetime, timedelta
+
+'''
+# Cookies functions for keeping users logged in -- TURNED OFF BC THESE ARE STILL IN DEVELOPMENT!!
+from streamlit_cookies_manager import EncryptedCookieManager
+
 
 # Get secret key from environment variable or use a generated one
 def get_secret_key():
@@ -104,7 +106,8 @@ def clear_login_cookies():
     if "backup_user_email" in st.session_state:
         del st.session_state["backup_user_email"]
 
-
+'''
+        
 # Improved security and validation functions
 def validate_email(email: str) -> bool:
     """
