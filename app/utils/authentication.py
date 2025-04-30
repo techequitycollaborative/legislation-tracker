@@ -446,7 +446,7 @@ def login_page():
             if org:
                 st.session_state['org_name'] = org[1]
             
-            set_login_cookie(user[2])  # <-- Persist login
+            #set_login_cookie(user[2])  # <-- Persist login
             st.rerun()
         else:
             st.error("Invalid email or password. Please try again.")
@@ -460,7 +460,7 @@ def logout():
     """
     Clear session state and log out the user.
     """
-    clear_login_cookies() # clear cookies
+    #clear_login_cookies() # clear cookies
     st.session_state.logged_out = True  # Set a flag instead of calling st.rerun()
 
     
