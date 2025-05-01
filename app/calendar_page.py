@@ -82,13 +82,10 @@ def load_bill_events():
     # Format event_date as date string without time for display purposes
     bill_events['event_date'] = pd.to_datetime(bill_events['event_date']).dt.strftime('%Y-%m-%d') # event date as just a date (no timestamp)
 
-    # Add column for allDay
-    #bill_events['allDay'] = bill_events['event_time'].apply(lambda x: False if pd.notna(x) else True) # If event_time is null, then allDay is true, else false
-    
+    # Add column for allDay    
     # Using regex to check if any digit exists in the event_time string. If they do, then allDay is false, else true.
     import re
     bill_events['allDay'] = [False if re.search(r'\d', str(x)) else True for x in bill_events['event_time']]
-    #bill_events['event_time'].apply(lambda x: not bool(re.search(r'\d', str(x))) if pd.notna(x) else True)
     
     # Add empty column for resourceId
     bill_events['resourceId'] = ''
@@ -301,18 +298,20 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
 
             # For events with a specific time, parse the event_time string to time object (combined date and time)
             start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-            end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=2))
+            end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
             
             # Convert to JSON
             calendar_events.append({
                 # Add key info to title -- this will be text displayed on the calendar event blocks
-                'title': f"""{row['bill_number']} - {row['event_text']}
-                                {row['event_time']}
-                                {row['event_location']}
-                                {row['event_room']}""",
+                'title': f"""
+                            {row['bill_number']} - {row['event_text']} | 
+                            {row['event_location']} | 
+                            {row['event_room']} |
+                            Agenda order: {row['agenda_order']:.0f}
+                        """,     
                 'start': start_time if not row['allDay'] else row['event_date'], 
                 'end': end_time if not row['allDay'] else row['event_date'],  
-                #'allDay': bool(row['allDay']), #  Making bill events all day for now until we can add specific event times
+                #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                 'type': 'Assembly' if row['chamber_id'] == 1 else 'Senate',
                 'className': 'assembly' if row['chamber_id'] == 1 else 'senate',  # Assign class -- corresponds to color coding from css file
             
@@ -336,7 +335,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'title': row.get('title', 'Legislative Event'), # Default title if missing
                 'start': row['start'], # this is the name of the column in the leg events csv file
                 'end': row['end'],  # this is the namer of the column in the leg events csv file
-                #'allDay': bool(row['allDay']), # All legislative events are all-day
+                #'allDay': bool(row['allDay']), # All legislative events are all-day, which is already hardcoded in the csv file
                 'type': 'Legislative',
                 'className': event_classes.get('Legislative', ''), # Assign class -- corresponds to color coding from css file
                   })
@@ -348,16 +347,18 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
 
                 # For events with a specific time, parse the event_time string to time object (combined date and time)
                 start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=2))
+                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
             
                 calendar_events.append({
-                    'title': f"""{row['bill_number']} - {row['event_text']}
-                                    {row['event_time']}
-                                    {row['event_location']}
-                                    {row['event_room']}""",                    
+                    'title': f"""
+                                {row['bill_number']} - {row['event_text']} | 
+                                {row['event_location']} | 
+                                {row['event_room']} |
+                                Agenda order: {row['agenda_order']:.0f}
+                            """,                    
                     'start': start_time if not row['allDay'] else row['event_date'], 
                     'end': end_time if not row['allDay'] else row['event_date'],  
-                    #'allDay': bool(row['allDay']), #  Making bill events all day for now until we can add specific event times
+                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Assembly',
                     'className': event_classes.get('Assembly', ''), # Assign class -- corresponds to color coding from css file
                     # Add extended properties that will be appear in event pop up upon click
@@ -376,13 +377,18 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
 
                 # For events with a specific time, parse the event_time string to time object (combined date and time)
                 start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=2))
+                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
 
                 calendar_events.append({
-                    'title': f"{row['bill_number']} - {row['event_text']}",
+                    'title': f"""
+                                {row['bill_number']} - {row['event_text']} | 
+                                {row['event_location']} | 
+                                {row['event_room']} |
+                                Agenda order: {row['agenda_order']:.0f}
+                            """,                           
                     'start': start_time if not row['allDay'] else row['event_date'], 
                     'end': end_time if not row['allDay'] else row['event_date'],  
-                    #'allDay': bool(row['allDay']), #  Making bill events all day for now until we can add specific event times
+                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Senate',
                     'className': event_classes.get('Senate', ''), # Assign class -- corresponds to color coding from css file
                     # Add extended properties that will be appear in event pop up upon click
@@ -400,7 +406,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
 calendar_events = filter_events(selected_types, selected_bills_for_calendar, bill_filter_active)
 
 # Display a count of filtered events (optional, for debugging)
-st.sidebar.markdown(f"**Number of events shown**: {len(calendar_events)}")
+st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
 
 ################################## CSS ###################################
 
@@ -413,7 +419,7 @@ def load_css(file_path):
 custom_css = load_css("./styles/calendar.css")
 
 # For debugging
-#st.write(calendar_events[80])
+#st.write(calendar_events[80]) 
 
 
 ################## DOWNLOAD .ICS FILE ##########################
@@ -545,16 +551,18 @@ calendar_options = {
     "slotEventOverlap": False,  # Don't visually overlap events (stacks them instead)
     "eventMaxStack": 3,  # Maximum number of events to stack in a time slot
     
-    # Increase the slot height to fit more events
+    # Time slot options
+    "selectable": "true",
+    "slotMinTime": "09:00:00",    # Start at 9am
+    "slotMaxTime": "18:00:00",    # End at 6pm
+    "slotDuration": "00:15:00",   # 15-minute slots -- making this shorter is a hack to make the event blocks taller
     "slotHeight": 50,  # Make time slots taller (default is 30px)
-    
-    # Custom time slot labels that only show your specific times
+    #"snapDuration": "00:30:00",   # Snap to 30 min increments
     "slotLabelFormat": {
         "hour": "numeric",
         "minute": "2-digit",
-        "meridiem": "short",
-        "hour12": True,  # Changed from string "true" to boolean True
-    },
+        "meridiem": "short"
+    }
     
 }
 

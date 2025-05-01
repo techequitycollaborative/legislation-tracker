@@ -153,3 +153,25 @@ html, body, [class*="css"] {
     filter: brightness(1.1);
 }
 
+/* Make time slot lines more transparent */
+.fc-timegrid-slot-lane {
+    border-color: rgba(0, 0, 0, 0.1) !important; /* Adjust the alpha value (0.1) for transparency */
+  }
+  
+  /* Make horizontal slot lines more transparent */
+  .fc-timegrid-slot.fc-timegrid-slot-lane {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Make vertical grid lines more transparent */
+  .fc-timegrid-col-bg .fc-highlight,
+  .fc-timegrid-col {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Make the day divider lines slightly more visible than the hour lines */
+  .fc-timegrid-col-frame {
+    border-color: rgba(0, 0, 0, 0.15) !important;
+  }
+
+
