@@ -339,16 +339,21 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
             calendar_events.append({
                 # Add key info to title -- this will be text displayed on the calendar event blocks
                 'title': f"""
-                            {row['bill_number']} - {row['event_text']} | 
-                            {row['event_location']} | 
-                            {row['event_room']} |
-                            Agenda order: {row['agenda_order']:.0f}
+                        {row['bill_number']} - {row['event_text']} 
+                        {row['event_location']} 
+                        {row['event_room']} 
+                        Agenda order: {row['agenda_order']:.0f}
                         """,     
                 'start': start_time if not row['allDay'] else row['event_date'], 
                 'end': end_time if not row['allDay'] else row['event_date'],  
                 #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                 'type': 'Assembly' if row['chamber_id'] == 1 else 'Senate',
                 'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
+                'billNumber': row['bill_number'],
+                'billName': row['bill_name'],
+                'eventText': row['event_text'],
+                'eventTime': row['event_time']
+
             })          
         
     # If filtering by event type, not bill
@@ -364,7 +369,12 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'end': row['end'],  # this is the namer of the column in the leg events csv file
                 #'allDay': bool(row['allDay']), # All legislative events are all-day, which is already hardcoded in the csv file
                 'type': 'Legislative',
-                'className': f"{event_classes.get('Legislative', '')} event-active" # Assign class -- corresponds to color coding from css file
+                'className': f"{event_classes.get('Legislative', '')} event-active", # Assign class -- corresponds to color coding from css file
+                'billNumber': 'N/A',
+                'billName': 'N/A',
+                'eventText': 'N/A',
+                'eventTime': 'N/A'
+
             })
               
         # Add Assembly bill events if selected
@@ -381,9 +391,9 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
             
                 calendar_events.append({
                     'title': f"""
-                                {row['bill_number']} - {row['event_text']} | 
-                                {row['event_location']} | 
-                                {row['event_room']} |
+                                {row['bill_number']} - {row['event_text']} 
+                                {row['event_location']} 
+                                {row['event_room']} 
                                 Agenda order: {row['agenda_order']:.0f}
                             """,                    
                     'start': start_time if not row['allDay'] else row['event_date'], 
@@ -391,6 +401,11 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Assembly',
                     'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
+                    'billNumber': row['bill_number'],
+                    'billName': row['bill_name'],
+                    'eventText': row['event_text'],
+                    'eventTime': row['event_time']
+
                 })
 
         # Add Senate bill events if selected
@@ -407,9 +422,9 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 
                 calendar_events.append({
                     'title': f"""
-                                {row['bill_number']} - {row['event_text']} | 
-                                {row['event_location']} | 
-                                {row['event_room']} |
+                                {row['bill_number']} - {row['event_text']} 
+                                {row['event_location']} 
+                                {row['event_room']} 
                                 Agenda order: {row['agenda_order']:.0f}
                             """,                           
                     'start': start_time if not row['allDay'] else row['event_date'], 
@@ -417,6 +432,10 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Senate',
                     'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
+                    'billNumber': row['bill_number'],
+                    'billName': row['bill_name'],
+                    'eventText': row['event_text'],
+                    'eventTime': row['event_time']
                 })
     
     return calendar_events, initial_date
@@ -451,36 +470,32 @@ def create_ics_file(events):
 
     for event_data in events:
         event = Event()  # Create a new event
-        event.name = event_data["title"]  # Set the event title
+        event.name = f"{event_data['billNumber']} - {event_data['eventText']}"  # Set the event title
         
         # Build the description with your specified format
-        description = f"Type: {event_data.get('type', 'Unknown')}\n"
-        description += f"Event Details: {event_data.get('title', 'No title provided')}\n"
+        description = f"Bill Name: {event_data.get('billName', 'No name provided')}\n"
+        description += f"Type: {event_data.get('type', 'Unknown')}\n"
+        description += f"Event Details: {event_data.get('title', 'No details provided')}\n"
         
         # Format the date range for the description (check if there's an 'end' date)
         start_date = event_data.get('start', 'Unknown Start Date')
         end_date = event_data.get('end', None)
 
-        description += f"Date: {start_date}"
-        if end_date and end_date != start_date:  # If the end date exists, add it to the description
-            description += f" - {end_date}"
+        #description += f"Date: {pd.to_datetime(start_date).strftime('%Y-%m-%d')}"  # Format the start date for the description as YYYY-MM-DD
+        #if end_date and end_date != start_date:  # If the end date exists, add it to the description
+        #    description += f" - {pd.to_datetime(end_date).strftime('%Y-%m-%d')}" # Format the end date for the description as YYYY-MM-DD
 
         # Set the description
         event.description = description
 
-        # Check if the event is an all-day event
-        if event_data.get("allDay", "false") == "true":
-            # Handle all-day events
-            try:
-                # Convert to datetime and set as all-day
-                event.begin = pd.to_datetime(event_data["start"]).to_pydatetime()
-                event.make_all_day()
-            except Exception as e:
-                # Fallback if there's an error
-                print(f"Error processing all-day event: {e}")
-                continue
+        # Logic for all day events
+        if event_data['eventTime'] == 'N/A' or event_data['eventTime'] == '' or "adjourn" in event_data['eventTime']:
+            event.begin = pd.to_datetime(start_date).to_pydatetime()
+            event.end = pd.to_datetime(start_date).to_pydatetime()
+            event.make_all_day()
+
+        # Logic for non-all-day events
         else:
-            # Handle non-all-day events
             try:
                 # First convert to string if it's not already
                 start_str = str(event_data["start"]) if not isinstance(event_data["start"], str) else event_data["start"]
