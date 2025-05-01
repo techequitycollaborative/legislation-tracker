@@ -84,9 +84,14 @@ html, body, [class*="css"] {
     font-size: 12px;
     font-weight: 300;
     word-wrap: break-word;  /* Allow event title to wrap */
-    white-space: normal;  /* Ensure text wraps properly */
+    white-space: normal !important;  /* Ensure text wraps properly */
     pointer-events: auto !important; /* For click events */
     cursor: pointer !important; /* For click events */
+}
+
+/* For FullCalendar v5+ */
+.fc-daygrid-event-title {
+    white-space: normal !important;
 }
 
 /* Highlight today's date */
