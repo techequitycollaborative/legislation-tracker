@@ -100,31 +100,57 @@ html, body, [class*="css"] {
 }
 
 /* Legislative Events */
-.fc-event.legislative {
+.legislative {
     background-color: #1f77b4 !important; /* Blue */
     border-color: #1f77b4 !important;
-    pointer-events: auto !important; /* For click events */
-    cursor: pointer !important; /* For click events */
-    z-index: 5 !important; /* For click events */
+    /*pointer-events: auto !important; /* For click events */
+    /*cursor: pointer !important; /* For click events */
+    /*z-index: 5 !important; /* For click events */
 }
 
 /* Senate Events */
-.fc-event.senate {
+.senate {
     background-color: #ff7f0e !important; /* Orange */
     border-color: #ff7f0e !important;
-    pointer-events: auto !important; /* For click events */
-    cursor: pointer !important; /* For click events */
-    z-index: 5 !important; /* For click events */
+    /*pointer-events: auto !important; /* For click events */
+    /*cursor: pointer !important; /* For click events */
+    /*z-index: 5 !important; /* For click events */
 }
 
 /* Assembly Events */
-.fc-event.assembly {
+.assembly {
     background-color: #2ca02c !important; /* Green */
     border-color: #2ca02c !important;
-    pointer-events: auto !important; /* For click events */
-    cursor: pointer !important; /* For click events */
-    z-index: 5 !important; /* For click events */
+    /*pointer-events: auto !important; /* For click events */
+    /*cursor: pointer !important; /* For click events */
+    /*z-index: 5 !important; /* For click events */
 }
+
+/* Styling for revised and moved events */
+.event-active-rev {
+    border: 2px dashed red !important;
+}
+
+.event-moved-rev {
+    border: 2px dashed red !important;
+}
+
+.event-moved {
+    border: 2px dashed red !important;
+}
+
+.event-active-rev::before {
+    content: "\270F\FE0F" !important; /* Pencil emoji */
+}
+
+.event-moved-rev::before {
+    content: "\26A0\FE0F "\270F\FE0F"" !important; /* Warning emoji and pencil emoji */
+}
+
+.event-moved::before {
+    content: "\26A0\FE0F" !important; /* Warning emoji */
+}
+
 
 /* Make events more compact */
 .fc-timegrid-event {

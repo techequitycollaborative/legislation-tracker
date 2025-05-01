@@ -103,6 +103,17 @@ event_classes = {
     "Assembly": "assembly",
 }
 
+# Also define event flags based on event status and revised status
+def get_event_flags(status, revised):
+    if status == 'moved' and revised:
+        return 'event-moved-rev'
+    elif status == 'moved':
+        return 'event-moved'
+    elif status == 'active' and revised:
+        return 'event-active-rev'
+    else:
+        return 'event-active'
+
 # Color-coding for the tags in the event type multi-select box
 st.markdown("""
 <style>
@@ -164,6 +175,7 @@ with st.sidebar.container():
             default=[],  # No default selection
             help="Type to search for specific bill numbers. Only bills that have events will appear."
         )
+        
         if len(selected_bills_for_calendar) > 0: 
             bill_filter_active = True
 
@@ -286,12 +298,32 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
     '''
     # Initiate empty list of calendar events
     calendar_events = []
+    initial_date = str(datetime.now())  # Default to current date if no events are selected
     
     # If filtering by bills (either dashboard bills or individually selected bills)
     if bill_filter_active:
         
         # Filter the bill_events DataFrame to only include selected bills
         filtered_bill_events = bill_events[bill_events['bill_number'].isin(selected_bills_for_calendar)]
+
+        # If user only selects one bill, then set initial date to that bill's event date in order to jump to the event date on the calendar
+        if len(selected_bills_for_calendar) == 1 and len(filtered_bill_events) == 1:
+            initial_date = str(pd.to_datetime(filtered_bill_events.iloc[0]['event_date'])) # make sure its a string so its JSON compatible
+
+        # If user selects one bill but there are multiple events for that bill:
+        elif len(selected_bills_for_calendar) == 1 and len(filtered_bill_events) > 1:
+            active_events = filtered_bill_events[filtered_bill_events['event_status'] == 'active']
+            
+            # Grab the date for the soonest active event
+            if not active_events.empty:
+                upcoming_event = active_events.loc[pd.to_datetime(active_events['event_date']).idxmin()]
+                initial_date = str(pd.to_datetime(upcoming_event['event_date']))
+            
+            # Else grab the date of the most upcoming event
+            else:
+                # Pick the soonest event overall, even if inactive or in the past
+                soonest_event = filtered_bill_events.loc[pd.to_datetime(filtered_bill_events['event_date']).idxmin()]
+                initial_date = str(pd.to_datetime(soonest_event['event_date']))
         
         # Add each filtered bill event to the calendar event list 
         for _, row in filtered_bill_events.iterrows():
@@ -299,6 +331,9 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
             # For events with a specific time, parse the event_time string to time object (combined date and time)
             start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
             end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
+
+            event_status = get_event_flags(row['event_status'], row['revised'])
+            event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
             
             # Convert to JSON
             calendar_events.append({
@@ -313,15 +348,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'end': end_time if not row['allDay'] else row['event_date'],  
                 #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                 'type': 'Assembly' if row['chamber_id'] == 1 else 'Senate',
-                'className': 'assembly' if row['chamber_id'] == 1 else 'senate',  # Assign class -- corresponds to color coding from css file
-            
-                # Add extended properties that will be appear in event pop up upon click
-                'billName': f"Bill Name: {row['bill_name']}",
-                'status': f"Bill latest status: {row['status']}",
-                'dateIntroduced': f"Date Introduced: {row['date_introduced']}",
-                'eventLocation': f"Event Location: {row['event_location']}",
-                'eventRoom': f"Room:{row['event_room']}"
-                #'eventStatus': row['event_status'],
+                'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
             })          
         
     # If filtering by event type, not bill
@@ -337,8 +364,8 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'end': row['end'],  # this is the namer of the column in the leg events csv file
                 #'allDay': bool(row['allDay']), # All legislative events are all-day, which is already hardcoded in the csv file
                 'type': 'Legislative',
-                'className': event_classes.get('Legislative', ''), # Assign class -- corresponds to color coding from css file
-                  })
+                'className': f"{event_classes.get('Legislative', '')} event-active" # Assign class -- corresponds to color coding from css file
+            })
               
         # Add Assembly bill events if selected
         if "Assembly" in selected_types:
@@ -348,6 +375,9 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 # For events with a specific time, parse the event_time string to time object (combined date and time)
                 start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
                 end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
+
+                event_status = get_event_flags(row['event_status'], row['revised'])
+                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
             
                 calendar_events.append({
                     'title': f"""
@@ -360,14 +390,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'end': end_time if not row['allDay'] else row['event_date'],  
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Assembly',
-                    'className': event_classes.get('Assembly', ''), # Assign class -- corresponds to color coding from css file
-                    # Add extended properties that will be appear in event pop up upon click
-                    'billName': f"Bill Name: {row['bill_name']}",
-                    'status': f"Bill latest status: {row['status']}",
-                    'dateIntroduced': f"Date Introduced: {row['date_introduced']}",
-                    'eventLocation': f"Event Location: {row['event_location']}",
-                    'eventRoom': f"Room:{row['event_room']}"
-                    #'eventStatus': row['event_status'],             
+                    'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
                 })
 
         # Add Senate bill events if selected
@@ -379,6 +402,9 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
                 end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
 
+                event_status = get_event_flags(row['event_status'], row['revised'])
+                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
+                
                 calendar_events.append({
                     'title': f"""
                                 {row['bill_number']} - {row['event_text']} | 
@@ -390,20 +416,13 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'end': end_time if not row['allDay'] else row['event_date'],  
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Senate',
-                    'className': event_classes.get('Senate', ''), # Assign class -- corresponds to color coding from css file
-                    # Add extended properties that will be appear in event pop up upon click
-                    'billName': f"Bill Name: {row['bill_name']}",
-                    'status': f"Bill latest status: {row['status']}",
-                    'dateIntroduced': f"Date Introduced: {row['date_introduced']}",
-                    'eventLocation': f"Event Location: {row['event_location']}",
-                    'eventRoom': f"Room:{row['event_room']}"
-                    #'eventStatus': row['event_status'],
+                    'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
                 })
     
-    return calendar_events
+    return calendar_events, initial_date
     
 # Get filtered events
-calendar_events = filter_events(selected_types, selected_bills_for_calendar, bill_filter_active)
+calendar_events, initial_date = filter_events(selected_types, selected_bills_for_calendar, bill_filter_active)
 
 # Display a count of filtered events (optional, for debugging)
 st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
@@ -518,6 +537,7 @@ calendar_options = {
     "clickable": True,  # Allows for clicking an event
     "themeSystem": "standard",
     "initialView": "timeGridWeek",
+    **({"initialDate": initial_date} if initial_date else {}),
     "dayMaxEventsRows": "true",  # Allows for more than one event per day
     "handleWindowResize": "true",  # Ensures calendar resizes on window resize
     
