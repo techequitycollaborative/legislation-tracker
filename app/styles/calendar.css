@@ -128,7 +128,7 @@ html, body, [class*="css"] {
 
 /* Styling for revised and moved events */
 .event-active-rev {
-    border: 2px dashed red !important;
+    border: 2px dashed rgb(0, 255, 221) !important;
 }
 
 .event-moved-rev {
@@ -136,20 +136,20 @@ html, body, [class*="css"] {
 }
 
 .event-moved {
-    border: 2px dashed red !important;
+    border: 2px dashed rgb(255, 242, 0) !important;
 }
 
-.event-active-rev::before {
-    content: "\270F\FE0F" !important; /* Pencil emoji */
-}
+/*.event-active-rev::after {
+    content: "\270F\FE0F" !important; /* Pencil emoji -- THESE BEOFRE/AFTER MESS UP THE LIST VIEW / NEED TO FIGURE THIS OUT
+} */
 
-.event-moved-rev::before {
-    content: "\26A0\FE0F "\270F\FE0F"" !important; /* Warning emoji and pencil emoji */
-}
+/*.event-moved-rev::before {
+    content: "\26A0\FE0F "\270F\FE0F"" !important; /* Warning emoji and pencil emoji 
+}*/
 
-.event-moved::before {
-    content: "\26A0\FE0F" !important; /* Warning emoji */
-}
+/*.event-moved::before {
+    content: "\26A0\FE0F" !important; /* Warning emoji 
+}*/
 
 
 /* Make events more compact */

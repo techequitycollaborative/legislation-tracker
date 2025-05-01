@@ -239,9 +239,6 @@ def convert_datetime(event_date: str, event_time: str, add_hours: int = 0) -> st
     return utc_dt.isoformat()
 
 
-st.write(convert_datetime("2025-01-01", "9 a.m."))  # Example usage
-
-
 # Process location and room data from bill_events
 def create_calendar_resources(bill_events_df):
     # Extract unique locations, rooms, and agenda order
