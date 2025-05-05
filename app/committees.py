@@ -28,6 +28,7 @@ st.write(
 )
 
 ############################ LOAD AND PROCESS COMMITTEE DATA #############################
+# TODO: migrate to SQL view so it's easier to pick up next upcoming hearing info
 # Load committee membership data
 def get_and_clean_committee_data():
     """
