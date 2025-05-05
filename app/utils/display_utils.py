@@ -903,5 +903,7 @@ def display_org_dashboard_details(selected_rows):
         expander = st.expander('See bill history')
         expander.markdown(history)
 
+###############################################################################
+# TODO: implement like display_bill_info_text()
 def display_committee_info_text(selected_rows):
     return
