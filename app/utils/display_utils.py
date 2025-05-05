@@ -898,11 +898,10 @@ def display_org_dashboard_details(selected_rows):
     st.write("")
 
     # Expander for bill history
-    with st.container(key='bill_history_text'):
-        st.markdown('#### Bill History')
-        expander = st.expander('Click to view bill history')
-        expander.markdown(bill_history)
+    with st.container(key='bill_history_dialog'):
+        st.markdown('##### Bill History')
+        expander = st.expander('See bill history')
+        expander.markdown(history)
 
-
-
-
+def display_committee_info_text(selected_rows):
+    return

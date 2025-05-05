@@ -143,3 +143,61 @@ def draw_leg_grid(
         css=css
     )
 
+def draw_committee_grid(
+        df,
+        formatter: dict = None,
+        selection='single',
+        use_checkbox=True,
+        #header_checkbox = True, -- turned off for committee table
+        fit_columns=True, # change to false to make all column width based on the variable
+        theme='streamlit', # options = streamlit, alpine, balham, material
+        height: int = 600,
+        wrap_text: bool = False,
+        auto_height: bool = False,
+        key=None,
+        css: dict = None
+):
+    # Initialize the GridOptionsBuilder from the dataframe passed into the function
+    builder = GridOptionsBuilder().from_dataframe(df)
+    
+    # Configure default column settings for all columns
+    builder.configure_default_column(
+        enableFilter=True,
+        filter='agTextColumnFilter',
+        floatingFilter=True, # floating filter: adds a row under the header row for the filter
+        #columnSize='sizeToFit'
+        )
+    
+    # Configure special settings for certain columns (batch)
+    builder.configure_columns([
+        'committee_id', 'webpage_link'
+    ],hide=True) # hide these columns in the initial dataframe
+    
+    # Configure special settings for individual columns
+    #builder.configure_column('checkbox', headerName='', checkboxSelection=True, width=50, pinned='left') # option to add a specific checkbox column
+    builder.configure_column('name',headerName = 'Committee Name',pinned='left', checkboxSelection=True) # pin this column, make it the checkbox column
+    builder.configure_column('chair_name',headerName = 'Chairperson Name') # set width of column
+    builder.configure_column('next_hearing',headerName = 'Next Upcoming Hearing', filter='agSetColumnFilter')#,filter='agDateColumnFilter') # text filter for now
+    builder.configure_column('size',headerName = 'No. Members')
+    
+    
+    builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) # Configure how user selects rows
+    builder.configure_side_bar(filters_panel=True, columns_panel=False) # configure the sidebar panel
+    #builder.configure_pagination(enabled=True, paginationAutoPageSize=True, paginationPageSize=10) # can add pagination instead of making the table scrollable
+    builder.configure_auto_height(autoHeight=False) # configure height of the table
+    
+    # Build the grid options dictionary
+    grid_options = builder.build()
+
+    return AgGrid(
+        df,
+        gridOptions=grid_options, # pass the grid options dictionary built above
+        update_mode=GridUpdateMode.SELECTION_CHANGED | GridUpdateMode.VALUE_CHANGED, # ensures the df is updated dynamically
+        allow_unsafe_jscode=True,
+        fit_columns_on_grid_load=fit_columns, # fit all columns equally on page load
+        height=height,
+        wrap_text=wrap_text,
+        theme=theme,
+        key=key,
+        css=css
+    )
