@@ -289,6 +289,34 @@ calendar_resources, resource_lookup = create_calendar_resources(bill_events)
 
 ######################### CONVERT DATA ###################################
 
+def build_title(row):
+    '''
+    Helper function to build the title text that displays on the calendar event blocks.
+    '''
+    parts = []
+
+    if row.get('bill_number') and row.get('event_text'):
+        parts.append(f"{row['bill_number']} - {row['event_text']}")
+    elif row.get('bill_number'):
+        parts.append(row['bill_number'])
+    elif row.get('event_text'):
+        parts.append(row['event_text'])
+
+    if row.get('event_location'):
+        parts.append(row['event_location'])
+
+    if row.get('event_room'):
+        parts.append(row['event_room'])
+
+    if row.get('agenda_order') not in (None, '', float('nan')):
+        try:
+            parts.append(f"Agenda order: {int(row['agenda_order'])}")
+        except (ValueError, TypeError):
+            pass
+
+    return ' | '.join(parts)
+
+
 def filter_events(selected_types, selected_bills_for_calendar, bill_filter_active):
     '''
     Filters calendar events by bill and event type, and converts data to json format for rendering in streamlit calendar.
@@ -335,12 +363,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
             # Convert to JSON
             calendar_events.append({
                 # Add key info to title -- this will be text displayed on the calendar event blocks
-                'title': f"""
-                        {row['bill_number']} - {row['event_text']} 
-                        {row['event_location']} 
-                        {row['event_room']} 
-                        Agenda order: {row['agenda_order']:.0f}
-                        """,     
+                'title': build_title(row),
                 'start': start_time if not row['allDay'] else row['event_date'], 
                 'end': end_time if not row['allDay'] else row['event_date'],  
                 #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
@@ -387,12 +410,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
             
                 calendar_events.append({
-                    'title': f"""
-                                {row['bill_number']} - {row['event_text']} 
-                                {row['event_location']} 
-                                {row['event_room']} 
-                                Agenda order: {row['agenda_order']:.0f}
-                            """,                    
+                    'title': build_title(row),                 
                     'start': start_time if not row['allDay'] else row['event_date'], 
                     'end': end_time if not row['allDay'] else row['event_date'],  
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
@@ -418,12 +436,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
                 
                 calendar_events.append({
-                    'title': f"""
-                                {row['bill_number']} - {row['event_text']} 
-                                {row['event_location']} 
-                                {row['event_room']} 
-                                Agenda order: {row['agenda_order']:.0f}
-                            """,                           
+                    'title': build_title(row),                           
                     'start': start_time if not row['allDay'] else row['event_date'], 
                     'end': end_time if not row['allDay'] else row['event_date'],  
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
@@ -477,10 +490,6 @@ def create_ics_file(events):
         # Format the date range for the description (check if there's an 'end' date)
         start_date = event_data.get('start', 'Unknown Start Date')
         end_date = event_data.get('end', None)
-
-        #description += f"Date: {pd.to_datetime(start_date).strftime('%Y-%m-%d')}"  # Format the start date for the description as YYYY-MM-DD
-        #if end_date and end_date != start_date:  # If the end date exists, add it to the description
-        #    description += f" - {pd.to_datetime(end_date).strftime('%Y-%m-%d')}" # Format the end date for the description as YYYY-MM-DD
 
         # Set the description
         event.description = description
@@ -586,7 +595,7 @@ calendar_options = {
     # Time slot options
     "selectable": "true",
     "slotMinTime": "09:00:00",    # Start at 9am
-    "slotMaxTime": "18:00:00",    # End at 6pm
+    "slotMaxTime": "19:00:00",    # End at 7pm
     "slotDuration": "00:15:00",   # 15-minute slots -- making this shorter is a hack to make the event blocks taller
     "slotHeight": 50,  # Make time slots taller (default is 30px)
     #"snapDuration": "00:30:00",   # Snap to 30 min increments
