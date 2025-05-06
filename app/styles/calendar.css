@@ -127,20 +127,20 @@ html, body, [class*="css"] {
 }
 
 /* Styling for revised and moved events */
-.event-active-rev {
+/*.event-active-rev {
     border: 2px dashed rgb(0, 255, 221) !important;
 }
 
 .event-moved-rev {
-    border: 2px dashed red !important;
+    border: 2px dashed red !important; /* Event border -- don't like the look of this, so turning off but can turn on later 
 }
 
 .event-moved {
-    border: 2px dashed rgb(255, 242, 0) !important;
+    border: 2px dashed rgb(255, 242, 0) !important; /* Event border -- don't like the look of this, so turning off but can turn on later 
 }
 
 /*.event-active-rev::after {
-    content: "\270F\FE0F" !important; /* Pencil emoji -- THESE BEOFRE/AFTER MESS UP THE LIST VIEW / NEED TO FIGURE THIS OUT
+    content: "\270F\FE0F" !important; /* Pencil emoji -- THESE BEFORE/AFTER MESS UP THE LIST VIEW SO TURNING OFF
 } */
 
 /*.event-moved-rev::before {

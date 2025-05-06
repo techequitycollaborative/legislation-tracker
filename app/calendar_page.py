@@ -23,9 +23,13 @@ from db.query import get_my_dashboard_bills
 st.title('Calendar')
 st.markdown(
     '''
-    This calendar displays overall legislative events and deadlines, as well as bill-specific events such as when a bill is scheduled to be discussed in a committee meeting or floor hearing.
-    
-    Use the filters on the left to search for a specific bill event or filter by event type.
+    This calendar displays overall legislative events and deadlines, as well as bill-specific events for the current session. Use the filters on the left to search for specific events.
+
+    **Important notes:**
+    - Events take place in Pacific Time but are displayed in your local time zone.
+    - Some events have no available time information and may be marked as "all-day" events.
+    - Events with a :pencil2: icon have had their location or time changed since the tool was last updated.
+    - Events with a :warning: icon have had their date updated since the tool was last updated.
     '''
 )
 st.markdown(" ")
@@ -291,8 +295,18 @@ calendar_resources, resource_lookup = create_calendar_resources(bill_events)
 
 def build_title(row):
     '''
-    Helper function to build the title text that displays on the calendar event blocks.
+    Helper function to build the title text for the calendar event blocks.
+    Combines emojis, bill number, event text, location, room, and agenda order.
     '''
+    # Build emoji prefix (no separator after)
+    emojis = []
+    if row.get('revised') == True:
+        emojis.append("✏️")
+    if row.get('event_status') == 'moved':
+        emojis.append("⚠️")
+    emoji_prefix = ' '.join(emojis)
+
+    # Build the rest of the title
     parts = []
 
     if row.get('bill_number') and row.get('event_text'):
@@ -308,13 +322,19 @@ def build_title(row):
     if row.get('event_room'):
         parts.append(row['event_room'])
 
-    if row.get('agenda_order') not in (None, '', float('nan')):
+    agenda_order = row.get('agenda_order')
+    if agenda_order not in (None, '', float('nan')):
         try:
-            parts.append(f"Agenda order: {int(row['agenda_order'])}")
+            parts.append(f"Agenda order: {int(agenda_order)}")
         except (ValueError, TypeError):
             pass
 
-    return ' | '.join(parts)
+    # Combine emoji prefix (if any) with rest of title
+    title_body = ' | '.join(parts)
+    if emoji_prefix:
+        return f"{emoji_prefix} {title_body}"
+    else:
+        return title_body
 
 
 def filter_events(selected_types, selected_bills_for_calendar, bill_filter_active):
@@ -587,9 +607,9 @@ calendar_options = {
     "resourceLabelText": "Locations",
     "resourceOrder": "title",  # Sort resources by room title
     
-    # Options for better handling overlapping events
-    "eventOverlap": True,  # Allow events to overlap
-    "slotEventOverlap": False,  # Don't visually overlap events (stacks them instead)
+    # Options for better handling overlapping timed events
+    "eventOverlap": False,  # Don't allow events to overlap
+    "slotEventOverlap": False,  # Don't visually overlap events (stack them horizontally instead)
     "eventMaxStack": 3,  # Maximum number of events to stack in a time slot
     
     # Time slot options
