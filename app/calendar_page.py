@@ -741,6 +741,7 @@ calendar_options = {
     "initialView": "dayGridMonth",
     **({"initialDate": initial_date} if initial_date else {}),
     "dayMaxEventsRows": "true",  # Allows for more than one event per day
+    "dayMaxEvents": 5,  # Maximum number of ALL DAY events to show per day
     "handleWindowResize": "true",  # Ensures calendar resizes on window resize
     
     # Toolbar
@@ -771,9 +772,10 @@ calendar_options = {
     # Options for better handling overlapping timed events
     "eventOverlap": True,  # Don't allow events to overlap
     "slotEventOverlap": False,  # Don't visually overlap events (stack them horizontally instead)
-    "eventMaxStack": 1,  # Maximum number of events to stack in a time slot
+    "eventMaxStack": 1,  # Maximum number of SIDE BY SIDE TIMED events to stack in a time slot
     
     # Time slot options
+    #"height": "700px",
     "selectable": "true",
     "slotMinTime": "09:00:00",    # Start at 9am
     "slotMaxTime": "19:00:00",    # End at 7pm
