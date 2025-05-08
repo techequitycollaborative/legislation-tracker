@@ -160,6 +160,15 @@ html, body {
     /*z-index: 5 !important; /* For click events */
 }
 
+
+/* Letter of Support Deadline Events */
+.letter-deadline {
+    background-color: #edcbab !important; /* Green */
+    border-color: #edcbab !important;
+    font-weight: normal !important;
+    color: #00495e !important; /* Change text color */
+}
+
 /* Styling for revised and moved events */
 /*.event-active-rev {
     border: 2px dashed rgb(0, 255, 221) !important;
