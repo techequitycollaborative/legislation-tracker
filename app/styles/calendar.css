@@ -1,36 +1,44 @@
 @import url('https://use.typekit.net/uam2xsj.css');
 
-/* Global fonts */
+/* THIS SCRIPT CONTAINS CSS FOR THE CALENDAR USING BOTH THE STREAMLIT-CALENDAR LIBRARY AND THE INJECTED FULLCALENDAR JAVASCRIPT.
+BOTH ACHIEVE THE SAME AESTHETIC BUT THE JAVASCRIPT CALENDAR HAS MORE FUNCTIONALITY, THOUGH IS A BIT MORE FINICKY */
+
+/* Global fonts -- USE FOR STREAMLIT-CALENDAR
 :root {
     --font-primary: "source-sans-pro", sans-serif;
     --font-secondary: "roboto-slab", serif;
-}
+}*/
 
-/* General styles */
+/* General styles -- custom -- USE FOR STREAMLIT-CALENDAR
 html, body, [class*="css"] {
     font-family: var(--font-primary);
     font-weight: 400;
     font-style: normal;
-}
+} 
 
-/* Secondary font */
+/* Secondary font -- custom -- USE FOR STREAMLIT-CALENDAR
 .secondary-font {
     font-family: var(--font-secondary);
     font-weight: 200;
     font-style: normal;
-}
+}*/
+
+/* General styles -- USE FOR JS CALENDAR */
+html, body {
+    font-family: Arial, Helvetica Neue, Helvetica, sans-serif;
+  }
 
 /* Make calendar responsive */
 #calendar {
     width: 100% !important; /* Ensure the calendar container takes up full width */
     height: 100vh !important; /* Make it responsive to the viewport height */
-    font-family: var(--font-primary);
+    /*font-family: var(--font-primary); /* Use for custom fonts for streamlit-calendar above */
     font-size: 14px;
 }
 
 /* Toolbar text */
 .fc-toolbar {
-    font-family: var(--font-secondary);
+    /*font-family: var(--font-secondary);*/
     font-size: 16px;
     font-weight: 300;
     color: black;
@@ -38,14 +46,15 @@ html, body, [class*="css"] {
 
 /* Toolbar title */
 .fc-toolbar-title {
-    font-family: var(--font-primary);
+    /*font-family: var(--font-primary);*/
     font-size: 32px;
     color: black;
 }
 
 /* Toolbar buttons */
 .fc-toolbar button {
-    background-color: #2d3f4bff !important; /* Change button color */
+    background-color: #0041d9 !important; /* Change button color */
+    border-color: #ffffff !important;
     color: white !important; /* Change text color */
     padding: 8px 12px !important;
 }
@@ -57,28 +66,59 @@ html, body, [class*="css"] {
 /* Make past events faded */
 .fc-event-past {
     opacity: 0.5;
+    pointer-events: auto !important; /* For click events */
+    cursor: pointer !important; /* For click events */
+    z-index: 5 !important; /* For click events */
+    font-weight: normal !important;
 }
 
 /* Event block */
 .fc-event {
-    font-family: var(--font-secondary);
-    font-weight: 300;
-    font-size: 12px;
-    color: white;
+    /*font-family: var(--font-secondary);*/
+    /*font-weight: 300;*/
+    font-size: 11px;
+    font-weight: normal !important;
+    color: white !important; /* Change text color */
     background-color: #0041d9ff;
     padding: 5px;  /* Add padding to give space for wrapping */
     white-space: normal !important;  /* Allow text wrapping */
     word-wrap: break-word;  /* Allow long words to break and wrap */
     word-break: break-word;  /* Ensure long words break onto the next line */
+    pointer-events: auto !important; /* For click events */
+    cursor: pointer !important; /* For click events */
+    z-index: 5 !important; /* For click events */
 }
 
 /* Event titles */
 .fc-event-title {
-    font-family: var(--font-secondary);
-    font-size: 12px;
-    font-weight: 300;
+    /*font-family: var(--font-secondary);*/
+    font-size: 11px;
+    /*font-weight: 300;*/
+    color: white !important; /* Change text color */
+    font-weight: normal !important;
     word-wrap: break-word;  /* Allow event title to wrap */
-    white-space: normal;  /* Ensure text wraps properly */
+    white-space: normal !important;  /* Ensure text wraps properly */
+    pointer-events: auto !important; /* For click events */
+    cursor: pointer !important; /* For click events */
+}
+
+.fc-daygrid-event {
+    white-space: normal !important;
+    word-wrap: break-word;
+    line-height: 1.2;
+    display: block;
+    padding: 2px 4px;
+}
+
+
+/* For FullCalendar v5+ */
+.fc-daygrid-event-title {
+    white-space: normal !important;
+    font-weight: normal !important;
+}
+
+.fc-daygrid-event-dot {
+    display: none !important; /* Hide the dot for timed event blocks on the daygridmonth view */
 }
 
 
@@ -88,19 +128,128 @@ html, body, [class*="css"] {
 }
 
 /* Legislative Events */
-.fc-event.legislative {
-    background-color: #1f77b4 !important; /* Blue */
-    border-color: #1f77b4 !important;
+.legislative {
+    background-color: #0041d9 !important; /* Blue */
+    border-color: #0041d9 !important;
+    font-weight: normal !important;
+    color: white !important; /* Change text color */
+    /*pointer-events: auto !important; /* For click events */
+    /*cursor: pointer !important; /* For click events */
+    /*z-index: 5 !important; /* For click events */
 }
 
 /* Senate Events */
-.fc-event.senate {
-    background-color: #ff7f0e !important; /* Orange */
-    border-color: #ff7f0e !important;
+.senate {
+    background-color: #712f39 !important; /* Orange */
+    border-color: #712f39 !important;
+    font-weight: normal !important;
+    color: white !important; /* Change text color */
+    /*pointer-events: auto !important; /* For click events */
+    /*cursor: pointer !important; /* For click events */
+    /*z-index: 5 !important; /* For click events */
 }
 
 /* Assembly Events */
-.fc-event.assembly {
-    background-color: #2ca02c !important; /* Green */
-    border-color: #2ca02c !important;
+.assembly {
+    background-color: #00495e !important; /* Green */
+    border-color: #00495e !important;
+    font-weight: normal !important;
+    color: white !important; /* Change text color */
+    /*pointer-events: auto !important; /* For click events */
+    /*cursor: pointer !important; /* For click events */
+    /*z-index: 5 !important; /* For click events */
 }
+
+
+/* Letter of Support Deadline Events */
+.letter-deadline {
+    background-color: #edcbab !important; /* Green */
+    border-color: #edcbab !important;
+    font-weight: normal !important;
+    color: #00495e !important; /* Change text color */
+}
+
+/* Styling for revised and moved events */
+/*.event-active-rev {
+    border: 2px dashed rgb(0, 255, 221) !important;
+}
+
+.event-moved-rev {
+    border: 2px dashed red !important; /* Event border -- don't like the look of this, so turning off but can turn on later 
+}
+
+.event-moved {
+    border: 2px dashed rgb(255, 242, 0) !important; /* Event border -- don't like the look of this, so turning off but can turn on later 
+}
+
+/*.event-active-rev::after {
+    content: "\270F\FE0F" !important; /* Pencil emoji -- THESE BEFORE/AFTER MESS UP THE LIST VIEW SO TURNING OFF
+} */
+
+/*.event-moved-rev::before {
+    content: "\26A0\FE0F "\270F\FE0F"" !important; /* Warning emoji and pencil emoji 
+}*/
+
+/*.event-moved::before {
+    content: "\26A0\FE0F" !important; /* Warning emoji 
+}*/
+
+
+/* Make events more compact */
+.fc-timegrid-event {
+    padding: 0 2px !important;
+    font-size: 0.85em !important;
+    font-weight: normal !important;
+    color: white !important; /* Change text color */
+}
+
+/* Style the "upon adjournment" events differently
+.adjournment-event {
+    background-color: #f8f8f8 !important;
+    border-left: 3px solid #e63946 !important;
+    font-style: italic;
+} */
+
+/* Improve stacking */
+.fc-timegrid-event-harness {
+    margin-top: 0 !important;
+}
+
+.clickable-event {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clickable-event:hover {
+    filter: brightness(1.1);
+}
+
+/* Make time slot lines more transparent */
+.fc-timegrid-slot-lane {
+    border-color: rgba(0, 0, 0, 0.1) !important; /* Adjust the alpha value (0.1) for transparency */
+  }
+  
+  /* Make horizontal slot lines more transparent */
+  .fc-timegrid-slot.fc-timegrid-slot-lane {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Make vertical grid lines more transparent */
+  .fc-timegrid-col-bg .fc-highlight,
+  .fc-timegrid-col {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Make the day divider lines slightly more visible than the hour lines */
+  .fc-timegrid-col-frame {
+    border-color: rgba(0, 0, 0, 0.15) !important;
+  }
+
+
+/* Settings for the popover that appears when multiple events occur on one day (activated when more than 3 events) */
+  .fc-popover {
+    max-height: 300px !important; /* Set a max height for the popover */
+    overflow-y: auto !important; /* Enable vertical scrolling */
+}
+
+

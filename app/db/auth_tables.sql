@@ -27,6 +27,6 @@ CREATE TABLE IF NOT EXISTS logged_users (
     email TEXT,
     password_hash TEXT,
     org_id INTEGER NOT NULL,
-    FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
+    FOREIGN KEY (org_id) REFERENCES organizations(id)
 );
 

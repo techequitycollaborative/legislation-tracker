@@ -1,25 +1,26 @@
--- Title: process_bills_from_snapshot.sql
-
--- Pulls bill data from OpenStates API and processes for display in Streamlit app.
+-- Title: refresh_processed_bills.sql
+-- Pulls bill data from OpenStates API and processes for display in Streamlit app WITH TRIGGER FUNCTION to enable auto-refresh whenever bill_schedule table is updated (via daily cronjob)
 -- Sources data from various tables in the Snapshot schema 
 -- Ouputs final, clean bills table for the legislation tracker as a SQL view (not as a table) including latest status, 
 -- date introduced, and properly formatted bill history columns.
-
 -- Inputs: 
 ----- snapshot.bill: for most bill info
 ----- public.processed_bill_action_2025_2026: for filtered/processed bill history/bill action
 ----- snapshot.bill_sponsor: for author, coauthors
 ----- ca_dev.bill_schedule_new: for upcoming bill events for the current legislative session (senate & assembly)
-
 -- Output: 
 ----- schema: public
 ----- view name: processed_bills_from_snapshot_{leg_session}
 
-DROP VIEW IF EXISTS processed_bills_from_snapshot_2025_2026;
-CREATE OR REPLACE VIEW processed_bills_from_snapshot_2025_2026 AS
-
--- Copy data from snapshot.bill and clean up
-WITH temp_bills AS (
+-- Create function to refresh view when bill_schedule changes
+CREATE OR REPLACE FUNCTION refresh_processed_bills_view()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Create processed_bills view
+    DROP VIEW IF EXISTS processed_bills_from_snapshot_2025_2026;
+    CREATE OR REPLACE VIEW processed_bills_from_snapshot_2025_2026 AS
+    
+	WITH temp_bills AS (
     SELECT 
 		openstates_bill_id,
         -- bill_id; We will use open states id from now on bc we started to get duplicates of our own bill id
@@ -90,3 +91,16 @@ LEFT JOIN latest_status s ON b.openstates_bill_id = s.openstates_bill_id
 LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
 LEFT JOIN bill_authors a ON b.openstates_bill_id = a.openstates_bill_id
 LEFT JOIN ca_dev.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id; -- Add bill events from bill schedule table
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger on the bill_schedule table
+DROP TRIGGER IF EXISTS refresh_bills_view_trigger ON ca_dev.bill_schedule;
+CREATE TRIGGER refresh_bills_view_trigger
+AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON ca_dev.bill_schedule
+FOR EACH STATEMENT
+EXECUTE FUNCTION refresh_processed_bills_view();
+
+-- Run this to check that the trigger exists
+-- SELECT * FROM pg_trigger WHERE tgname = 'refresh_bills_view_trigger';

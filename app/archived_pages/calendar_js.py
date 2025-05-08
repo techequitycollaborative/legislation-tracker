@@ -2,24 +2,22 @@
 # -*- coding: utf-8 -*-
 """
 Calendar Page
-Created on Nov 27, 2024
+Created on May 6, 2025
 @author: danyasherbini
 
 This page of the app features a calendar of legislative deadlines and/or events, built with
-a custom streamlit calendar component.
+injected FullCalendar javascript.
 
-IMPORTANT: THIS PAGE'S FILE CANNOT BE NAMED 'CALENDAR' BECAUSE IT WILL OVERRIDE THE STREAMLIT 'CALENDAR.PY' MODULE. You will get a warning if you try to do this.
-That's why it's named calendar_page.py.
 """
 
 import pandas as pd
 import streamlit as st
-from streamlit_calendar import calendar
 from db.query import query_table
 from db.query import get_my_dashboard_bills
-from datetime import datetime, timedelta, date
+from streamlit.components.v1 import html
+import streamlit.components.v1 as components
+from datetime import datetime, timedelta
 import pytz
-import numpy as np
 
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
@@ -33,8 +31,6 @@ st.markdown(
     - Some events have no available time information and may be marked as "all-day" events.
     - Events with a :pencil2: icon have had their location or time changed since the tool was last updated.
     - Events with a :warning: icon have had their date updated since the tool was last updated.
-    - Events with an :envelope: icon are deadlines for letters of support. These deadlines are automatically generated to be 7 days before the committee hearing date; please check committee websites to verify committee-specific rules.
-    - For best experience, view clendar in full screen mode.
     '''
 )
 st.markdown(" ")
@@ -54,14 +50,6 @@ db_bills = get_my_dashboard_bills(user_email)
 
 # Update session state with user's dashboard bills
 st.session_state.dashboard_bills = db_bills
-
-# Initialize state for clicked event
-if "clicked_event" not in st.session_state:
-    st.session_state.clicked_event = None
-
-# Initialize all calendar events in session state
-if "calendar_events" not in st.session_state:
-    st.session_state.calendar_events = []
 
 ####################################### LOAD DATA ###################################
 
@@ -89,6 +77,7 @@ def load_bill_events():
     
 
     bill_events = pd.merge(bills, events, how='outer', on='openstates_bill_id') # Merge the two tables on openstates_bill_id
+    #bill_events = bill_events[['bill_number','bill_name','status','date_introduced','chamber','event_date','event_text','agenda_order','event_time','event_location','revised','event_status']] # Subset only these columns (for now)
     
     # Drop certain rows
     bill_events = bill_events.dropna(subset=['event_date']) # Drop rows with empty event_date, if any
@@ -106,26 +95,9 @@ def load_bill_events():
     # Add empty column for resourceId
     bill_events['resourceId'] = ''
 
-    # Add letter of support deadline column
-    bill_events['letter_deadline'] = [(pd.to_datetime(x) - timedelta(days=7)) if pd.notna(x) else None for x in bill_events['event_date']]
-    bill_events['letter_deadline'] = bill_events['letter_deadline'].dt.strftime('%Y-%m-%d') # Format as date string without time
-    bill_events['letter_deadline'] = np.where(
-        bill_events['event_text'].str.contains(r'\bFile\b', na=False),
-        None,
-        bill_events['letter_deadline']
-    )
-
-
-    bill_events['letter_deadline'] = np.where(
-        bill_events['event_text'].str.contains(r'\bCalendar\b', na=False),
-        None,
-        bill_events['letter_deadline']
-    )
-
     return bill_events
 
 bill_events = load_bill_events()
-#st.write(bill_events.head(5))  # Display the first few rows of the bill events DataFrame for debugging
 
 ######################### ADD FILTERS / SIDE BAR ###################################
 
@@ -146,35 +118,23 @@ def get_event_flags(status, revised):
         return 'event-active-rev'
     else:
         return 'event-active'
-    
-# Define letter of support class
-def get_letter_deadline_class(letter_deadline):
-    if letter_deadline != 'N/A':
-        return 'letter-deadline'
-    else:
-        return ''
 
 # Color-coding for the tags in the event type multi-select box
 st.markdown("""
 <style>
 span[data-baseweb="tag"]:has(span[title="Legislative"]) {
   color: white;
-  background-color: #0041d9;
+  background-color: #1f77b4;
 }
 
 span[data-baseweb="tag"]:has(span[title="Senate"]) {
   color: white;
-  background-color: #712f39;
+  background-color: #ff7f0e;
 }
 
 span[data-baseweb="tag"]:has(span[title="Assembly"]) {
   color: white;
-  background-color: #00495e;
-}
-            
-span[data-baseweb="tag"]:has(span[title="Letter Deadline"]) {
-  color: white;
-  background-color: #edcbab;
+  background-color: #2ca02c;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -230,8 +190,8 @@ with st.sidebar.container():
         # Multi-select filter with event types
         selected_types = st.sidebar.multiselect(
             "Select event type(s):",
-            options=list(event_classes.keys()) + ['Letter Deadline'],
-            default=list(event_classes.keys()) + ['Letter Deadline']  # Default: Show all
+            options=list(event_classes.keys()),
+            default=list(event_classes.keys())  # Default: Show all
         )
     elif bill_filter_active == True:
         # If bill filter IS active, then turn off filter
@@ -305,7 +265,7 @@ def create_calendar_resources(bill_events_df):
         # Add to our tracking dictionary if it's a new combination
         if key not in unique_locations:
             resource_id += 1
-            # Generate a unique ID
+            # Generate a unique ID (using letters as in your example)
             id_value = chr(96 + resource_id) if resource_id <= 26 else f"resource_{resource_id}"
             
             unique_locations[key] = {
@@ -373,9 +333,6 @@ def build_title(row):
         return f"{emoji_prefix} {title_body}"
     else:
         return title_body
-    
-
-from datetime import datetime, timedelta
 
 
 def filter_events(selected_types, selected_bills_for_calendar, bill_filter_active):
@@ -433,43 +390,10 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'billNumber': row['bill_number'],
                 'billName': row['bill_name'],
                 'eventText': row['event_text'],
-                'eventTime': row['event_time'],
-                'status': row['status'], #this is bill status, not event status
-                'date_introduced': str(row['date_introduced']),
-                'letter_deadline': row['letter_deadline'],
-            })
+                'eventTime': row['event_time']
 
-        # Add letter of support deadline events for all bill events
-        for _, row in filtered_bill_events.iterrows():
-
-            # Make variables
-            start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-            end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
-
-            event_status = get_event_flags(row['event_status'], row['revised'])
-            event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-
-            # Get letter deadline class -- for css color coding
-            letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-            
-            # Convert to JSON
-            calendar_events.append({
-                # Add key info to title -- this will be text displayed on the calendar event blocks
-                'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                'start': row['letter_deadline'], 
-                'end': row['letter_deadline'],
-                #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                'type': 'Assembly' if row['chamber_id'] == 1 else 'Senate',
-                'className': f"{event_class} {event_status} {letter_deadline_class}",  # Assign class -- corresponds to color coding from css file
-                'billNumber': row['bill_number'],
-                'billName': row['bill_name'],
-                'eventText': row['event_text'],
-                'eventTime': row['event_time'],
-                'status': row['status'], #this is bill status, not event status
-                'date_introduced': str(row['date_introduced']),
-                'letter_deadline': row['letter_deadline'],
-            })
-
+            })          
+        
     # If filtering by event type, not bill
     elif not bill_filter_active and selected_types:
 
@@ -487,10 +411,8 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'billNumber': 'N/A',
                 'billName': 'N/A',
                 'eventText': 'N/A',
-                'eventTime': 'N/A',
-                'status': 'N/A', #this is bill status, not event status
-                'date_introduced': 'N/A',
-                'letter_deadline': 'N/A',
+                'eventTime': 'N/A'
+
             })
               
         # Add Assembly bill events if selected
@@ -504,7 +426,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
 
                 event_status = get_event_flags(row['event_status'], row['revised'])
                 event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-                            
+            
                 calendar_events.append({
                     'title': build_title(row),                 
                     'start': start_time if not row['allDay'] else row['event_date'], 
@@ -515,41 +437,8 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'billNumber': row['bill_number'],
                     'billName': row['bill_name'],
                     'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
-                })
-            
-            # Add letter of support deadline events for Assembly events
-            for _, row in assembly_events.iterrows():
+                    'eventTime': row['event_time']
 
-                # Make variables
-                start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
-
-                event_status = get_event_flags(row['event_status'], row['revised'])
-                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-
-                # Get letter deadline class -- for css color coding
-                letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-                
-                # Convert to JSON
-                calendar_events.append({
-                    # Add key info to title -- this will be text displayed on the calendar event blocks
-                    'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                    'start': row['letter_deadline'],
-                    'end': row['letter_deadline'],
-                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                    'type': 'Assembly',
-                    'className': f"{event_class} {event_status} {letter_deadline_class}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': row['bill_number'],
-                    'billName': row['bill_name'],
-                    'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
                 })
 
         # Add Senate bill events if selected
@@ -574,50 +463,13 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'billNumber': row['bill_number'],
                     'billName': row['bill_name'],
                     'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
-                })
-
-            # Add letter of support deadline events for Senate events
-            for _, row in senate_events.iterrows():
-
-                # Make variables
-                start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
-
-                event_status = get_event_flags(row['event_status'], row['revised'])
-                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-
-                # Get letter deadline class -- for css color coding
-                letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-
-                # Convert to JSON
-                calendar_events.append({
-                    # Add key info to title -- this will be text displayed on the calendar event blocks
-                    'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                    'start': row['letter_deadline'],
-                    'end': row['letter_deadline'], 
-                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                    'type': 'Senate',
-                    'className': f"{event_class} {event_status} {letter_deadline_class}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': row['bill_number'],
-                    'billName': row['bill_name'],
-                    'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
+                    'eventTime': row['event_time']
                 })
     
     return calendar_events, initial_date
     
 # Get filtered events
 calendar_events, initial_date = filter_events(selected_types, selected_bills_for_calendar, bill_filter_active)
-
-# Update session state with filtered events
-st.session_state.calendar_events = calendar_events
 
 # Display a count of filtered events (optional, for debugging)
 st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
@@ -635,9 +487,11 @@ custom_css = load_css("./styles/calendar.css")
 # For debugging
 #st.write(calendar_events[80]) 
 
+
 ################## DOWNLOAD .ICS FILE ##########################
 
 from ics import Calendar, Event
+from datetime import datetime
 
 def create_ics_file(events):
     cal = Calendar()
@@ -660,27 +514,9 @@ def create_ics_file(events):
 
         # Logic for all day events
         if event_data['eventTime'] == 'N/A' or event_data['eventTime'] == '' or "adjourn" in event_data['eventTime']:
-            try:
-                event.begin = pd.to_datetime(start_date).to_pydatetime()
-                event.end = pd.to_datetime(start_date).to_pydatetime()
-                event.make_all_day()
-            except Exception as e:
-                print(f"Start date is 'N/A', null, or None -- skipping: {e}")
-                continue
-
-            # Handle letter deadline events
-            if "LETTER" in event_data['title']:
-                try:
-                    # Make all day
-                    event.begin = pd.to_datetime(start_date).to_pydatetime()
-                    event.end = pd.to_datetime(start_date).to_pydatetime()
-                    event.make_all_day()
-                    # Update the title
-                    event.name = f"✉️ LETTER OF SUPPORT DUE - {event_data['billNumber']} - {event_data['eventText']}"
-                except Exception as e:
-                    # If start = N/A then skip
-                    print(f"Start date is 'N/A', null, or None -- assuming this is not a valid letter of support and skipping: {e}")
-                    continue
+            event.begin = pd.to_datetime(start_date).to_pydatetime()
+            event.end = pd.to_datetime(start_date).to_pydatetime()
+            event.make_all_day()
 
         # Logic for non-all-day events
         else:
@@ -722,7 +558,7 @@ with col1:
 with col2:
     # Make the button
     st.download_button(
-        label="📅 Download Events (.ics)",
+        label="📅 Download Events",
         data=ics_content,
         file_name="events.ics",
         mime="text/calendar",
@@ -731,72 +567,99 @@ with col2:
 
 ################################## BUILD CALENDAR ###################################
 # This streamlit component is built from FullCalendar: https://fullcalendar.io
+import json
 
-# Calendar options
+# Convert calendar_options to JSON, taking care of JavaScript functions
 calendar_options = {
-    
-    # Basic options
-    "selectable": True,  # Allows for clicking an event
-    "themeSystem": "bootstrap5",  # Use Bootstrap theme
+    "editable": False,
+    "clickable": True,
+    "themeSystem": "bootstrap5", # using bootstrap 5 theme
+    #"timezone": "Pacific", # can use this if needed but keeping in local time zone for now
     "initialView": "dayGridMonth",
     **({"initialDate": initial_date} if initial_date else {}),
-    "dayMaxEventsRows": "true",  # Allows for more than one event per day
-    "handleWindowResize": "true",  # Ensures calendar resizes on window resize
-    
-    # Toolbar
+    "dayMaxEventsRows": True,
+    "handleWindowResize": True,
     "headerToolbar": {
         "left": "prev,next today",
         "center": "title",
         "right": "dayGridMonth,timeGridWeek,timeGridDay,listMonth",
     },
-    
-    # Customize toolbar button text
     "buttonText": {
         "today": "Today",
-        "dayGridMonth": "Month",  # Customize the text for the month view button
-        "listMonth": "List",  # Customize the text for the week view button
-        "timeGridWeek": "Week",  # Customize the text for the week view button
-        "timeGridDay": "Day",  # Customize the text for the list view button
+        "dayGridMonth": "Month",
+        "listMonth": "List",
+        "timeGridWeek": "Week",
+        "timeGridDay": "Day",
     },
-    
-    # JavaScript function for event click
-    "eventClick": "function(info) { alert('Event: ' + info.event.title); }",
-
-    # Resources
-    "resources": calendar_resources,  # Your resource list
+    "resources": calendar_resources,
     "resourceAreaWidth": "15%",
     "resourceLabelText": "Locations",
-    "resourceOrder": "title",  # Sort resources by room title
-    
-    # Options for better handling overlapping timed events
-    "eventOverlap": True,  # Don't allow events to overlap
-    "slotEventOverlap": False,  # Don't visually overlap events (stack them horizontally instead)
-    "eventMaxStack": 1,  # Maximum number of events to stack in a time slot
-    
-    # Time slot options
-    "selectable": "true",
-    "slotMinTime": "09:00:00",    # Start at 9am
-    "slotMaxTime": "19:00:00",    # End at 7pm
-    "slotDuration": "00:15:00",   # 15-minute slots -- making this shorter is a hack to make the event blocks taller
-    "slotHeight": 50,  # Make time slots taller (default is 30px)
+    "resourceOrder": "title",
+    "eventOverlap": False,
+    "slotEventOverlap": False,
+    "eventMaxStack": 3,
+    "selectable": True,
+    "slotMinTime": "09:00:00",
+    "slotMaxTime": "19:00:00",
+    "slotDuration": "00:15:00",
     #"snapDuration": "00:30:00",   # Snap to 30 min increments
+    "slotHeight": 50,
     "slotLabelFormat": {
         "hour": "numeric",
         "minute": "2-digit",
         "meridiem": "short"
-    }
-    
+    },
+    "events": calendar_events
 }
 
-# Render the calendar with a key that depends on the selected filters
-# This ensures the calendar re-renders when filters change
-calendar_key = f"calendar_{'-'.join(sorted(selected_types))}"
+# Extract and temporarily remove the JS function so it can be embedded raw
+event_click_js = "function(info) { alert(info.event.title); }"
+calendar_options["eventClick"] = None  # Remove temporarily to dump JSON
+#calendar_options["height"] = "auto"
 
-# Render the calendar
-calendar_widget = calendar(
-    events=calendar_events,
-    options=calendar_options,
-    custom_css=custom_css,
-    callbacks=["eventClick"],
-    key=calendar_key, # Assign unique widget key to prevent state loss
-    )
+# Dump options as JSON (minus function)
+options_json = json.dumps(calendar_options, indent=2)
+# Insert the function manually
+options_json = options_json.replace('"eventClick": null', f'"eventClick": {event_click_js}')
+
+calendar_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@200;300;400;600&family=Roboto+Slab:wght@200;300;400;600&display=swap" rel="stylesheet">
+  
+  <!-- FullCalendar CSS -->
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+
+  <!-- Bootstrap 5 CSS and Icons -->
+  <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'>
+  <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css' rel='stylesheet'>
+
+  <!-- Your Custom CSS -->
+  <style>
+    {custom_css}
+  </style>
+
+  <!-- FullCalendar JS -->
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+</head>
+<body>
+  <div id='calendar'></div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {{
+      var calendarEl = document.getElementById('calendar');
+      var calendar = new FullCalendar.Calendar(calendarEl, {options_json});
+      calendar.render();
+    }});
+  </script>
+</body>
+</html>
+"""
+
+# Render calendar
+if "calendar_initialized" not in st.session_state:
+    st.session_state["calendar_initialized"] = True
+    components.html(calendar_html, height=800, width=1000, scrolling=True)
+    
+#html(calendar_html, height=800, width=1000, scrolling=True)
