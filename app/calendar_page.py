@@ -34,7 +34,7 @@ st.markdown(
     - Events with a :pencil2: icon have had their location or time changed since the tool was last updated.
     - Events with a :warning: icon have had their date updated since the tool was last updated.
     - Events with an :envelope: icon are deadlines for letters of support. These deadlines are automatically generated to be 7 days before the committee hearing date; please check committee websites to verify committee-specific rules.
-    - For best experience, view clendar in full screen mode.
+    - For best experience, view calendar in full screen mode.
     '''
 )
 st.markdown(" ")
@@ -109,18 +109,11 @@ def load_bill_events():
     # Add letter of support deadline column
     bill_events['letter_deadline'] = [(pd.to_datetime(x) - timedelta(days=7)) if pd.notna(x) else None for x in bill_events['event_date']]
     bill_events['letter_deadline'] = bill_events['letter_deadline'].dt.strftime('%Y-%m-%d') # Format as date string without time
-    bill_events['letter_deadline'] = np.where(
-        bill_events['event_text'].str.contains(r'\bFile\b', na=False),
-        None,
-        bill_events['letter_deadline']
-    )
 
-
-    bill_events['letter_deadline'] = np.where(
-        bill_events['event_text'].str.contains(r'\bCalendar\b', na=False),
-        None,
-        bill_events['letter_deadline']
-    )
+    # Set letter_deadline to None if event_text contains certain keywords (these events are not committee events and thus don't have letter deadlines)
+    search_words = ['Calendar', 'File', 'Concurrence', 'Reading']  # Define your list of search words
+    pattern = '|'.join(r'\b' + word + r'\b' for word in search_words)
+    bill_events['letter_deadline'] = np.where(bill_events['event_text'].str.contains(pattern, na=False), None, bill_events['letter_deadline'])
 
     return bill_events
 
@@ -134,6 +127,7 @@ event_classes = {
     "Legislative": "legislative",
     "Senate": "senate",
     "Assembly": "assembly",
+    "Letter Deadline": "letter-deadline",
 }
 
 # Also define event flags based on event status and revised status
@@ -230,8 +224,8 @@ with st.sidebar.container():
         # Multi-select filter with event types
         selected_types = st.sidebar.multiselect(
             "Select event type(s):",
-            options=list(event_classes.keys()) + ['Letter Deadline'],
-            default=list(event_classes.keys()) + ['Letter Deadline']  # Default: Show all
+            options=list(event_classes.keys()),
+            default=list(event_classes.keys())  # Default: Show all
         )
     elif bill_filter_active == True:
         # If bill filter IS active, then turn off filter
@@ -442,33 +436,29 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
         # Add letter of support deadline events for all bill events
         for _, row in filtered_bill_events.iterrows():
 
-            # Make variables
-            start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-            end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
+            # If the letter deadline is not None, create a letter deadline event
+            if row['letter_deadline'] is not None:
 
-            event_status = get_event_flags(row['event_status'], row['revised'])
-            event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-
-            # Get letter deadline class -- for css color coding
-            letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-            
-            # Convert to JSON
-            calendar_events.append({
-                # Add key info to title -- this will be text displayed on the calendar event blocks
-                'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                'start': row['letter_deadline'], 
-                'end': row['letter_deadline'],
-                #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                'type': 'Assembly' if row['chamber_id'] == 1 else 'Senate',
-                'className': f"{event_class} {event_status} {letter_deadline_class}",  # Assign class -- corresponds to color coding from css file
-                'billNumber': row['bill_number'],
-                'billName': row['bill_name'],
-                'eventText': row['event_text'],
-                'eventTime': row['event_time'],
-                'status': row['status'], #this is bill status, not event status
-                'date_introduced': str(row['date_introduced']),
-                'letter_deadline': row['letter_deadline'],
-            })
+                # Get letter deadline class -- for css color coding
+                letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
+                
+                # Convert to JSON
+                calendar_events.append({
+                    # Add key info to title -- this will be text displayed on the calendar event blocks
+                    'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
+                    'start': row['letter_deadline'], 
+                    'end': row['letter_deadline'],
+                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
+                    'type': 'Letter Deadline',
+                    'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
+                    'billNumber': row['bill_number'],
+                    'billName': row['bill_name'],
+                    'eventText': row['event_text'],
+                    'eventTime': row['event_time'],
+                    'status': row['status'], #this is bill status, not event status
+                    'date_introduced': str(row['date_introduced']),
+                    'letter_deadline': row['letter_deadline'],
+                })
 
     # If filtering by event type, not bill
     elif not bill_filter_active and selected_types:
@@ -492,7 +482,34 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'date_introduced': 'N/A',
                 'letter_deadline': 'N/A',
             })
-              
+        
+        # Add letter of support deadline events if selected
+        if "Letter Deadline" in selected_types:
+            letter_events = bill_events[bill_events['letter_deadline'].notnull()]
+            
+            for _, row in letter_events.iterrows():
+
+                    # Get letter deadline class -- for css color coding
+                    letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
+                    
+                    # Convert to JSON
+                    calendar_events.append({
+                        # Add key info to title -- this will be text displayed on the calendar event blocks
+                        'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
+                        'start': row['letter_deadline'],
+                        'end': row['letter_deadline'],
+                        #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
+                        'type': 'Letter Deadline',
+                        'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
+                        'billNumber': row['bill_number'],
+                        'billName': row['bill_name'],
+                        'eventText': row['event_text'],
+                        'eventTime': row['event_time'],
+                        'status': row['status'], #this is bill status, not event status
+                        'date_introduced': str(row['date_introduced']),
+                        'letter_deadline': row['letter_deadline'],
+                    })
+
         # Add Assembly bill events if selected
         if "Assembly" in selected_types:
             assembly_events = bill_events[bill_events['chamber_id'] == 1]
@@ -512,37 +529,6 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Assembly',
                     'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': row['bill_number'],
-                    'billName': row['bill_name'],
-                    'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
-                })
-            
-            # Add letter of support deadline events for Assembly events
-            for _, row in assembly_events.iterrows():
-
-                # Make variables
-                start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
-
-                event_status = get_event_flags(row['event_status'], row['revised'])
-                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-
-                # Get letter deadline class -- for css color coding
-                letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-                
-                # Convert to JSON
-                calendar_events.append({
-                    # Add key info to title -- this will be text displayed on the calendar event blocks
-                    'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                    'start': row['letter_deadline'],
-                    'end': row['letter_deadline'],
-                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                    'type': 'Assembly',
-                    'className': f"{event_class} {event_status} {letter_deadline_class}",  # Assign class -- corresponds to color coding from css file
                     'billNumber': row['bill_number'],
                     'billName': row['bill_name'],
                     'eventText': row['event_text'],
@@ -579,37 +565,6 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'date_introduced': str(row['date_introduced']),
                     'letter_deadline': row['letter_deadline'],
                 })
-
-            # Add letter of support deadline events for Senate events
-            for _, row in senate_events.iterrows():
-
-                # Make variables
-                start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
-
-                event_status = get_event_flags(row['event_status'], row['revised'])
-                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-
-                # Get letter deadline class -- for css color coding
-                letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-
-                # Convert to JSON
-                calendar_events.append({
-                    # Add key info to title -- this will be text displayed on the calendar event blocks
-                    'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                    'start': row['letter_deadline'],
-                    'end': row['letter_deadline'], 
-                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                    'type': 'Senate',
-                    'className': f"{event_class} {event_status} {letter_deadline_class}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': row['bill_number'],
-                    'billName': row['bill_name'],
-                    'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
-                })
     
     return calendar_events, initial_date
     
@@ -621,6 +576,175 @@ st.session_state.calendar_events = calendar_events
 
 # Display a count of filtered events (optional, for debugging)
 st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
+
+
+################################## CREATE CALENDAR EVENTS ###################################
+
+# WORKING ON REFACTORING THESE FUNCTIONS IN ORDER TO REPLACE THE FILTER-EVENTS FUNCTION ABOVE! 
+
+def create_legislative_events(leg_events):
+    '''
+    Creates legislative events for the calendar.
+    '''
+    # Initiate empty list of calendar events
+    calendar_events = []
+    
+    # Build legislative events
+    for _, row in leg_events.iterrows():
+
+        calendar_events.append({
+            'title': row.get('title', 'Legislative Event'), # Default title if missing
+            'start': row['start'], # this is the name of the column in the leg events csv file
+            'end': row['end'],  # this is the namer of the column in the leg events csv file
+            #'allDay': bool(row['allDay']), # All legislative events are all-day, which is already hardcoded in the csv file
+            'type': 'Legislative',
+            'className': f"{event_classes.get('Legislative', '')} event-active", # Assign class -- corresponds to color coding from css file
+            'billNumber': 'N/A',
+            'billName': 'N/A',
+            'eventText': 'N/A',
+            'eventTime': 'N/A',
+            'status': 'N/A', #this is bill status, not event status
+            'date_introduced': 'N/A',
+            'letter_deadline': 'N/A',
+        })
+
+        return calendar_events
+
+def create_bill_events(bill_events, include_letter_deadlines=True):
+    '''
+    Creates Senate and Assembly events for the calendar based on selected event types.
+
+    Optionally includes letter of support deadlines for each event.
+    '''   
+    # Initiate empty list of calendar events
+    calendar_events = []
+        
+    # Build Assembly events
+    for _, row in bill_events.iterrows():
+
+        # For events with a specific time, parse the event_time string to time object (combined date and time)
+        start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
+        end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
+
+        # Define event status and event class
+        event_status = get_event_flags(row['event_status'], row['revised'])
+        event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
+                
+        base_event = {
+            'title': build_title(row),                 
+            'start': start_time if not row['allDay'] else row['event_date'], 
+            'end': end_time if not row['allDay'] else row['event_date'],
+            #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
+            'type': 'Assembly',
+            'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
+            'billNumber': row['bill_number'],
+            'billName': row['bill_name'],
+            'eventText': row['event_text'],
+            'eventTime': row['event_time'],
+            'status': row['status'], #this is bill status, not event status
+            'date_introduced': str(row['date_introduced']),
+            'letter_deadline': row['letter_deadline'],
+        }
+
+        calendar_events.append(base_event)
+
+        # Add letter of support deadline events for applicable events if flag is set to True
+        if include_letter_deadlines:
+            for _, row in bill_events.iterrows():
+
+                # If the letter deadline is not None, create a letter deadline event
+                if row['letter_deadline'] is not None:
+                    
+                    letter_deadline_event = {
+                        'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
+                        'start': row['letter_deadline'],
+                        'end': row['letter_deadline'],
+                        #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
+                        'type': 'Assembly',
+                        'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
+                        'billNumber': row['bill_number'],
+                        'billName': row['bill_name'],
+                        'eventText': row['event_text'],
+                        'eventTime': row['event_time'],
+                        'status': row['status'], #this is bill status, not event status
+                        'date_introduced': str(row['date_introduced']),
+                        'letter_deadline': row['letter_deadline'],
+                    }
+                    
+                    calendar_events.append(letter_deadline_event)
+        
+    return calendar_events
+
+
+@st.cache_data
+def create_all_events():
+    """
+    Creates all events for the calendar by combining bill events and legislative events.
+    """
+    # Create bill events
+    bill_events_list = create_bill_events(bill_events, include_letter_deadlines=True)
+
+    # Create legislative events
+    legislative_events_list = create_legislative_events(leg_events)
+
+    # Combine both lists
+    all_events = bill_events_list + legislative_events_list
+
+    return all_events
+
+
+def filter_calendar_events(selected_types, selected_bills_for_calendar, bill_filter_active):
+    """
+    Filters events for the calendar based on selected bills and/or event types.
+    Returns calendar events (as JSON) and an initial date to center the calendar on.
+    """
+    calendar_events = []
+    initial_date = str(datetime.now())  # Default
+
+    # Determine bill-level filtering
+    filtered_bill_events = bill_events.copy() # copy bill events df
+
+    # If bill-specific filter is active, then filter the df for the selected bills
+    if bill_filter_active:
+        filtered_bill_events = filtered_bill_events[
+            filtered_bill_events['bill_number'].isin(selected_bills_for_calendar)]
+
+        # Determine initial date
+
+        # If user only selects one bill, then:
+        if len(selected_bills_for_calendar) == 1 and not filtered_bill_events.empty:
+            active_events = filtered_bill_events[filtered_bill_events['event_status'] == 'active'] # subset to active events
+            if not active_events.empty: # if there are active events, then:
+                initial_date = str(pd.to_datetime(active_events['event_date'].min())) # grab the soonest active event
+            else:
+                initial_date = str(pd.to_datetime(filtered_bill_events['event_date'].min())) # otherwise grab the soonest event overall
+
+    # Further filter by event type (Assembly/Senate) if applicable
+    # If the user has selected specific event types, filter the bill events DataFrame accordingly
+    if selected_types:
+        chamber_filter = []
+        if "Assembly" in selected_types:
+            chamber_filter.append(1)
+        if "Senate" in selected_types:
+            chamber_filter.append(2)
+
+        if chamber_filter:
+            filtered_bill_events = filtered_bill_events[
+                filtered_bill_events['chamber_id'].isin(chamber_filter)
+            ]
+
+    # Add bill-related events
+    calendar_events += create_bill_events(filtered_bill_events, include_letter_deadlines=True)
+
+    # Add legislative events (these are not bill-specific)
+    if not bill_filter_active and "Legislative" in selected_types:
+        calendar_events += create_legislative_events(leg_events)
+
+    else:
+        calendar_events = create_bill_events(filtered_bill_events, include_letter_deadlines=True)
+
+    return calendar_events, initial_date
+
 
 ################################## CSS ###################################
 
