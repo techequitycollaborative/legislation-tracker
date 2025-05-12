@@ -24,19 +24,20 @@ import numpy as np
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
 st.title('Calendar')
-st.markdown(
-    '''
-    This calendar displays overall legislative events and deadlines, as well as bill-specific events for the current session. Use the filters on the left to search for specific events.
 
-    **Important notes:**
-    - Events take place in Pacific Time but are displayed in your local time zone.
-    - Some events have no available time information and may be marked as "all-day" events.
-    - Events with a :pencil2: icon have had their location or time changed since the tool was last updated.
-    - Events with a :warning: icon have had their date updated since the tool was last updated.
-    - Events with an :envelope: icon are deadlines for letters of support. These deadlines are automatically generated to be 7 days before the committee hearing date; please check committee websites to verify committee-specific rules.
-    - For best experience, view calendar in full screen mode.
-    '''
-)
+st.markdown("This calendar displays overall legislative events and deadlines, as well as bill-specific events for the current session. Use the filters on the left to search for specific events.")
+
+with st.expander("Important notes about the calendar", expanded=False):
+    st.markdown(
+        '''
+        - **Time zone:** Events take place in Pacific Time but are displayed in your local time zone.
+        - **All-day events:** Some events have no available time information and may be marked as "all-day" events.
+        - **Updated events:** Events with a :pencil2: icon have had their time, location, room, or agenda order changed since the tool was last updated.
+        - **Moved/postponed events:** Crossed out events have been moved or postponed to a different date. For bill-specific events, please note that the hearing itself may still be scheduled, but that particular bill may have been removed from the agenda. If available, the new event date is included as a separate event in the calendar.
+        - **Letter of support deadlines:** Events with an :envelope: icon are deadlines for letters of support. These deadlines are automatically generated to be 7 days before the committee hearing date; please check committee websites to verify committee-specific rules.
+        - **View:** For best experience, view calendar in full screen mode.
+        '''
+    )
 st.markdown(" ")
 st.markdown(" ")
 
@@ -65,9 +66,6 @@ if "calendar_events" not in st.session_state:
 
 ####################################### LOAD DATA ###################################
 
-# Load the data from a CSV. We're caching this so it doesn't reload every time the app
-# reruns (e.g. if the user interacts with the widgets).
-
 # Load legislative calendar events for 2025-2026 leg session (this is in a CSV file for now)
 @st.cache_data
 def load_leg_events():
@@ -90,23 +88,40 @@ def load_bill_events():
 
     bill_events = pd.merge(bills, events, how='outer', on='openstates_bill_id') # Merge the two tables on openstates_bill_id
     
-    # Drop certain rows
-    bill_events = bill_events.dropna(subset=['event_date']) # Drop rows with empty event_date, if any
-    #bill_events = bill_events.dropna(subset=['event_time']) # Drop rows with empty event_time, for now
-    #bill_events = bill_events[~bill_events['event_time'].str.startswith('Upon')]
+    # Drop rows with empty event_date, if any
+    bill_events = bill_events.dropna(subset=['event_date']) 
     
     # Format event_date as date string without time for display purposes
     bill_events['event_date'] = pd.to_datetime(bill_events['event_date']).dt.strftime('%Y-%m-%d') # event date as just a date (no timestamp)
 
-    # Add column for allDay    
-    # Using regex to check if any digit exists in the event_time string. If they do, then allDay is false, else true.
-    import re
-    bill_events['allDay'] = [False if re.search(r'\d', str(x)) else True for x in bill_events['event_time']]
-    
+    # Add column for allDay events and categorize based on values in event_time column
+    def all_day(x):
+
+        # Control for events that don't have an actual time (e.g. "Upon adjournment")
+        def contains_keywords(text):
+            text = str(text).lower()
+            keywords = ['upon', 'adjournment', 'after', 'before', 'session']
+            return any(keyword in text for keyword in keywords)
+        
+        # Define all day event as any event that has no time or has a time that contains certain keywords
+        def is_empty(x):
+            if pd.isna(x) or x == '' or x == 'N/A':
+                return True
+            else:
+                return False
+        
+        # Check if the event_time is empty or contains keywords
+        if is_empty(x) or contains_keywords(x):
+            return True
+        else:
+            return False
+
+    bill_events['allDay'] = [all_day(x) for x in bill_events['event_time']]
+
     # Add empty column for resourceId
     bill_events['resourceId'] = ''
 
-    # Add letter of support deadline column
+    # Add letter of support deadline column -- make all letter of support deadlines 7 days before the event date for now
     bill_events['letter_deadline'] = [(pd.to_datetime(x) - timedelta(days=7)) if pd.notna(x) else None for x in bill_events['event_date']]
     bill_events['letter_deadline'] = bill_events['letter_deadline'].dt.strftime('%Y-%m-%d') # Format as date string without time
 
@@ -132,14 +147,44 @@ event_classes = {
 
 # Also define event flags based on event status and revised status
 def get_event_flags(status, revised):
-    if status == 'moved' and revised:
-        return 'event-moved-rev'
-    elif status == 'moved':
+    '''
+    Gets the event status and revised status and returns a class name for the event in order to produce visual flags in the calendar.
+    '''
+    # Category 1: Revised events
+    if status == 'active' and revised == True:
+        return 'event-revised'
+    
+    # Category 2: Moved events
+    elif status == 'moved' and revised == False:
         return 'event-moved'
-    elif status == 'active' and revised:
-        return 'event-active-rev'
+    
+    # Category 3: Normal events
+    elif status == 'active' and revised == False:
+        return 'event-normal'
     else:
-        return 'event-active'
+        return 'event-normal'
+    
+# Identify moved events -- THIS NEEDS DEVELOPMENT!
+def get_moved_events(bill_events):
+    events_copy = bill_events.copy()
+
+    # Create a unique identifier for each event based on openstates_bill_id, chamber_id, and event_text -- DO NOT USE EVENT DATE BC THIS WILL BE DIFF FOR THE MOVED EVENT PAIR
+    unique_event_id = events_copy['openstates_bill_id'] + '_' + str(events_copy['chamber_id']) + '_' + events_copy['event_text']
+    events_copy['unique_event_id'] = unique_event_id
+ 
+    # Find all duplicated unique_event_ids (must appear exactly twice)
+    dupe_groups = events_copy.groupby('unique_event_id').filter(lambda x: len(x) == 2 and x['event_status'].nunique() > 1)
+
+    # Get only the rows with status == 'active' -- this is the updated event
+    moved_to_active_events = dupe_groups[dupe_groups['event_status'] == 'active']
+
+    # Check assumption that events appear exactly twice, i.e. that events are not moved more than once
+    assert all(dupe_groups['unique_event_id'].value_counts() == 2), "Some IDs don't appear exactly twice!"
+
+    # Return only the 'active' event in the pair (i.e., the event it was moved to)
+    moved_to_active_events = dupe_groups[dupe_groups['event_status'] == 'active']
+
+    return moved_to_active_events
     
 # Define letter of support class
 def get_letter_deadline_class(letter_deadline):
@@ -275,7 +320,7 @@ def convert_datetime(event_date: str, event_time: str, add_hours: int = 0) -> st
     return utc_dt.isoformat()
 
 
-# Process location and room data from bill_events
+# Process location and room data from bill_events -- NOT IN ACTIVE USE RIGHT NOW
 def create_calendar_resources(bill_events_df):
     # Extract unique locations, rooms, and agenda order
     resources = []
@@ -334,8 +379,9 @@ def build_title(row):
     emojis = []
     if row.get('revised') == True:
         emojis.append("✏️")
-    if row.get('event_status') == 'moved':
-        emojis.append("⚠️")
+
+    #if row.get('event_status') == 'moved':
+    #    emojis.append("⚠️")
     emoji_prefix = ' '.join(emojis)
 
     # Build the rest of the title
@@ -431,6 +477,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'status': row['status'], #this is bill status, not event status
                 'date_introduced': str(row['date_introduced']),
                 'letter_deadline': row['letter_deadline'],
+                'openstates_bill_id': row['openstates_bill_id'],
             })
 
         # Add letter of support deadline events for all bill events
@@ -440,7 +487,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
             if row['letter_deadline'] is not None:
 
                 # Get letter deadline class -- for css color coding
-                letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
+                #letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
                 
                 # Convert to JSON
                 calendar_events.append({
@@ -458,6 +505,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'status': row['status'], #this is bill status, not event status
                     'date_introduced': str(row['date_introduced']),
                     'letter_deadline': row['letter_deadline'],
+                    'openstates_bill_id': 'N/A',
                 })
 
     # If filtering by event type, not bill
@@ -473,7 +521,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'end': row['end'],  # this is the namer of the column in the leg events csv file
                 #'allDay': bool(row['allDay']), # All legislative events are all-day, which is already hardcoded in the csv file
                 'type': 'Legislative',
-                'className': f"{event_classes.get('Legislative', '')} event-active", # Assign class -- corresponds to color coding from css file
+                'className': f"{event_classes.get('Legislative', '')} event-normal", # Assign class -- corresponds to color coding from css file
                 'billNumber': 'N/A',
                 'billName': 'N/A',
                 'eventText': 'N/A',
@@ -481,6 +529,8 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'status': 'N/A', #this is bill status, not event status
                 'date_introduced': 'N/A',
                 'letter_deadline': 'N/A',
+                'openstates_bill_id': 'N/A',
+
             })
         
         # Add letter of support deadline events if selected
@@ -490,7 +540,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
             for _, row in letter_events.iterrows():
 
                     # Get letter deadline class -- for css color coding
-                    letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
+                    #letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
                     
                     # Convert to JSON
                     calendar_events.append({
@@ -508,6 +558,8 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                         'status': row['status'], #this is bill status, not event status
                         'date_introduced': str(row['date_introduced']),
                         'letter_deadline': row['letter_deadline'],
+                        'openstates_bill_id': 'N/A',
+
                     })
 
         # Add Assembly bill events if selected
@@ -536,6 +588,8 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'status': row['status'], #this is bill status, not event status
                     'date_introduced': str(row['date_introduced']),
                     'letter_deadline': row['letter_deadline'],
+                    'openstates_bill_id': row['openstates_bill_id'],
+
                 })
 
         # Add Senate bill events if selected
@@ -564,6 +618,8 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     'status': row['status'], #this is bill status, not event status
                     'date_introduced': str(row['date_introduced']),
                     'letter_deadline': row['letter_deadline'],
+                    'openstates_bill_id': row['openstates_bill_id'],
+
                 })
     
     return calendar_events, initial_date
@@ -575,7 +631,8 @@ calendar_events, initial_date = filter_events(selected_types, selected_bills_for
 st.session_state.calendar_events = calendar_events
 
 # Display a count of filtered events (optional, for debugging)
-st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
+#st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
+#st.write(st.session_state.calendar_events)  # Display the filtered events for debugging 
 
 
 ################################## CREATE CALENDAR EVENTS ###################################
