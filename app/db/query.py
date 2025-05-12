@@ -82,6 +82,8 @@ def get_data():
 
 ###############################################################################
 
+# MY DASHBOARD FUNCTIONS
+
 # All columns in the bill table
 BILL_COLUMNS = [
     'openstates_bill_id', 
@@ -217,7 +219,141 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     conn.close()
     st.rerun()
 
+def clear_all_my_dashboard_bills(user_email):
+    '''
+    Clears ALL bills from the user's personal dashboard, deletes them from the database, and updates session state.
+    '''
+    user_email = st.session_state['user_email']
+    
+    db_config = config('postgres')
+    conn = psycopg2.connect(**db_config)
+    cursor = conn.cursor()
 
+    cursor.execute("DELETE FROM public.user_bill_dashboard WHERE user_email = %s", (user_email,))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    st.rerun()
+
+###############################################################################
+
+# ORG DASHBOARD FUNCTIONS
+def get_org_dashboard_bills(org_id):
+    '''
+    Fetches bills from the org dashboard in the database and returns them as a DataFrame.
+    
+    Parameters: org_id (int)
+    Returns: DataFrame of organization's saved bills
+
+    '''
+    try:
+        db_config = config('postgres')
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        query = f"""
+            SELECT 
+                b.openstates_bill_id,
+                b.bill_number,
+                b.bill_name,
+                b.status,
+                b.date_introduced,
+                b.leg_session,
+                b.author,
+                b.coauthors, 
+                b.chamber,
+                b.leginfo_link,
+                b.bill_text,
+                b.bill_history,
+                b.bill_event,
+                b.event_text
+            FROM public.processed_bills_from_snapshot_2025_2026 b
+            LEFT JOIN public.org_bill_dashboard ubd
+                ON ubd.openstates_bill_id = b.openstates_bill_id
+            WHERE ubd.org_id = %s;
+        """
+
+        cursor.execute(query, (org_id,))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
+    
+    except Exception as e:
+        print(f"Error fetching dashboard bills: {e}")
+        return pd.DataFrame(columns=BILL_COLUMNS)
+
+
+def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
+    '''
+    Adds a selected bill to the user's ORG dashboard, persists it to the database, and updates session state.
+    '''
+    user_email = st.session_state['user_email']
+    org_id = st.session_state.get('org_id')
+    db_config = config('postgres')
+
+    conn = psycopg2.connect(**db_config)
+    cursor = conn.cursor()
+    
+    # Check if bill already exists for this org
+    cursor.execute("""
+        SELECT COUNT(*) FROM public.org_bill_dashboard 
+        WHERE openstates_bill_id = %s AND org_id = %s;
+    """, (openstates_bill_id, org_id))
+    
+    count = cursor.fetchone()[0]
+
+    if count == 0:
+        # Insert new tracked bill
+        cursor.execute("""
+            INSERT INTO public.org_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
+            VALUES (%s, %s, %s, %s);
+        """, (user_email, org_id, openstates_bill_id, bill_number))
+
+        conn.commit()
+        st.success(f'Bill {bill_number} added to dashboard!')
+
+        # Optionally refresh dashboard state
+        if 'selected_bills' not in st.session_state:
+            st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
+
+        # Create a new row as a dictionary
+        new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
+
+        # Append the new row to the selected_bills list
+        st.session_state.selected_bills.append(new_row)
+
+    else:
+        st.warning(f'Bill {bill_number} is already in your dashboard.')
+
+    cursor.close()
+    conn.close()
+
+
+def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
+    '''
+    Removes a selected bill from the user's ORG dashboard, deletes it from the database, and updates session state.
+    '''
+    user_email = st.session_state['user_email']
+    org_id = st.session_state.get('org_id')
+    db_config = config('postgres')
+
+    conn = psycopg2.connect(**db_config)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        DELETE FROM public.org_bill_dashboard 
+        WHERE openstates_bill_id = %s AND org_id = %s;
+    """, (openstates_bill_id, org_id))
+    
+    conn.commit()
+    st.success(f'Bill {bill_number} removed from dashboard!')
+    
+    cursor.close()
+    conn.close()
+    st.rerun()
 
 ###############################################################################
 

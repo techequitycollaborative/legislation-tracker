@@ -12,7 +12,7 @@ import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
 from utils.utils import format_bill_history, get_bill_topics, keywords, to_csv
-from db.query import get_my_dashboard_bills
+from db.query import get_my_dashboard_bills, clear_all_my_dashboard_bills
 from utils.display_utils import display_dashboard_details, format_bill_history_dashboard
 
 
@@ -33,7 +33,9 @@ user_email = st.session_state['user_email']
 col1, col2 = st.columns([4, 1])
 with col2:
     if st.button('Clear Dashboard', use_container_width=True, type='primary'):
-        st.session_state.selected_bills = []  # Clear session state
+        clear_all_my_dashboard_bills(user_email)  # Actually remove the bills from the DB
+        st.session_state.selected_bills = []
+        st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
         st.success('Dashboard cleared!')
 
 # Initialize session state for dashboard bills
