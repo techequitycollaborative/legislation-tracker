@@ -160,6 +160,21 @@ html, body {
     /*z-index: 5 !important; /* For click events */
 }
 
+/* STRIKETHROUGH MOVED EVENTS */
+/* Apply strikethrough to moved events in both main view and popover FOR DAYGRIDMONTH, TIMEGRIDWEEK, AND TIMEGRIDDAY */
+.fc-daygrid-event.event-moved .fc-event-title,
+.fc-event.event-moved .fc-event-title {
+    text-decoration: line-through !important;
+    color: rgba(169, 169, 169, 0.8) !important;
+}
+
+/* Apply strikethrough to moved events in LIST VIEW */
+.fc-list-event.event-moved .fc-list-event-title,
+.fc-list-event.event-moved .fc-list-event-title a {
+    text-decoration: line-through !important;
+    color: rgba(169, 169, 169, 0.8) !important;
+}
+
 
 /* Letter of Support Deadline Events */
 .letter-deadline {
@@ -168,6 +183,7 @@ html, body {
     font-weight: normal !important;
     color: #00495e !important; /* Change text color */
 }
+
 
 /* Styling for revised and moved events */
 /*.event-active-rev {
@@ -178,9 +194,7 @@ html, body {
     border: 2px dashed red !important; /* Event border -- don't like the look of this, so turning off but can turn on later 
 }
 
-.event-moved {
-    border: 2px dashed rgb(255, 242, 0) !important; /* Event border -- don't like the look of this, so turning off but can turn on later 
-}
+
 
 /*.event-active-rev::after {
     content: "\270F\FE0F" !important; /* Pencil emoji -- THESE BEFORE/AFTER MESS UP THE LIST VIEW SO TURNING OFF
