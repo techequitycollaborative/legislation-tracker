@@ -44,17 +44,26 @@ def get_and_clean_leg_data():
 # Call function
 legislators = get_and_clean_leg_data()
 
+# Mapping between user-friendly labels and internal theme values
+theme_options = {
+    'narrow': 'streamlit',
+    'wide': 'alpine'
+}
+
 # Initialize session state for theme if not set
 if 'theme' not in st.session_state:
     st.session_state.theme = 'streamlit'  # Default theme
-    
+
+# Reverse mapping to get the label from the internal value
+label_from_theme = {v: k for k, v in theme_options.items()}
+
 # Create a two-column layout
 col1, col2, col3 = st.columns([1, 7, 2])
 with col1:
-    selected_theme = st.selectbox(
+    selected_label = st.selectbox(
         'Change grid theme:',
-        options=['streamlit', 'alpine', 'balham', 'material'],
-        index=['streamlit', 'alpine', 'balham', 'material'].index(st.session_state.theme)
+        options=list(theme_options.keys()),
+        index=list(theme_options.keys()).index(label_from_theme[st.session_state.theme])
     )
     
 with col2:    
@@ -70,6 +79,7 @@ with col3:
                         )
 
 # Update session state if the user picks a new theme
+selected_theme = theme_options[selected_label]
 if selected_theme != st.session_state.theme:
     st.session_state.theme = selected_theme
 
