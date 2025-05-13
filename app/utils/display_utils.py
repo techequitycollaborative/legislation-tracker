@@ -538,19 +538,19 @@ def display_dashboard_details(selected_rows):
             col1, col2, col3, col4 = st.columns([2, 2, 2, 2])
             with col1:
                 st.markdown('##### Org Position')
-                st.text(custom_details.get('org_position', ''))
+                st.text(custom_details.get('org_position', '') if custom_details else '')
                 
             with col2:
                 st.markdown('##### Priority Tier')
-                st.text(custom_details.get('priority_tier', ''))
+                st.text(custom_details.get('priority_tier', '') if custom_details else '')
                 
             with col3:
                 st.markdown('##### Community Sponsor')
-                st.text(custom_details.get('community_sponsor', ''))        
+                st.text(custom_details.get('community_sponsor', '') if custom_details else '')      
             
             with col4:
                 st.markdown('##### Coalition')
-                st.text(custom_details.get('coalition', ''))
+                st.text(custom_details.get('coalition', '') if custom_details else '')
 
             # Add empty rows of space    
             st.write("")
@@ -561,15 +561,15 @@ def display_dashboard_details(selected_rows):
             col5, col6, col7, col8 = st.columns([2, 2, 2, 2])
             with col5:
                 st.markdown('##### Action Taken')
-                st.text(custom_details.get('action_taken', ''))    
+                st.text(custom_details.get('action_taken', '') if custom_details else '')
 
             with col6:
                 st.markdown('##### Assigned To')
-                st.text(custom_details.get('assigned_to', ''))
+                st.text(custom_details.get('assigned_to', '') if custom_details else '')
 
             with col7:
                 st.markdown('##### Letter of Support')
-                letter_of_support = custom_details.get('letter_of_support', '')
+                letter_of_support = custom_details.get('letter_of_support', '') if custom_details else ''
                 if letter_of_support:
                     st.link_button('Open Link', str(letter_of_support))
                 
