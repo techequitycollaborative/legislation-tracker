@@ -40,7 +40,7 @@ def draw_bill_grid(
         enableFilter=True,
         filter='agTextColumnFilter',
         floatingFilter=True, # floating filter: adds a row under the header row for the filter
-        #columnSize='sizeToFit'
+        columnSize='sizeToFit'
         )
     
     # Configure special settings for certain columns (batch)
@@ -83,7 +83,8 @@ def draw_bill_grid(
         wrap_text=wrap_text,
         theme=theme,
         key=key,
-        css=css
+        css=css,
+        #enable_enterprise_modules=False # this might get rid of the ag grid trial watermark but also disables the filter/pivot on the side of the table
     )
 
 
@@ -94,7 +95,7 @@ def draw_leg_grid(
         #selection='single', -- selection turned off for legislators table
         #use_checkbox=True, -- turned off for legislators table
         #header_checkbox = True, -- turned off for legislators table
-        fit_columns=True, # change to false to make all column width based on the variable
+        fit_columns=True, # change to True to make all column width based on the variable and fit the entire table to the window frame
         theme='streamlit', # options = streamlit, alpine, balham, material
         height: int = 600,
         wrap_text: bool = False,
