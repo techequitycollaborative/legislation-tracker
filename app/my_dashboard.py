@@ -12,7 +12,7 @@ import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
 from utils.utils import format_bill_history, get_bill_topics, keywords, to_csv
-from db.query import get_my_dashboard_bills
+from db.query import get_my_dashboard_bills, clear_all_my_dashboard_bills
 from utils.display_utils import display_dashboard_details, format_bill_history_dashboard
 
 
@@ -28,12 +28,16 @@ if 'authenticated' not in st.session_state:
 #user_info = st.session_state['user_info']
 #user_email = st.session_state["user_info"].get("email")
 user_email = st.session_state['user_email']
+user_name = st.session_state['user_name']
+first_name = user_name.split()[0]  # Get the first name for a more personal greeting
 
 # Clear dashboard button
 col1, col2 = st.columns([4, 1])
 with col2:
     if st.button('Clear Dashboard', use_container_width=True, type='primary'):
-        st.session_state.selected_bills = []  # Clear session state
+        clear_all_my_dashboard_bills(user_email)  # Actually remove the bills from the DB
+        st.session_state.selected_bills = []
+        st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
         st.success('Dashboard cleared!')
 
 # Initialize session state for dashboard bills
@@ -50,14 +54,25 @@ st.session_state.dashboard_bills = db_bills
 db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
 db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
 db_bills = get_bill_topics(db_bills, keyword_dict= keywords)  # Get bill topics
-#db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history_dashboard) #Format bill history
+db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-# Buttom to download selected bills
-col1, col2 = st.columns([4, 1])
+# Initialize session state for theme if not set
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'streamlit'  # Default theme
+    
+# Create a two-column layout
+col1, col2, col3 = st.columns([1, 7, 2])
 with col1:
+    selected_theme = st.selectbox(
+        'Change grid theme:',
+        options=['streamlit', 'alpine', 'balham', 'material'],
+        index=['streamlit', 'alpine', 'balham', 'material'].index(st.session_state.theme)
+    )
+    
+with col2:    
     st.markdown("")
 
-with col2:
+with col3:
     st.download_button(
             label='Download Data as CSV',
             data=to_csv(db_bills),
@@ -66,10 +81,17 @@ with col2:
             use_container_width=True
         )
 
+# Update session state if the user picks a new theme
+if selected_theme != st.session_state.theme:
+    st.session_state.theme = selected_theme
+
+# Use the persisted theme
+theme = st.session_state.theme 
 
 if not db_bills.empty:
-    st.write('Your saved bills:')
-    data = draw_bill_grid(db_bills)
+    total_db_bills = len(db_bills)
+    st.markdown(f"#### {first_name}'s saved bills: {total_db_bills} total bills")
+    data = draw_bill_grid(db_bills, theme=theme)
 
     # Display bill details for dashboard bills
     if 'selected_bills' not in st.session_state:

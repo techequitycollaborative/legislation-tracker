@@ -16,7 +16,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_calendar import calendar
 from db.query import query_table
-from db.query import get_my_dashboard_bills
+from db.query import get_my_dashboard_bills, get_org_dashboard_bills
 from datetime import datetime, timedelta, date
 import pytz
 import numpy as np
@@ -45,6 +45,8 @@ st.markdown(" ")
 
 # Access user info
 user_email = st.session_state['user_email']
+org_id = st.session_state['org_id']
+org_name = st.session_state['org_name']
 
 # Initialize session state for dashboard bills
 if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
@@ -55,6 +57,16 @@ db_bills = get_my_dashboard_bills(user_email)
 
 # Update session state with user's dashboard bills
 st.session_state.dashboard_bills = db_bills
+
+# Initialize session state for org dashboard bills
+if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None:
+    st.session_state.org_dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
+
+# Fetch the user's org's saved bills from the database
+org_db_bills = get_org_dashboard_bills(org_id)
+
+# Update session state with user's org's dashboard bills
+st.session_state.org_dashboard_bills = org_db_bills
 
 # Initialize state for clicked event
 if "clicked_event" not in st.session_state:
@@ -231,13 +243,32 @@ with st.sidebar.container():
     bill_filter_active = False
     selected_bills_for_calendar = []
 
-    # Option to select from dashboard bills
+    # Option to show only bills from ORG Dashboard
+    show_org_dashboard_bills = st.sidebar.checkbox(f"Only show events for bills from {org_name}'s Dashboard")
+
+    # Determine eligibility for dashboard bill checkbox
+    if show_org_dashboard_bills:
+        if 'authenticated' not in st.session_state:
+            st.sidebar.warning("User not authenticated. Login to see org dashboard bill events.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        elif 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None or len(st.session_state.org_dashboard_bills) == 0:
+            st.sidebar.info("No bills saved to the org dashboard. Go to the Bills page to add bills to your organization's dashboard.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        else:
+            # Use the bills directly from session state
+            org_dashboard_bills = st.session_state.org_dashboard_bills['bill_number'].unique().tolist()
+            selected_bills_for_calendar = org_dashboard_bills
+            bill_filter_active = True
+
+    # Option to select from MY dashboard bills
     show_dashboard_bills = st.sidebar.checkbox("Only show events for bills from My Dashboard")
 
     # Determine eligibility for dashboard bill checkbox
     if show_dashboard_bills:
         if 'authenticated' not in st.session_state:
-            st.sidebar.warning("User not authenticated. Login to see dashboard bills.")
+            st.sidebar.warning("User not authenticated. Login to see your dashboard bill events.")
             selected_bills_for_calendar = []
             bill_filter_active = False
         elif 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None or len(st.session_state.dashboard_bills) == 0:
@@ -250,7 +281,7 @@ with st.sidebar.container():
             selected_bills_for_calendar = dashboard_bills
             bill_filter_active = True
             #st.sidebar.success(f"Showing {len(selected_bills_for_calendar)} bills from dashboard")
-    elif not show_dashboard_bills:
+    elif not show_dashboard_bills and not show_org_dashboard_bills:
         # If not eligible for dashboard bill checkbox, show a multiselect search widget for all bills that have events
         unique_bills = sorted(bill_events['bill_number'].unique())
         selected_bills_for_calendar = st.sidebar.multiselect(

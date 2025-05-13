@@ -44,11 +44,23 @@ def get_and_clean_leg_data():
 # Call function
 legislators = get_and_clean_leg_data()
 
-# Create two columns
-col1, col2 = st.columns([4.5, 1.25])  # Adjust column widths as needed
+# Initialize session state for theme if not set
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'streamlit'  # Default theme
+    
+# Create a two-column layout
+col1, col2, col3 = st.columns([1, 7, 2])
 with col1:
-    st.markdown("") # Blank space
-with col2: # Align download button to right side
+    selected_theme = st.selectbox(
+        'Change grid theme:',
+        options=['streamlit', 'alpine', 'balham', 'material'],
+        index=['streamlit', 'alpine', 'balham', 'material'].index(st.session_state.theme)
+    )
+    
+with col2:    
+    st.markdown("")
+
+with col3:
     download_button = st.download_button(key='legislators_download',
                        label='Download Full Data as CSV',
                        data=to_csv(legislators),
@@ -57,8 +69,19 @@ with col2: # Align download button to right side
                        use_container_width=True
                         )
 
+# Update session state if the user picks a new theme
+if selected_theme != st.session_state.theme:
+    st.session_state.theme = selected_theme
+
+# Use the persisted theme
+theme = st.session_state.theme
+
+# Display count of total legislators above the table
+total_legislators = len(legislators)
+st.markdown(f"#### Total legislators: {total_legislators:,}")
+
 # Make the aggrid dataframe
-data = aggrid_styler.draw_leg_grid(legislators)
+data = aggrid_styler.draw_leg_grid(legislators, theme=theme)
 
 
 
