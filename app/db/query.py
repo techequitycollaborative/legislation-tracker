@@ -12,6 +12,7 @@ Date: Jan 15. 2025
 import streamlit as st
 import pandas as pd
 import psycopg2
+import psycopg2.extras
 from db.config import config
 import numpy as np
 from psycopg2.extensions import register_adapter, AsIs
