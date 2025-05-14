@@ -11,7 +11,7 @@ Page to add bills to an org's private dashboard
 import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
-from utils.utils import format_bill_history, get_bill_topics, keywords, to_csv
+from utils.utils import format_bill_history, get_bill_topics, keywords, to_csv, get_bill_topics_multiple
 from db.query import get_org_dashboard_bills
 from utils.display_utils import display_org_dashboard_details, format_bill_history_dashboard
 
@@ -49,7 +49,7 @@ st.session_state.org_dashboard_bills = org_db_bills
 # Minor data processing to match bills table
 org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
 org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-org_db_bills = get_bill_topics(org_db_bills, keyword_dict= keywords)  # Get bill topics
+org_db_bills = get_bill_topics_multiple(org_db_bills, keyword_dict= keywords)  # Get bill topics
 org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
 # Mapping between user-friendly labels and internal theme values

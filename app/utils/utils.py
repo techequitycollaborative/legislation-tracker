@@ -35,8 +35,10 @@ def get_bill_topics(df, keyword_dict):
 
     for keywords, label in keyword_dict.items():
         # Ensure the keywords are joined into a single string for regex
-        pattern = '|'.join(re.escape(word) for word in keywords)
-        # Apply the label where the pattern matches in the bill_name column
+        #pattern = '|'.join(re.escape(word) for word in keywords)
+        # Create a regex pattern to match whole words/phrases only
+        pattern = '|'.join(rf'\b{re.escape(word)}\b' for word in keywords)
+        # Apply the label where the pattern matches in the bill_name column -- ignoring NA values and ignore case
         df.loc[df['bill_name'].str.contains(pattern, na=False, case=False), 'bill_topic'] = label
 
     return df
@@ -44,10 +46,43 @@ def get_bill_topics(df, keyword_dict):
 
 # Keyword/topic mapping
 keywords = {
-    ('artificial intelligence', 'algorithm', 'automated'): 'AI',
-    ('housing', 'eviction', 'tenant', 'renter'): 'Housing',
-    ('worker', 'labor', 'gig economy', 'contract workers', 'content moderator', 'data labeler', 'data labeller', 'ghost work'): 'Labor'
+    ('artificial intelligence', 'algorithm', 'automated', 'automated decision-making', 'AI', 'algorithmic', 'autonomous', 'data centers', 'data center', 'training data','data privacy','CCPA','robotics','surveillance pricing', 'deepfake', 'computer science'): 'AI',
+    ('housing', 'eviction', 'tenant', 'renter', 'tenancy', 'house', 'rental', 'rent', 'rental pricing', 'mortgage'): 'Housing',
+    #('health', 'healthcare', 'health care', 'medical', 'medication', 'medicine', 'pharmaceutical', 'pharmacy', 'health insurance', 'insurance', 'health plan'): 'Health',
+    ('work', 'worker', 'workplace', 'workplace surveillance', 'labor', 'employment', 'gig economy', 'gig work', 'contract work', 'contract workers', 'content moderator', 'data labeler', 'data labeller', 'ghost work','robo bosses','wages','salary','salaries'): 'Labor'
 }
+
+
+
+def get_bill_topics_multiple(df, keyword_dict):
+    """
+    Tags each bill in the DataFrame with ONE OR MORE TOPICS based on keywords found in the 'bill_name' column.
+
+    Parameters:
+        - df (DataFrame): Input DataFrame containing a 'bill_name' column.
+        - keyword_dict (dict): A dictionary where keys are tuples of keywords and
+                               values are the corresponding topics to apply.
+
+    Returns:
+        - df (DataFrame): A DataFrame with a new 'bill_topic' column containing a list of assigned topics.
+    """
+
+    # Initialize the 'bill_topic' column with empty lists
+    df['bill_topic'] = [[] for _ in range(len(df))]
+
+    for keywords, label in keyword_dict.items():
+        # Use word boundaries to prevent partial matches
+        pattern = '|'.join(rf'\b{re.escape(word)}\b' for word in keywords)
+        
+        # Find which rows match this pattern (case-insensitive)
+        matches = df['bill_name'].str.contains(pattern, na=False, case=False, regex=True)
+        
+        # Append the label to the matching rows
+        df.loc[matches, 'bill_topic'] = df.loc[matches, 'bill_topic'].apply(lambda x: x + [label])
+
+    return df
+
+
 
 ###############################################################################
 
