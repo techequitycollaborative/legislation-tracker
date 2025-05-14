@@ -21,3 +21,22 @@ CREATE TABLE IF NOT EXISTS org_bill_dashboard (
     openstates_bill_id TEXT,
     org_id INT
 );
+
+-- Table: bill_custom_details -- this table stores custom details for bills (which is rendered on the org dashboard)
+CREATE TABLE IF NOT EXISTS bill_custom_details (
+    bill_custom_details_id SERIAL PRIMARY KEY,
+    bill_number TEXT,
+    org_position TEXT, 
+    priority_tier TEXT,
+    community_sponsor TEXT,
+    coalition TEXT,
+    letter_of_support TEXT,
+    openstates_bill_id TEXT,
+    assigned_to TEXT,
+    action_taken TEXT,
+    last_updated_by TEXT,
+    last_updated_org_id INT,
+    last_updated_org_name TEXT,
+    last_updated_on DATE,
+    last_updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+);

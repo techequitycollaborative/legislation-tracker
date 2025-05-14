@@ -583,14 +583,16 @@ def display_dashboard_details(selected_rows):
         with st.container():
             if custom_details:
                 # Get the user who saved the details, but remove .com/.us slug from email so it doesn't hyperlink the text
-                saved_by = custom_details.get('last_updated_by', 'Unknown')
+                saved_by = custom_details.get('last_updated_by', 'Unknown User')
                 who = saved_by.split('.')[0]
 
                 # Get date
-                when = custom_details.get('last_updated_on', 'Unknown')
+                when = custom_details.get('last_updated_on', 'Unknown Date')
                 when = when.strftime('%m-%d-%Y') # Format date to MM-DD-YYYY
-                st.markdown(f"*Custom details last saved by {who} on {when}.*")
 
+                # Display message
+                st.markdown(f"*Custom details last saved by {who} on {when}.*")
+                
     # Add empty rows of space    
     st.write("")
     st.write("")
