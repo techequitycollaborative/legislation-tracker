@@ -182,14 +182,14 @@ def add_bill_to_dashboard(openstates_bill_id, bill_number):
         st.success(f'Bill {bill_number} added to dashboard!')
 
         # Optionally refresh dashboard state
-        if 'selected_bills' not in st.session_state:
-            st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
+        #if 'selected_bills' not in st.session_state:
+        #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
 
         # Create a new row as a dictionary
-        new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
+        #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
 
         # Append the new row to the selected_bills list
-        st.session_state.selected_bills.append(new_row)
+        #st.session_state.selected_bills.append(new_row)
 
     else:
         st.warning(f'Bill {bill_number} is already in your dashboard.')
@@ -317,14 +317,14 @@ def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
         st.success(f'Bill {bill_number} added to dashboard!')
 
         # Optionally refresh dashboard state
-        if 'selected_bills' not in st.session_state:
-            st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
+        #if 'selected_bills' not in st.session_state:
+        #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
 
         # Create a new row as a dictionary
-        new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
+        #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
 
         # Append the new row to the selected_bills list
-        st.session_state.selected_bills.append(new_row)
+        #st.session_state.selected_bills.append(new_row)
 
     else:
         st.warning(f'Bill {bill_number} is already in your dashboard.')
