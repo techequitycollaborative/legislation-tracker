@@ -56,6 +56,9 @@ db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-
 db_bills = get_bill_topics_multiple(db_bills, keyword_dict= keywords)  # Get bill topics
 db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
+# Default sorting: by upcoming bill_event
+db_bills = db_bills.sort_values(by='bill_event', ascending=False)
+
 # Mapping between user-friendly labels and internal theme values
 theme_options = {
     'narrow': 'streamlit',

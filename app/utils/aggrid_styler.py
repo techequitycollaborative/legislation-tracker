@@ -56,12 +56,12 @@ def draw_bill_grid(
     builder.configure_column('status',headerName = 'Status')
     builder.configure_column('leginfo_link',headerName = 'Link')
     builder.configure_column('leg_session',headerName = 'Session')
-    builder.configure_column('date_introduced',headerName = 'Date Introduced',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="dd-MM-yyyy",sortable=True) # have to add special arguments to enable date type filter and remove timestamp
+    builder.configure_column('date_introduced',headerName = 'Date Introduced',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="MM-dd-yyyy",sortable=True) # have to add special arguments to enable date type filter and remove timestamp
     builder.configure_column('chamber',headerName = 'Chamber',filter='agSetColumnFilter')
     builder.configure_column('bill_text',headerName = 'Bill Text')
     builder.configure_column('bill_history',headerName = 'Bill History')
     builder.configure_column('bill_topic',headerName = 'Bill Topic', filter='agSetColumnFilter')
-    builder.configure_column('bill_event',headerName = 'Bill Event',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="dd-MM-yyyy",sortable=True) # have to add special arguments to enable date type filter and remove timestamp
+    builder.configure_column('bill_event',headerName = 'Bill Event',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="MM-dd-yyyy",sortable=True) # have to add special arguments to enable date type filter and remove timestamp
     builder.configure_column('event_text',headerName = 'Event Details')
     
     

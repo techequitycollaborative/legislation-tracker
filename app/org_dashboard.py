@@ -52,6 +52,9 @@ org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strft
 org_db_bills = get_bill_topics_multiple(org_db_bills, keyword_dict= keywords)  # Get bill topics
 org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
+# Default sorting: by upcoming bill_event
+org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
+
 # Mapping between user-friendly labels and internal theme values
 theme_options = {
     'narrow': 'streamlit',
