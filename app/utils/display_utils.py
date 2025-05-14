@@ -135,7 +135,7 @@ def display_bill_info_text(selected_rows):
             
             st.markdown('')
 
-            if bill_topic != 'Uncategorized':
+            if bill_topic:
                 st.markdown('##### Bill Topic')
                 st.markdown(bill_topic)
             else:
@@ -307,7 +307,7 @@ def display_dashboard_details_with_custom_fields(selected_rows):
             
             st.markdown('')
 
-            if bill_topic != 'Uncategorized':
+            if bill_topic:
                 st.markdown('##### Bill Topic')
                 st.markdown(bill_topic)
             else:
@@ -505,7 +505,7 @@ def display_dashboard_details(selected_rows):
             
             st.markdown('')
 
-            if bill_topic != 'Uncategorized':
+            if bill_topic:
                 st.markdown('##### Bill Topic')
                 st.markdown(bill_topic)
             else:
@@ -731,7 +731,7 @@ def display_org_dashboard_details(selected_rows):
             
             st.markdown('')
 
-            if bill_topic != 'Uncategorized':
+            if bill_topic:
                 st.markdown('##### Bill Topic')
                 st.markdown(bill_topic)
             else:

@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.utils import get_bill_topics, to_csv, keywords, format_bill_history
+from utils.utils import get_bill_topics, to_csv, keywords, format_bill_history, get_bill_topics_multiple
 from utils.display_utils import display_bill_info_text
 
 # Page title and description
@@ -31,14 +31,35 @@ st.write(
 
 ############################ LOAD AND PROCESS BILLS DATA #############################
 
-# Get data
-bills = get_data()
+@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 11.5)
+def load_bills_table():
+    # Get data
+    bills = get_data()
 
-# Minor data processing 
-bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-bills = get_bill_topics(bills, keyword_dict= keywords)  # Get bill topics
-bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
+    # Minor data processing
+    # Convert to datetime (without formatting yet)
+    bills['date_introduced'] = pd.to_datetime(bills['date_introduced'], errors='coerce')
+    bills['bill_event'] = pd.to_datetime(bills['bill_event'], errors='coerce')
+
+    # Sort bills table by most recent date_introduced
+    bills = bills.sort_values(by='date_introduced', ascending=False)
+
+    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+    bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%m-%d-%Y') # Remove timestamp from date introduced
+    bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+
+    # Get bill topic and format bill history
+    bills = get_bill_topics_multiple(bills, keyword_dict= keywords)  # Get bill topics
+    bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
+
+    return bills
+
+# Initialize session state for bills and load bills if not set
+if 'bills' not in st.session_state:
+     st.session_state.bills = load_bills_table()
+
+# Assign bills variable to session state bills for future access / to enable caching
+bills = st.session_state.bills
 
 # Initialize session state for selected bills
 if 'selected_bills' not in st.session_state:
