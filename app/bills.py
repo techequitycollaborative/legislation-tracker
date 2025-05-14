@@ -37,7 +37,6 @@ def load_bills_table():
     bills = get_data()
 
     # Minor data processing
-
     # Convert to datetime (without formatting yet)
     bills['date_introduced'] = pd.to_datetime(bills['date_introduced'], errors='coerce')
     bills['bill_event'] = pd.to_datetime(bills['bill_event'], errors='coerce')
@@ -55,10 +54,11 @@ def load_bills_table():
 
     return bills
 
-# Initialize session state for bills if not set
+# Initialize session state for bills and load bills if not set
 if 'bills' not in st.session_state:
      st.session_state.bills = load_bills_table()
 
+# Assign bills variable to session state bills for future access / to enable caching
 bills = st.session_state.bills
 
 # Initialize session state for selected bills
