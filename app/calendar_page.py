@@ -660,10 +660,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
 calendar_events, initial_date = filter_events(selected_types, selected_bills_for_calendar, bill_filter_active)
 
 # Update session state with filtered events
-#st.session_state.calendar_events = calendar_events
-
-# Append unique new events to session state
-st.session_state["calendar_events"].extend(calendar_events)
+st.session_state.calendar_events = calendar_events
 
 # Display a count of filtered events (optional, for debugging)
 #st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
@@ -1012,7 +1009,7 @@ calendar_key = f"calendar_{'-'.join(sorted(selected_types))}"
 
 # Render the calendar
 calendar_widget = calendar(
-    events=st.session_state["calendar_events"],
+    events=calendar_events,
     options=calendar_options,
     custom_css=custom_css,
     callbacks=["eventClick"],
