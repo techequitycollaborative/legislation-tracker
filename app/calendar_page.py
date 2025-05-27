@@ -87,7 +87,7 @@ def load_leg_events():
 leg_events = load_leg_events()
 
 # Load events specific to individual bills
-@st.cache_data
+@st.cache_data(ttl=10 * 60 * 60) # Cache for 10 hours
 def load_bill_events():
     bills = query_table('public', 'processed_bills_from_snapshot_2025_2026') # Get bill info from processed_bills table
     events = query_table('ca_dev', 'bill_schedule') # Get bill events from bill_schedule table
@@ -146,6 +146,7 @@ def load_bill_events():
 
 bill_events = load_bill_events()
 #st.write(bill_events.head(5))  # Display the first few rows of the bill events DataFrame for debugging
+
 
 ######################### ADD FILTERS / SIDE BAR ###################################
 
@@ -659,7 +660,10 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
 calendar_events, initial_date = filter_events(selected_types, selected_bills_for_calendar, bill_filter_active)
 
 # Update session state with filtered events
-st.session_state.calendar_events = calendar_events
+#st.session_state.calendar_events = calendar_events
+
+# Append unique new events to session state
+st.session_state["calendar_events"].extend(calendar_events)
 
 # Display a count of filtered events (optional, for debugging)
 #st.sidebar.markdown(f"**Total number of events**: {len(calendar_events)}")
@@ -1008,7 +1012,7 @@ calendar_key = f"calendar_{'-'.join(sorted(selected_types))}"
 
 # Render the calendar
 calendar_widget = calendar(
-    events=calendar_events,
+    events=st.session_state["calendar_events"],
     options=calendar_options,
     custom_css=custom_css,
     callbacks=["eventClick"],
