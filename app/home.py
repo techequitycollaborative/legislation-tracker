@@ -43,6 +43,7 @@ org_name = st.session_state['org_name']
 pages = [
         {"label": "Bills", "icon": "📝", "description": "Search, sort, and filter bills.", "page": "bills.py"},
         {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their activity.", "page": "legislators.py"},
+        {"label": "Committees", "icon": "🗣", "description": "View information about committees and their activity.", "page": "committees.py"},
         {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming events.", "page": "calendar_page.py"},
         {"label": "My Dashboard", "icon": "📌", "description": "Manage and track your selected bills.", "page": "my_dashboard.py"},
         {"label": f"{org_name}'s Dashboard", "icon": "🏢", "description": "Collaborate with your team to track bills together.", "page": "org_dashboard.py"},
