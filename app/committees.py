@@ -5,7 +5,7 @@ Committees Page
 Created on May 5, 2025
 @author: jessiclassy
 
-Bills page with:
+Committees page with:
     - Committee table
     - Committee details with text
 """
@@ -13,7 +13,7 @@ Bills page with:
 import numpy as np
 import pandas as pd
 import streamlit as st
-from db.query import query_table
+from db.query import query_table, COMMITTEE_COLUMNS
 from utils import aggrid_styler
 from utils.utils import to_csv
 from utils.display_utils import display_committee_info_text
@@ -22,76 +22,47 @@ from utils.display_utils import display_committee_info_text
 st.title('Committees')
 st.write(
     '''
-    This page shows California assembly and senate committee information. 
+    This page shows California Assembly and Senate committee information (upcoming hearings, memberships, links). 
     Please note that the page may take a few moments to load.
     '''
 )
 
 ############################ LOAD AND PROCESS COMMITTEE DATA #############################
-# TODO: migrate to SQL view so it's easier to pick up next upcoming hearing info
 # Load committee membership data
-def get_and_clean_committee_data():
+def get_committee_data():
     """
-    Use query_table to load, clean, and cache committee data, which requires membership and legislator data is pre-loaded
+    Use query_table to load, clean, and cache committee data.
     """
     # Cache the function that retrieves the data
     @st.cache_data
-    def get_legislators():
-        # Query the database for legislators
-        legislators = query_table('ca_dev', 'legislator')
-        legislators = legislators.drop(columns=["openstates_people_id"])
-        return legislators
-    
-    # Cache the function that retrieves the data
-    @st.cache_data
-    def get_memberships(legislators):
-        # Query the database for memberships and apply legislator names
-        memberships = query_table('ca_dev', 'committee_assignment')
-        memberships = memberships.drop(['committee_assignment_id', 'session'],axis=1) # drop the unneeded ID columns
-        legislators = legislators.rename(columns={"name": "legislator_name"})
-        memberships = memberships.merge(legislators, on='legislator_id')
-        return memberships
-    
-    @st.cache_data
-    def get_committees(memberships):
-        # Query the database for committee table
-        committees = query_table('ca_dev', 'committee')
-        # join membership data points on committee names
-        memberships = memberships.merge(committees, on='committee_id')
+    def committee_cache():
+        # Query the database for processed committees
+        committee = query_table('public', 'processed_committee_2025_2026')
 
-        # prepare empty columns
-        committees["chair_name"] = ""
-        committees["next_hearing"] = ""
-        committees["size"] = 0
+        # Generate chamber name from ID
+        committee['chamber'] = np.where(committee['chamber_id']==1,'Assembly','Senate') 
 
-        # fill columns
-        for committee_name, group in memberships.groupby("name"):
-            curr_idx = committees.loc[committees.name==committee_name].index[0]
-            # fill in committee size
-            committee_size = len(group)
-            committees.loc[curr_idx, ["size"]] = committee_size
+        # Clean up next hearing format
+        committee["next_hearing"] = pd.to_datetime(committee['committee_event']).dt.strftime('%d/%m/%Y')
 
-            # fill in Chairperson name iff exists
-            has_chair = group.assignment_type == "Chair"
-            if any(has_chair):
-                chairperson_idx = group[has_chair].index[0]
-                chairperson_name = memberships.loc[chairperson_idx, ["legislator_name"]]
-                committees.loc[curr_idx, ["chair_name"]] = chairperson_name.legislator_name
-        
-        committees['chamber'] = np.where(committees['chamber_id']==1,'Assembly','Senate') # change chamber id to actual chamber values
-        committees = committees.drop(['chamber_id'],axis=1) # drop chamber ID column
-        return committees
+        # Fill NA values for chair and vice chair
+        committee["committee_chair"] = committee["committee_chair"].fillna("*None appointed*")
+        committee["committee_vice_chair"] = committee["committee_vice_chair"].fillna("*None appointed*")
+
+        # Count members
+        committee["total_members"] = committee["total_members"].fillna(0)
+
+        # Reorder columns
+        committee = committee[COMMITTEE_COLUMNS]
+        return committee
     
     # Call the cached function to get the data
-    legislators = get_legislators()
-    memberships = get_memberships(legislators)
-    committees = get_committees(memberships)
-
+    committees = committee_cache()
     return committees
 
-committees = get_and_clean_committee_data()
+committees = get_committee_data()
 
-# # Initialize session state for selected bills
+# # Initialize session state for selected committees
 if 'selected_committees' not in st.session_state:
     st.session_state.selected_committees = []
     
