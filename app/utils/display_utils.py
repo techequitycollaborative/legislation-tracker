@@ -981,4 +981,4 @@ def display_committee_info_text(selected_rows):
         
         with col5:
             st.markdown('##### Link to Homepage')
-            st.link_button('ca.gov', str(webpage_link))
+            st.link_button(f'{chamber.lower()}.ca.gov', str(webpage_link))
