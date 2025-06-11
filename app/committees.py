@@ -43,7 +43,7 @@ def get_committee_data():
         committee['chamber'] = np.where(committee['chamber_id']==1,'Assembly','Senate') 
 
         # Clean up next hearing format
-        committee["next_hearing"] = pd.to_datetime(committee['committee_event']).dt.strftime('%d/%m/%Y')
+        committee["next_hearing"] = pd.to_datetime(committee['committee_event'], errors='coerce').dt.strftime('%Y-%m-%d')
 
         # Fill NA values for chair and vice chair
         committee["committee_chair"] = committee["committee_chair"].fillna("*None appointed*")
@@ -65,23 +65,51 @@ committees = get_committee_data()
 # # Initialize session state for selected committees
 if 'selected_committees' not in st.session_state:
     st.session_state.selected_committees = []
-    
-# # Create a two-column layout
-col1, col2 = st.columns([4, 1])
+
+# Mapping between user-friendly labels and internal theme values
+theme_options = {
+    'narrow': 'streamlit',
+    'wide': 'alpine'
+}
+
+# Initialize session state for theme if not set
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'streamlit'  # Default theme
+
+# Reverse mapping to get the label from the internal value
+label_from_theme = {v: k for k, v in theme_options.items()}
+
+# Create a two-column layout
+col1, col2, col3 = st.columns([1, 7, 2])
 with col1:
+    selected_label = st.selectbox(
+        'Change grid theme:',
+        options=list(theme_options.keys()),
+        index=list(theme_options.keys()).index(label_from_theme[st.session_state.theme])
+    )
+
+with col2:    
     st.markdown("")
 
-with col2:
+with col3:
     st.download_button(
-            label='Download Data as CSV',
-            data=to_csv(committees),
-            file_name='selected_committees.csv',
-            mime='text/csv',
-            use_container_width=True
-        )
+        label='Download Data as CSV',
+        data=to_csv(committees),
+        file_name='committees.csv',
+        mime='text/csv',
+        use_container_width=True
+    )
+
+# Update session state if the user picks a new theme
+selected_theme = theme_options[selected_label]
+if selected_theme != st.session_state.theme:
+    st.session_state.theme = selected_theme
+
+# Use the persisted theme
+theme = st.session_state.theme
 
 # # Display the aggrid table
-data = aggrid_styler.draw_committee_grid(committees)
+data = aggrid_styler.draw_committee_grid(committees, theme=theme)
     
 selected_rows = data.selected_rows
 
