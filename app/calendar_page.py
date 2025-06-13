@@ -861,7 +861,7 @@ def create_ics_file(events):
         
         # Build the description with your specified format
         description = f"Bill Name: {event_data.get('billName', 'No name provided')}\n"
-        description += f"Type: {event_data.get('type', 'Unknown')}\n"
+        #description += f"Type: {event_data.get('type', 'Unknown')}\n" -- turned off for now bc it was confusing when bills went to opposite house
         description += f"Event Details: {event_data.get('title', 'No details provided')}\n"
         
         # Format the date range for the description (check if there's an 'end' date)
