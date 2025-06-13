@@ -124,7 +124,12 @@ def validate_email(email: str) -> bool:
 
 def validate_password(password: str) -> bool:
     """
-    Validate password strength.
+    Validate password strength. Must include: 
+    - At least one lowercase letter
+    - At least one uppercase letter
+    - At least one digit
+    - Minimum length of 8 characters
+    - Can include any special characters
 
     Args:
         password (str): Password to validate
@@ -133,24 +138,16 @@ def validate_password(password: str) -> bool:
         bool: True if password meets complexity requirements
     """
     # Expanded set of special characters allowed in the password
-    special_chars = r"""@$!%*?&#^()_+=[]{}:;'"<>,./\|~"""
+    #special_chars = r"""@$!%*?&#^()_+=[]{}:;'"<>,./\|~""" -- turned off special character requirement because it was causing log in issues
 
     # Escape special characters to safely use them in regex
-    escaped_special_chars = re.escape(special_chars)
+    #escaped_special_chars = re.escape(special_chars) -- turned off special character requirement because it was causing log in issues
 
     # Build the password validation regex:
-    password_regex = (
-        rf'^'                                 # Start of string
-        rf'(?=.*[a-z])'                        # At least one lowercase letter
-        rf'(?=.*[A-Z])'                        # At least one uppercase letter
-        rf'(?=.*\d)'                           # At least one digit
-        rf'(?=.*[{escaped_special_chars}])'    # At least one special character from the allowed set
-        rf'[A-Za-z\d{escaped_special_chars}]'  # Allow only letters, digits, and allowed special characters
-        rf'{{8,}}'                             # Minimum length of 8 characters
-        rf'$'                                  # End of string
-    )
+    password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$' 
 
     return re.match(password_regex, password) is not None
+
 
 def hash_password(password: str) -> str:
     """
@@ -334,7 +331,7 @@ def signup_page():
     name = st.text_input("Full Name", help="Enter your full name")
     email = st.text_input("Email", help="Enter a valid email address")
     password = st.text_input("Password", type="password", 
-                              help="Password must be at least 8 characters, include uppercase, lowercase, number, and special character")
+                              help="Password must be at least 8 characters, including at least one uppercase, one lowercase, and one number")
     confirm_password = st.text_input("Confirm Password", type="password")
     
     # Get all organizations for the dropdown
@@ -460,7 +457,9 @@ def logout():
     """
     Clear session state and log out the user.
     """
-    #clear_login_cookies() # clear cookies
-    st.session_state.logged_out = True  # Set a flag instead of calling st.rerun()
+    #clear_login_cookies() # clear cookies -- TURNED OFF FOR NOW UNTIL WE FIGURE OUT PERSISTENT LOGIN
+    #st.session_state.logged_out = True  # Set a flag instead of calling st.rerun() -- TURNED OFF BC THIS WAS CAUSING THE NEED TO CLICK THE LOGOUT BUTTON TWICE
+    st.session_state.clear()
+    st.rerun()
 
     

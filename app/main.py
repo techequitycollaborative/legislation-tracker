@@ -43,12 +43,12 @@ st.logo(
 query_params = st.query_params
 nav_page = query_params.get("nav", "home")  # Default to "home" if no query param is set
 
-# Check if the user has triggered a logout and rerun if necessary
-if "logged_out" in st.session_state and st.session_state.logged_out:
-    st.session_state.clear()
-    st.rerun()  # Use experimental_rerun() to restart execution
+# Check if the user has triggered a logout and rerun if necessary -- TURNED OFF BC THIS IS HANDLED IN THE LOGOUT() FUNCTION DIRECTLY!
+#if "logged_out" in st.session_state and st.session_state.logged_out:
+#    st.session_state.clear()
+#    st.rerun()  # Use experimental_rerun() to restart execution
 
-# Main authentication flow remains largely the same
+# Main authentication flow
 if 'authenticated' not in st.session_state:
     # Logic for checking if the user is logged in in order to keep them logged in across sessions via cookies -- TURNED OFF FOR NOW BC THIS IS STILL IN DEVELOPMENT!!
     #email = get_logged_in_user()
