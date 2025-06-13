@@ -457,7 +457,9 @@ def logout():
     """
     Clear session state and log out the user.
     """
-    #clear_login_cookies() # clear cookies
-    st.session_state.logged_out = True  # Set a flag instead of calling st.rerun()
+    #clear_login_cookies() # clear cookies -- TURNED OFF FOR NOW UNTIL WE FIGURE OUT PERSISTENT LOGIN
+    #st.session_state.logged_out = True  # Set a flag instead of calling st.rerun() -- TURNED OFF BC THIS WAS CAUSING THE NEED TO CLICK THE LOGOUT BUTTON TWICE
+    st.session_state.clear()
+    st.rerun()
 
     
