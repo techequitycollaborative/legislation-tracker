@@ -42,11 +42,13 @@ def load_bills_table():
     bills['bill_event'] = pd.to_datetime(bills['bill_event'], errors='coerce')
 
     # Sort bills table by most recent date_introduced
-    bills = bills.sort_values(by='date_introduced', ascending=False)
+    bills = bills.sort_values(by='last_updated_on', ascending=False)
 
     # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-    bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%m-%d-%Y') # Remove timestamp from date introduced
+    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+    bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
     bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    bills['last_updated_on'] = pd.to_datetime(bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Get bill topic and format bill history
     bills = get_bill_topics_multiple(bills, keyword_dict= keywords)  # Get bill topics
