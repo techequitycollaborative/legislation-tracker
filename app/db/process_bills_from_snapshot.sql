@@ -38,7 +38,13 @@ WITH temp_bills AS (
             REPLACE(bill_num, ' ', '') -- Remove spaces from bill number
         ) AS leginfo_link
     FROM snapshot.bill
-	WHERE LEFT(session, 4) || '-' || RIGHT(session, 4) = '2025-2026' 
+	WHERE LEFT(session, 4) || '-' || RIGHT(session, 4) = '2025-2026'
+        AND bill.bill_num NOT LIKE 'ACR%'
+        AND bill.bill_num NOT LIKE 'HR%'
+        AND bill.bill_num NOT LIKE 'SCR%'
+        AND bill.bill_num NOT LIKE 'SR%'
+        AND bill.bill_num NOT LIKE 'SJR%' 
+        AND bill.bill_num NOT LIKE 'AJR%' 
 ),
 
 -- Get the latest status for each bill from public.processed_bill_action_2025_2026
@@ -75,7 +81,7 @@ SELECT
     b.bill_number,
 	b.bill_name,
 	s.status,
-	b.date_introduced,
+	b.date_introduced::date,
     b.leg_session,
     a.author,
     a.coauthors, 
@@ -84,7 +90,8 @@ SELECT
 	b.bill_text,
     h.bill_history,
 	bs.event_date::date AS bill_event,
-    bs.event_text
+    bs.event_text,
+    b.last_updated_on::date
 FROM temp_bills b
 LEFT JOIN latest_status s ON b.openstates_bill_id = s.openstates_bill_id
 LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
