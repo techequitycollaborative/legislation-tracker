@@ -63,6 +63,8 @@ def draw_bill_grid(
     builder.configure_column('bill_topic',headerName = 'Bill Topic', filter='agSetColumnFilter')
     builder.configure_column('bill_event',headerName = 'Bill Event',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="MM-dd-yyyy",sortable=True) # have to add special arguments to enable date type filter and remove timestamp
     builder.configure_column('event_text',headerName = 'Event Details')
+    builder.configure_column('last_updated_on',headerName = 'Updated as of',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="MM-dd-yyyy",sortable=True)
+
     
     
     builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) # Configure how user selects rows

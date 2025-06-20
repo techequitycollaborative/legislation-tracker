@@ -37,6 +37,12 @@ def display_bill_info_text(selected_rows):
     bill_topic = selected_rows['bill_topic'].iloc[0]
     bill_event = selected_rows['bill_event'].iloc[0]
     event_text = selected_rows['event_text'].iloc[0]
+    last_updated = selected_rows['last_updated_on'].iloc[0]
+
+    # Format dates MM-DD-YYYY in the bill details
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
 
     # Get the org details from session state
     org_id = st.session_state.get('org_id')
@@ -67,7 +73,8 @@ def display_bill_info_text(selected_rows):
     st.write("")
     
     st.markdown('#### Main Bill Details')
-    st.write("")
+    st.markdown(f"_Main bill data is sourced from LegInfo. Data is updated 2x per day. LegInfo data for this bill was last updated on: {last_updated}_")
+
     # Container for bill number and chamber
     with st.container(key='main_details_container'):
         # Display columns with spacers
@@ -214,6 +221,12 @@ def display_dashboard_details_with_custom_fields(selected_rows):
     bill_topic = selected_rows['bill_topic'].iloc[0]
     bill_event = selected_rows['bill_event'].iloc[0]
     event_text = selected_rows['event_text'].iloc[0]
+    last_updated = selected_rows['last_updated_on'].iloc[0]
+
+    # Format dates MM-DD-YYYY in the bill details
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -239,7 +252,8 @@ def display_dashboard_details_with_custom_fields(selected_rows):
     st.write("")
     
     st.markdown('#### Main Bill Details')
-    st.write("")
+    st.markdown(f"_Main bill data is sourced from LegInfo. Data is updated 2x per day. LegInfo data for this bill was last updated on: {last_updated}_")
+
     # Container for bill number and chamber
     with st.container(key='main_details_container_dashboard'):
         # Display columns with spacers
@@ -413,6 +427,12 @@ def display_dashboard_details(selected_rows):
     bill_topic = selected_rows['bill_topic'].iloc[0]
     bill_event = selected_rows['bill_event'].iloc[0]
     event_text = selected_rows['event_text'].iloc[0]
+    last_updated = selected_rows['last_updated_on'].iloc[0]
+
+    # Format dates MM-DD-YYYY in the bill details
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -438,6 +458,8 @@ def display_dashboard_details(selected_rows):
     st.write("")
     
     st.markdown('#### Main Bill Details')
+    st.markdown(f"_Main bill data is sourced from LegInfo. Data is updated 2x per day. LegInfo data for this bill was last updated on: {last_updated}_")
+
     # Container for bill number and chamber
     with st.container(key='main_details_container_dashboard'):
         # Display columns with spacers
@@ -464,7 +486,7 @@ def display_dashboard_details(selected_rows):
             else:
                 st.markdown('#### ')
                 st.markdown('')
-
+        
         with col2:
             st.markdown('')
         
@@ -634,6 +656,12 @@ def display_org_dashboard_details(selected_rows):
     bill_topic = selected_rows['bill_topic'].iloc[0]
     bill_event = selected_rows['bill_event'].iloc[0]
     event_text = selected_rows['event_text'].iloc[0]
+    last_updated = selected_rows['last_updated_on'].iloc[0]
+
+    # Format dates MM-DD-YYYY in the bill details
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
     
     # Get the org detaila from session state
     org_id = st.session_state.get('org_id')
@@ -663,7 +691,8 @@ def display_org_dashboard_details(selected_rows):
     st.write("")
     
     st.markdown('#### Main Bill Details')
-    st.write("")
+    st.markdown(f"_Main bill data is sourced from LegInfo. Data is updated 2x per day. LegInfo data for this bill was last updated on: {last_updated}_")
+
     # Container for bill number and chamber
     with st.container(key='main_details_container_dashboard'):
         # Display columns with spacers

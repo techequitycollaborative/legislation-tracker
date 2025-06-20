@@ -101,7 +101,8 @@ BILL_COLUMNS = [
     'bill_history',
     #'bill_topic', 
     'bill_event', 
-    'event_text'
+    'event_text',
+    'last_updated_on'
 ]
 
 #@st.cache_data(ttl=120)  #  Cache for 2 mins -- Needs to be turned off for rerun to work for remove bill from dashboard button
@@ -133,7 +134,8 @@ def get_my_dashboard_bills(user_email):
                 b.bill_text,
                 b.bill_history,
                 b.bill_event,
-                b.event_text
+                b.event_text,
+                b.'last_updated_on'
             FROM public.processed_bills_from_snapshot_2025_2026 b
             LEFT JOIN public.user_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
@@ -268,7 +270,8 @@ def get_org_dashboard_bills(org_id):
                 b.bill_text,
                 b.bill_history,
                 b.bill_event,
-                b.event_text
+                b.event_text,
+                b.last_updated_on
             FROM public.processed_bills_from_snapshot_2025_2026 b
             LEFT JOIN public.org_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
