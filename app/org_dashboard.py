@@ -46,9 +46,15 @@ org_db_bills = get_org_dashboard_bills(org_id)
 # Update session state with user's org's dashboard bills
 st.session_state.org_dashboard_bills = org_db_bills
 
-# Minor data processing to match bills table
-org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
+#org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
+#org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+# Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+# KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
 org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+
+# Minor data processing to match bills table
 org_db_bills = get_bill_topics_multiple(org_db_bills, keyword_dict= keywords)  # Get bill topics
 org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
