@@ -99,7 +99,7 @@ BILL_COLUMNS = [
     'leginfo_link', 
     'bill_text', 
     'bill_history',
-    #'bill_topic', 
+    #'bill_topic', # This is not in the processed bills table in the db, so we don't include it here
     'bill_event', 
     'event_text',
     'last_updated_on'
@@ -135,7 +135,7 @@ def get_my_dashboard_bills(user_email):
                 b.bill_history,
                 b.bill_event,
                 b.event_text,
-                b.'last_updated_on'
+                b.last_updated_on
             FROM public.processed_bills_from_snapshot_2025_2026 b
             LEFT JOIN public.user_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
@@ -288,7 +288,8 @@ def get_org_dashboard_bills(org_id):
     except Exception as e:
         print(f"Error fetching dashboard bills: {e}")
         return pd.DataFrame(columns=BILL_COLUMNS)
-
+        #raise -- only for local debugging, not for production use as it could break the app if the database is down or the query fails
+    
 
 def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
     '''

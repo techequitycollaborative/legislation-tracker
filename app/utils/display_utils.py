@@ -40,9 +40,12 @@ def display_bill_info_text(selected_rows):
     last_updated = selected_rows['last_updated_on'].iloc[0]
 
     # Format dates MM-DD-YYYY in the bill details
-    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
-    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
-    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    #date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') if date_introduced is not None else None
+    #bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') if bill_event is not None else None
+    #last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
 
     # Get the org details from session state
     org_id = st.session_state.get('org_id')
@@ -142,7 +145,7 @@ def display_bill_info_text(selected_rows):
             
             st.markdown('')
 
-            if bill_topic:
+            if bill_topic is not None:
                 st.markdown('##### Bill Topic')
                 st.markdown(bill_topic)
             else:
@@ -151,8 +154,12 @@ def display_bill_info_text(selected_rows):
 
             st.markdown('')
 
-            st.markdown('##### Link to Bill')
-            st.link_button('leginfo.ca.gov', str(leginfo_link))
+            if leginfo_link is not None:
+                st.markdown('##### Link to Bill')
+                st.link_button('leginfo.ca.gov', str(leginfo_link))
+            else:
+                st.markdown('#### ')
+                st.markdown('')
 
     # Expander for bill text
     with st.container(key='bill_text_text'):
@@ -224,9 +231,12 @@ def display_dashboard_details_with_custom_fields(selected_rows):
     last_updated = selected_rows['last_updated_on'].iloc[0]
 
     # Format dates MM-DD-YYYY in the bill details
-    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
-    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
-    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    #date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') if date_introduced is not None else None
+    #bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') if bill_event is not None else None
+    #last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -430,9 +440,12 @@ def display_dashboard_details(selected_rows):
     last_updated = selected_rows['last_updated_on'].iloc[0]
 
     # Format dates MM-DD-YYYY in the bill details
-    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
-    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
-    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    #date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') if date_introduced is not None else None
+    #bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') if bill_event is not None else None
+    #last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
@@ -659,9 +672,12 @@ def display_org_dashboard_details(selected_rows):
     last_updated = selected_rows['last_updated_on'].iloc[0]
 
     # Format dates MM-DD-YYYY in the bill details
-    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
-    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
-    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    #date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') 
+    date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') if date_introduced is not None else None
+    #bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') 
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') if bill_event is not None else None
+    #last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') 
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
     
     # Get the org detaila from session state
     org_id = st.session_state.get('org_id')

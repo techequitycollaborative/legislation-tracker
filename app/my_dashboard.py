@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Testing out My Dashboard
+My Dashboard
 Created on Dec 2, 2024
 @author: danyasherbini
 
@@ -17,7 +17,7 @@ from utils.display_utils import display_dashboard_details, format_bill_history_d
 
 
 # Page title
-st.title('Dashboard')
+st.title('My Dashboard')
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:
@@ -48,11 +48,18 @@ if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills
 db_bills = get_my_dashboard_bills(user_email)
 
 # Update session state with user's dashboard bills
-st.session_state.dashboard_bills = db_bills
+#st.session_state.dashboard_bills = db_bills
+
+#db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
+#db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+
+# Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+# KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+db_bills['last_updated_on'] = pd.to_datetime(db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
 # Minor data processing to match bills table
-db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
-db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
 db_bills = get_bill_topics_multiple(db_bills, keyword_dict= keywords)  # Get bill topics
 db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
