@@ -233,6 +233,7 @@ span[data-baseweb="tag"]:has(span[title="Letter Deadline"]) {
 
 
 # Get unique bill numbers for the bill filter -- these are the bills that have events
+bill_events['bill_number'] = bill_events['bill_number'].astype(str)
 unique_bills = sorted(bill_events['bill_number'].unique())
 
 with st.sidebar.container():
@@ -449,6 +450,12 @@ def build_title(row):
 
 from datetime import datetime, timedelta
 
+def safe(val):
+    ''' Helper function to safely convert values to string or return None if NaN.'''
+    if pd.isna(val):
+        return None
+    return val
+
 
 def filter_events(selected_types, selected_bills_for_calendar, bill_filter_active):
     '''
@@ -502,14 +509,14 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                 'type': 'Assembly' if row['chamber_id'] == 1 else 'Senate',
                 'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-                'billNumber': row['bill_number'],
-                'billName': row['bill_name'],
-                'eventText': row['event_text'],
-                'eventTime': row['event_time'],
-                'status': row['status'], #this is bill status, not event status
-                'date_introduced': str(row['date_introduced']),
-                'letter_deadline': row['letter_deadline'],
-                'openstates_bill_id': row['openstates_bill_id'],
+                'billNumber': safe(row['bill_number']),
+                'billName': safe(row['bill_name']),
+                'eventText': safe(row['event_text']),
+                'eventTime': safe(row['event_time']),
+                'status': safe(row['status']),
+                'date_introduced': str(safe(row['date_introduced'])),
+                'letter_deadline': safe(row['letter_deadline']),
+                'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
             })
 
         # Add letter of support deadline events for all bill events
@@ -530,14 +537,14 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Letter Deadline',
                     'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': row['bill_number'],
-                    'billName': row['bill_name'],
-                    'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
-                    'openstates_bill_id': 'N/A',
+                    'billNumber': safe(row['bill_number']),
+                    'billName': safe(row['bill_name']),
+                    'eventText': safe(row['event_text']),
+                    'eventTime': safe(row['event_time']),
+                    'status': safe(row['status']),
+                    'date_introduced': str(safe(row['date_introduced'])),
+                    'letter_deadline': safe(row['letter_deadline']),
+                    'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
                 })
 
     # If filtering by event type, not bill
@@ -553,7 +560,7 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'end': row['end'],  # this is the namer of the column in the leg events csv file
                 #'allDay': bool(row['allDay']), # All legislative events are all-day, which is already hardcoded in the csv file
                 'type': 'Legislative',
-                'className': f"{event_classes.get('Legislative', '')} event-normal", # Assign class -- corresponds to color coding from css file
+                'className': f"{event_classes.get('Legislative', '')} event-normal", # Assign class -- corresponds to color coding from css file            
                 'billNumber': 'N/A',
                 'billName': 'N/A',
                 'eventText': 'N/A',
@@ -562,7 +569,6 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                 'date_introduced': 'N/A',
                 'letter_deadline': 'N/A',
                 'openstates_bill_id': 'N/A',
-
             })
         
         # Add letter of support deadline events if selected
@@ -583,14 +589,14 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                         #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                         'type': 'Letter Deadline',
                         'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
-                        'billNumber': row['bill_number'],
-                        'billName': row['bill_name'],
-                        'eventText': row['event_text'],
-                        'eventTime': row['event_time'],
-                        'status': row['status'], #this is bill status, not event status
-                        'date_introduced': str(row['date_introduced']),
-                        'letter_deadline': row['letter_deadline'],
-                        'openstates_bill_id': 'N/A',
+                        'billNumber': safe(row['bill_number']),
+                        'billName': safe(row['bill_name']),
+                        'eventText': safe(row['event_text']),
+                        'eventTime': safe(row['event_time']),
+                        'status': safe(row['status']),
+                        'date_introduced': str(safe(row['date_introduced'])),
+                        'letter_deadline': safe(row['letter_deadline']),
+                        'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
 
                     })
 
@@ -613,15 +619,14 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Assembly',
                     'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': row['bill_number'],
-                    'billName': row['bill_name'],
-                    'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
-                    'openstates_bill_id': row['openstates_bill_id'],
-
+                    'billNumber': safe(row['bill_number']),
+                    'billName': safe(row['bill_name']),
+                    'eventText': safe(row['event_text']),
+                    'eventTime': safe(row['event_time']),
+                    'status': safe(row['status']),
+                    'date_introduced': str(safe(row['date_introduced'])),
+                    'letter_deadline': safe(row['letter_deadline']),
+                    'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
                 })
 
         # Add Senate bill events if selected
@@ -643,14 +648,14 @@ def filter_events(selected_types, selected_bills_for_calendar, bill_filter_activ
                     #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                     'type': 'Senate',
                     'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': row['bill_number'],
-                    'billName': row['bill_name'],
-                    'eventText': row['event_text'],
-                    'eventTime': row['event_time'],
-                    'status': row['status'], #this is bill status, not event status
-                    'date_introduced': str(row['date_introduced']),
-                    'letter_deadline': row['letter_deadline'],
-                    'openstates_bill_id': row['openstates_bill_id'],
+                    'billNumber': safe(row['bill_number']),
+                    'billName': safe(row['bill_name']),
+                    'eventText': safe(row['event_text']),
+                    'eventTime': safe(row['event_time']),
+                    'status': safe(row['status']),
+                    'date_introduced': str(safe(row['date_introduced'])),
+                    'letter_deadline': safe(row['letter_deadline']),
+                    'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
 
                 })
     
@@ -726,13 +731,14 @@ def create_bill_events(bill_events, include_letter_deadlines=True):
             #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
             'type': 'Assembly',
             'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-            'billNumber': row['bill_number'],
-            'billName': row['bill_name'],
-            'eventText': row['event_text'],
-            'eventTime': row['event_time'],
-            'status': row['status'], #this is bill status, not event status
-            'date_introduced': str(row['date_introduced']),
-            'letter_deadline': row['letter_deadline'],
+            'billNumber': safe(row['bill_number']),
+            'billName': safe(row['bill_name']),
+            'eventText': safe(row['event_text']),
+            'eventTime': safe(row['event_time']),
+            'status': safe(row['status']),
+            'date_introduced': str(safe(row['date_introduced'])),
+            'letter_deadline': safe(row['letter_deadline']),
+            'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
         }
 
         calendar_events.append(base_event)
@@ -751,13 +757,14 @@ def create_bill_events(bill_events, include_letter_deadlines=True):
                         #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
                         'type': 'Assembly',
                         'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
-                        'billNumber': row['bill_number'],
-                        'billName': row['bill_name'],
-                        'eventText': row['event_text'],
-                        'eventTime': row['event_time'],
-                        'status': row['status'], #this is bill status, not event status
-                        'date_introduced': str(row['date_introduced']),
-                        'letter_deadline': row['letter_deadline'],
+                        'billNumber': safe(row['bill_number']),
+                        'billName': safe(row['bill_name']),
+                        'eventText': safe(row['event_text']),
+                        'eventTime': safe(row['event_time']),
+                        'status': safe(row['status']),
+                        'date_introduced': str(safe(row['date_introduced'])),
+                        'letter_deadline': safe(row['letter_deadline']),
+                        'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
                     }
                     
                     calendar_events.append(letter_deadline_event)
