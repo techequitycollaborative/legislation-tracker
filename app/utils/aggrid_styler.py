@@ -145,3 +145,96 @@ def draw_leg_grid(
         css=css
     )
 
+def draw_committee_grid(
+        df,
+        formatter: dict = None,
+        selection='single',
+        use_checkbox=True,
+        fit_columns=True, # change to false to make all column width based on the variable
+        theme='streamlit', # options = streamlit, alpine, balham, material
+        height: int = 600,
+        wrap_text: bool = False,
+        auto_height: bool = False,
+        key=None,
+        css: dict = None
+):
+    # Initialize the GridOptionsBuilder from the dataframe passed into the function
+    builder = GridOptionsBuilder().from_dataframe(df)
+    
+    # Configure default column settings for all columns
+    builder.configure_default_column(
+        enableFilter=True,
+        filter='agTextColumnFilter',
+        floatingFilter=True, # floating filter: adds a row under the header row for the filter
+        wrap_text=wrap_text,  
+        # flex=1, # Allow columns to shrink and grow
+        # minWidth=50,
+        # maxWidth=150,
+        # autoHeight=auto_height, 
+        # suppressSizeToFit=True # disable size-to-fit to avoid horizontal scrolling    
+        columnSize='sizeToFit',
+        )
+    
+    # Configure special settings for certain columns (batch)
+    # hide these columns in the initial dataframe
+    builder.configure_columns(
+        [
+        'committee_id', 
+        'webpage_link', 
+        'chamber_id', 
+        'committee_members', 
+        'committee_event', 
+        'member_count', 
+        # 'total_members'
+    ],hide=True) 
+    
+    # Configure special settings for individual columns
+    # pin this column, make it the checkbox column
+    builder.configure_column(
+        'committee_name', 
+        headerName = 'Committee Name',
+        pinned='left', 
+        checkboxSelection=True,
+        # wrapText=True,
+        # minWidth=100,  # Larger minimum
+        # maxWidth=200,  # Larger maximum
+        # autoSize=True,  # Enable auto-sizing
+    ) 
+    # other columns
+    builder.configure_column('chamber',headerName = 'Chamber', minWidth=100) # Smaller width
+    builder.configure_column('committee_chair', headerName = 'Chairperson', minWidth=150) 
+    builder.configure_column('committee_vice_chair', headerName = 'Vice Chairperson', minWidth=150) 
+    builder.configure_column(
+        'next_hearing', 
+        headerName = 'Next Upcoming Hearing', 
+        type=["dateColumnFilter", "customDateTimeFormat"],
+        custom_format_string="MM-dd-yyyy",
+        sortable=True,
+        minWidth=100 # Smaller width
+    )
+    builder.configure_column('total_members', headerName = 'No. Members', minWidth=150) 
+
+    # Configure how user selects rows
+    builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) 
+
+    # configure the sidebar panel
+    builder.configure_side_bar(filters_panel=True, columns_panel=False) 
+
+    # configure height of the table
+    builder.configure_auto_height(autoHeight=False) 
+    
+    # Build the grid options dictionary
+    grid_options = builder.build()
+
+    return AgGrid(
+        df,
+        gridOptions=grid_options, # pass the grid options dictionary built above
+        update_mode=GridUpdateMode.SELECTION_CHANGED | GridUpdateMode.VALUE_CHANGED, # ensures the df is updated dynamically
+        allow_unsafe_jscode=True,
+        fit_columns_on_grid_load=fit_columns, # fit all columns equally on page load
+        height=height,
+        wrap_text=wrap_text,
+        theme=theme,
+        key=key,
+        css=css
+    )

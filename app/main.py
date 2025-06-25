@@ -83,6 +83,7 @@ else:
     legislators = st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators')
     calendar = st.Page('calendar_page.py', title='Calendar', icon='📅', url_path='calendar')
     dashboard = st.Page('my_dashboard.py', title='My Dashboard', icon='📌', url_path='my_dashboard')
+    committees = st.Page('committees.py', title='Committees', icon='🗣', url_path='committees')
 
     if org_info:
         org_dashboard = st.Page("org_dashboard.py", title=f"{org_info[1]} Dashboard", icon="🏢", url_path="org_dashboard")
@@ -90,7 +91,7 @@ else:
         org_dashboard = st.Page("org_dashboard.py", title="Organization Dashboard", icon="🏢", url_path="org_dashboard", default=False)
 
     # Build navigation bar
-    pg = st.navigation([home, bills, legislators, calendar, dashboard, org_dashboard])
+    pg = st.navigation([home, bills, legislators, committees, calendar, dashboard, org_dashboard])
 
     # Clear query parameters after successful login to prevent infinite loops
     if st.session_state.get('connected'):

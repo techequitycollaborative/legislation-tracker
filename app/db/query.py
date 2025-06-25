@@ -105,6 +105,21 @@ BILL_COLUMNS = [
     'last_updated_on'
 ]
 
+# All columns in the committee table
+COMMITTEE_COLUMNS = [
+    "committee_id",
+    "committee_name",
+    "chamber",
+    "next_hearing",
+    "committee_chair",
+    "committee_vice_chair",
+    "total_members",
+    "webpage_link", 
+    "chamber_id", 
+    "committee_members",
+    "member_count"
+]
+
 #@st.cache_data(ttl=120)  #  Cache for 2 mins -- Needs to be turned off for rerun to work for remove bill from dashboard button
 def get_my_dashboard_bills(user_email):
     '''
