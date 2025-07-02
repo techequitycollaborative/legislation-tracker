@@ -377,38 +377,7 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
 
 ###############################################################################
 
-def get_custom_bill_details(openstates_bill_id):
-    '''
-    Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page.
-    '''
-    # Load the database configuration
-    db_config = config('postgres')
-    # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
-    print("Connected to the PostgreSQL database.")
-    
-    # Create a cursor that returns rows as dictionaries
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    
-    cursor.execute("SELECT * FROM public.bill_custom_details WHERE openstates_bill_id = %s", (openstates_bill_id,))
-    result = cursor.fetchone()
-    conn.close()
-    
-    if result:
-        return {
-            "org_position": result["org_position"],
-            "priority_tier": result["priority_tier"],
-            "community_sponsor": result["community_sponsor"],
-            "coalition": result["coalition"],
-            "letter_of_support": result["letter_of_support"],
-            "assigned_to": result["assigned_to"],
-            "action_taken": result["action_taken"],
-        }
-    else:
-        return None
-    
-
-def get_custom_bill_details_with_timestamp(openstates_bill_id):
+def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     '''
     Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page, 
     along with the timestamp of the last update and the user who made the changes.
@@ -422,8 +391,13 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id):
     # Create a cursor that returns rows as dictionaries
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    cursor.execute("SELECT * FROM public.bill_custom_details WHERE openstates_bill_id = %s", (openstates_bill_id,))
+    cursor.execute("""
+                    SELECT * FROM public.bill_custom_details 
+                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+                    """, (openstates_bill_id, org_id))
     result = cursor.fetchone()
+
+    cursor.close()
     conn.close()
     
     if result:
@@ -438,15 +412,136 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id):
             "last_updated_by": result["last_updated_by"],
             "last_updated_org_id": result["last_updated_org_id"],
             "last_updated_org_name": result["last_updated_org_name"],
+            # Note: last_updated_on is set to today's date, and last_updated_at is set to the current timestamp
             "last_updated_on": result["last_updated_on"],
             "last_updated_at": result["last_updated_on"],
         }
     else:
         return None
 
-###############################################################################
 
-def save_custom_bill_details(openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, assigned_to, action_taken):
+##################################################################################
+
+def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_tier, community_sponsor, 
+                      coalition, letter_of_support, openstates_bill_id, assigned_to, action_taken, user_email, org_id, org_name):
+    '''
+    Saves or updates custom bill details for a specific openstates_bill_id and a specific org_id in the bill_custom_details table.
+    Records who made the changes (user_email, org_id, org_name) and when (timestamp).
+    '''
+    # Load the database configuration
+    db_config = config('postgres')
+    
+    # Get current timestamp
+    import datetime
+    today = datetime.date.today()
+    current_timestamp = datetime.datetime.now()
+    
+    # Establish connection to the PostgreSQL server
+    conn = psycopg2.connect(**db_config)
+    
+    # Create a cursor
+    cursor = conn.cursor()
+    
+    # Check if a record already exists for this bill
+    cursor.execute("""
+                    SELECT * FROM public.bill_custom_details 
+                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+                """, (openstates_bill_id, org_id))
+    exists = cursor.fetchone()
+    
+    try:
+        if exists:
+            # Update existing record
+            cursor.execute("""
+                UPDATE public.bill_custom_details
+                SET bill_number = %s,
+                    org_position = %s,
+                    priority_tier = %s,
+                    community_sponsor = %s,
+                    coalition = %s,
+                    letter_of_support = %s,
+                    assigned_to = %s,
+                    action_taken = %s,
+                    last_updated_by = %s,
+                    last_updated_org_id = %s,
+                    last_updated_org_name = %s,
+                    last_updated_on = %s,
+                    last_updated_at = %s
+                WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+            """,
+            (bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, 
+             assigned_to, action_taken, user_email, org_id, org_name, today, current_timestamp, openstates_bill_id, org_id)
+            )
+        else:
+            # Insert new record
+                cursor.execute("""
+                    INSERT INTO public.bill_custom_details
+                        (bill_number, org_position, priority_tier, community_sponsor, coalition, 
+                        letter_of_support, openstates_bill_id, assigned_to, action_taken, 
+                        last_updated_by, last_updated_org_id, last_updated_org_name, 
+                        last_updated_on, last_updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (bill_number, org_position, priority_tier, community_sponsor, coalition, 
+                letter_of_support, openstates_bill_id, assigned_to, action_taken, 
+                user_email, org_id, org_name, today, current_timestamp))
+        
+        # Commit the transaction
+        conn.commit()
+        print(f"Custom details for bill {bill_number} saved successfully by {user_email} from {org_name}.")
+        return True
+        
+    except Exception as e:
+        # Roll back the transaction in case of error
+        conn.rollback()
+        print(f"Error saving custom details for bill {bill_number}: {str(e)}")
+        raise e
+        
+    finally:
+        # Always close the connection
+        cursor.close()
+        conn.close()
+
+
+###################################################################################
+# DEPRECATED FUNCTIONS
+
+def get_custom_bill_details(openstates_bill_id, org_id):
+    '''
+    Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page.
+    Fetches bills by bill id and organization id in order to ensure only an org's custom bill details render on their own org dashboard.
+    '''
+    # Load the database configuration
+    db_config = config('postgres')
+    # Establish connection to the PostgreSQL server
+    conn = psycopg2.connect(**db_config)
+    print("Connected to the PostgreSQL database.")
+    
+    # Create a cursor that returns rows as dictionaries
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    cursor.execute("""
+                    SELECT * FROM public.bill_custom_details 
+                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+                    """, (openstates_bill_id, org_id))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        return {
+            "org_position": result["org_position"],
+            "priority_tier": result["priority_tier"],
+            "community_sponsor": result["community_sponsor"],
+            "coalition": result["coalition"],
+            "letter_of_support": result["letter_of_support"],
+            "assigned_to": result["assigned_to"],
+            "action_taken": result["action_taken"],
+        }
+    else:
+        return None
+
+
+def save_custom_bill_details(openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, assigned_to, action_taken, org_id):
     '''
     Saves or updates custom bill details for a specific openstates_bill_id in the bill_custom_details table
     '''
@@ -460,7 +555,10 @@ def save_custom_bill_details(openstates_bill_id, bill_number, org_position, prio
     cursor = conn.cursor()
     
     # Check if a record already exists for this bill
-    cursor.execute("SELECT 1 FROM public.bill_custom_details WHERE openstates_bill_id = %s", (openstates_bill_id,))
+    cursor.execute("""
+                    SELECT * FROM public.bill_custom_details 
+                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+                """, (openstates_bill_id, org_id))
     exists = cursor.fetchone()
     
     if exists:
@@ -494,82 +592,5 @@ def save_custom_bill_details(openstates_bill_id, bill_number, org_position, prio
     conn.close()
     
     print(f"Custom details for bill {bill_number} saved successfully.")
-
-
-##################################################################################
-
-def save_custom_bill_details_with_timestamp(openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, 
-                      coalition, letter_of_support, assigned_to, action_taken, user_email=None, org_id=None, org_name=None):
-    '''
-    Saves or updates custom bill details for a specific openstates_bill_id in the bill_custom_details table and records who made the changes (user_email, org_id, org_name) and when (timestamp).
-    '''
-    # Load the database configuration
-    db_config = config('postgres')
-    
-    # Get current timestamp
-    import datetime
-    today = datetime.date.today()
-    current_timestamp = datetime.datetime.now()
-    
-    # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
-    
-    # Create a cursor
-    cursor = conn.cursor()
-    
-    # Check if a record already exists for this bill
-    cursor.execute("SELECT 1 FROM public.bill_custom_details WHERE openstates_bill_id = %s", (openstates_bill_id,))
-    exists = cursor.fetchone()
-    
-    try:
-        if exists:
-            # Update existing record
-            cursor.execute("""
-                UPDATE public.bill_custom_details
-                SET bill_number = %s,
-                    org_position = %s,
-                    priority_tier = %s,
-                    community_sponsor = %s,
-                    coalition = %s,
-                    letter_of_support = %s,
-                    assigned_to = %s,
-                    action_taken = %s,
-                    last_updated_by = %s,
-                    last_updated_org_id = %s,
-                    last_updated_org_name = %s,
-                    last_updated_on = %s,
-                    last_updated_at = %s
-                WHERE openstates_bill_id = %s
-            """,
-            (bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, 
-             assigned_to, action_taken, user_email, org_id, org_name, today, current_timestamp, openstates_bill_id)
-            )
-        else:
-            # Insert new record
-            cursor.execute("""
-                INSERT INTO public.bill_custom_details
-                (openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, 
-                 letter_of_support, assigned_to, action_taken, last_updated_by, last_updated_org_id, 
-                 last_updated_org_name, last_updated_on, last_updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, 
-             letter_of_support, assigned_to, action_taken, user_email, org_id, org_name, today, current_timestamp)
-            )
-        
-        # Commit the transaction
-        conn.commit()
-        print(f"Custom details for bill {bill_number} saved successfully by {user_email} from {org_name}.")
-        return True
-        
-    except Exception as e:
-        # Roll back the transaction in case of error
-        conn.rollback()
-        print(f"Error saving custom details for bill {bill_number}: {str(e)}")
-        raise e
-        
-    finally:
-        # Always close the connection
-        conn.close()
 
 
