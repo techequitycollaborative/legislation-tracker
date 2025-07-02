@@ -94,8 +94,8 @@ def draw_bill_grid(
 def draw_leg_grid(
         df,
         formatter: dict = None,
-        #selection='single', -- selection turned off for legislators table
-        #use_checkbox=True, -- turned off for legislators table
+        selection='single',
+        use_checkbox=True, 
         #header_checkbox = True, -- turned off for legislators table
         fit_columns=True, # change to True to make all column width based on the variable and fit the entire table to the window frame
         theme='streamlit', # options = streamlit, alpine, balham, material
@@ -118,16 +118,26 @@ def draw_leg_grid(
         )
     
     # Configure special settings for certain columns (batch)
-    builder.configure_columns(['legislator_id'],hide=True)
+    builder.configure_columns(
+        [
+        'openstates_people_id',
+        'other_names',
+        'ext_sources',
+        'office_details'
+        ],
+        hide=True
+        )
     
     # Configure special settings for individual columns 
-    builder.configure_column('name',pinned='left',headerName = 'Name')
+    builder.configure_column('name',pinned='left',headerName = 'Name', checkboxSelection=True)
     builder.configure_column('district',headerName = 'District',filter='agNumberColumnFilter', headerClass='left-align-header') # left align to make sure column header is justified left like the rest of the columns
     builder.configure_column('party',headerName = 'Party',filter='agSetColumnFilter')
     builder.configure_column('chamber',headerName = 'Chamber',filter='agSetColumnFilter')
+    builder.configure_column('last_updated_on',headerName = 'Updated as of',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="MM-dd-yyyy",sortable=True)
+
     
     # Configure how user selects rows -- turned off for legislators table
-    #builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) # no selection needed for legislator table
+    builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) 
     builder.configure_auto_height(autoHeight=False) # configure height of the table
     
     # Build the grid options dictionary

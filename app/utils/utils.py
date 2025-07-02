@@ -295,3 +295,13 @@ def process_bills_data(bills, history):
     bills['bill_history'] = bills['bill_history'].apply(ensure_set).apply(format_bill_history) #Step 5: Format bill history
     bills = get_bill_topics(bills, keywords) # Step 6: Get bill topics
     return bills
+
+def transform_name(name):
+    # Re-formats legislator names
+    parts = re.split(r"\s+", name.replace(",", ""))
+    no_title = len(name.split(",")) == 1
+    if no_title:
+        return f"{parts[-1]}, {' '.join(parts[0:-1])}"
+    else:
+        return f"{parts[-2]}, {' '.join(parts[0:-2])}, {parts[-1].replace(',', '')}"
+

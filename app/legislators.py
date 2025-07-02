@@ -8,11 +8,24 @@ This page of the app contains legislator information.
 """
 
 import numpy as np
+import pandas as pd
 import streamlit as st
-from db.query import query_table
+from db.query import query_table, LEGISLATOR_COLUMNS
 from utils import aggrid_styler
-from utils.utils import to_csv
+from utils.utils import to_csv, transform_name
+from utils.display_utils import display_legislator_info_text
 
+# Ensure user info exists in the session (i.e. ensure the user is logged in)
+# if 'authenticated' not in st.session_state:
+#     st.error("User not authenticated. Please log in.")
+#     st.stop()  # Stop execution if the user is not authenticated
+
+# # Access user info from session state
+# org_id = st.session_state.get('org_id')
+# org_name = st.session_state['org_name']
+# user_email = st.session_state['user_email']
+st.session_state['org_name'] = 'TechEquity'
+st.session_state['user_email'] = 'jessiwang2000@gmail.com'
 
 # Show the page title and description
 st.title('Legislators')
@@ -23,26 +36,21 @@ st.write(
 )
 
 # Load data
-def get_and_clean_leg_data():
+def get_legislator_data():
     """
-    Use query_table to load, clean, and cache legislator table.
+    Use query_table to load, clean, and cache legislator data
     """
     # Cache the function that retrieves the data
     @st.cache_data
-    def get_legislators():
-        # Query the database for bills and history
-        legislators = query_table('ca_dev', 'legislator')
-        legislators['chamber'] = np.where(legislators['chamber_id']==1,'Assembly','Senate') # change chamber id to actual chamber values
-        legislators = legislators.drop(['legislator_id','chamber_id', 'openstates_people_id'],axis=1) # drop these ID columns
-        return legislators
-    
-    # Call the cached function to get the data
-    legislators = get_legislators()
-    
+    def legislator_cache():
+        legislator = query_table('public', 'processed_legislators_from_snapshot_2025_2026')
+        legislator["name"] = legislator["name"].apply(transform_name)
+        legislator["last_updated_on"] = pd.to_datetime(legislator['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+        return legislator[LEGISLATOR_COLUMNS]
+    legislators = legislator_cache()
     return legislators
 
-# Call function
-legislators = get_and_clean_leg_data()
+legislators = get_legislator_data()
 
 # Mapping between user-friendly labels and internal theme values
 theme_options = {
@@ -53,6 +61,10 @@ theme_options = {
 # Initialize session state for theme if not set
 if 'theme' not in st.session_state:
     st.session_state.theme = 'streamlit'  # Default theme
+
+# Initialize session state for selected bills
+if 'selected_legislators' not in st.session_state:
+    st.session_state.selected_legislators = []
 
 # Reverse mapping to get the label from the internal value
 label_from_theme = {v: k for k, v in theme_options.items()}
@@ -93,7 +105,7 @@ st.markdown(f"#### Total legislators: {total_legislators:,}")
 # Make the aggrid dataframe
 data = aggrid_styler.draw_leg_grid(legislators, theme=theme)
 
+selected_rows = data.selected_rows
 
-
-
-
+if selected_rows is not None and len(selected_rows) != 0:
+        display_legislator_info_text(selected_rows)

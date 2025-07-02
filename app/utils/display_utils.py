@@ -10,7 +10,10 @@ Functions for displaying bill details in different formats and on different page
 """
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details, get_custom_bill_details_with_timestamp,save_custom_bill_details, save_custom_bill_details_with_timestamp, add_bill_to_dashboard, remove_bill_from_dashboard, add_bill_to_org_dashboard, remove_bill_from_org_dashboard, BILL_COLUMNS, COMMITTEE_COLUMNS
+from db.query import get_custom_bill_details, get_custom_bill_details_with_timestamp, get_custom_contact_details_with_timestamp
+from db.query import save_custom_bill_details, save_custom_bill_details_with_timestamp, save_custom_contact_details_with_timestamp
+from db.query import add_bill_to_dashboard, remove_bill_from_dashboard, add_bill_to_org_dashboard, remove_bill_from_org_dashboard
+from db.query import BILL_COLUMNS, COMMITTEE_COLUMNS, LEGISLATOR_COLUMNS
 
 def display_bill_info_text(selected_rows):
     '''
@@ -1027,3 +1030,169 @@ def display_committee_info_text(selected_rows):
         with col5:
             st.markdown('##### Link to Homepage')
             st.link_button(f'{chamber.lower()}.ca.gov', str(webpage_link))
+
+############################################################
+def display_legislator_info_text(selected_rows):
+    '''
+    Displays legislator information as markdown text when a row is selected in
+    an Ag Grid data frame.
+    '''
+    # Ensure values align with expected order of LEGISLATOR_COLUMNS, which is necessary for proper db querying
+    assert selected_rows.columns.tolist() == LEGISLATOR_COLUMNS 
+
+    openstates_people_id = selected_rows['openstates_people_id'].iloc[0] # not needed - remove?
+    name = selected_rows['name'].iloc[0]
+    party = selected_rows['party'].iloc[0]
+    chamber = selected_rows['chamber'].iloc[0]
+    district = selected_rows['district'].iloc[0]
+    other_names = selected_rows['other_names'].iloc[0]
+    ext_sources = selected_rows['ext_sources'].iloc[0]
+    office_details = selected_rows['office_details'].iloc[0]
+    last_updated = selected_rows['last_updated_on'].iloc[0]
+
+    # Format dates MM-DD-YYYY in the bill details
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
+    
+    # # Display Legislator Info Below the Table
+    # st.markdown('### Legislator Details')
+    
+    st.markdown(f"_Main legislator data is sourced from OpenStates. Data for this legislator was last updated on: {last_updated}_")
+
+    # Containter with add to dashboard button in the top-right corner
+    with st.container(key='title_button_container'):
+        col1, col2 = st.columns([7, 3])  # Adjust column widths as needed
+        with col1:
+            display_name = " ".join(name.split(", ")[::-1])
+            st.markdown(f'### {display_name}')
+    st.divider()
+    # Add empty rows of space  
+    st.write("")
+    
+    # Container for bill number and chamber
+    with st.container(key='main_details_container'):
+        # Display columns with spacers
+        col1, col2, col3, col4, col5 = st.columns([4, 1, 4, 1, 4])
+        with col1:
+            st.markdown('##### Party')
+            st.markdown(party)
+
+            st.markdown('')
+
+            st.markdown('##### Chamber')
+            st.markdown(chamber)
+            
+            st.markdown('')
+
+            st.markdown('##### District')
+            st.markdown(district)
+
+            st.markdown('')
+
+        with col2:
+            st.markdown('')
+
+        with col3:
+            if other_names is not None:
+                st.markdown('##### Alternate Names') 
+                contents = other_names.replace(";", "\n- ") # add newlines and hyphens for bullet formatting
+                contents = "- " + contents
+                st.markdown(contents)
+            else:
+                st.markdown('#### ')
+                st.markdown('')
+
+        with col4:
+            st.markdown('')
+        
+        with col5:
+            if ext_sources is not None:
+                st.markdown('##### Source Links')
+                for source_link in ext_sources.split("\\n"):
+                    # remove URL prefixes >> split on slashes >> build base URL
+                    source_name = '.'.join(source_link.replace("https://", "").replace("www.", "").split("/")[0].split(".")[-4:])
+                    st.link_button(source_name, str(source_link))
+            else:
+                st.markdown('#### ')
+                st.markdown('')
+
+    st.markdown('#### Contact Details')
+    # Split each office into its own expander
+    offices = office_details.split("\\n")
+    for o in offices:
+        contents = o.split("@@") # Split details
+        office_name = f"##### **{contents[0]}**" # Write office name
+        st.markdown(office_name)
+        expander = st.expander('Click to view')
+        with st.container(key=f"{contents[0].lower()}_office_text"):
+            phone_address = "\n\n".join(contents[1:])
+            expander.write(phone_address)
+    
+    # Custom contact details
+    contact_details = get_custom_contact_details_with_timestamp(openstates_people_id)
+    
+     # Form for custom user-entered fields
+    st.markdown('#### Custom Contact Details')
+    st.markdown('Use this section to enter custom details for contacting staff.', unsafe_allow_html=True)
+
+    # Access user info from session state
+    org_id = st.session_state.get('org_id')
+    org_name = st.session_state['org_name']
+    user_email = st.session_state['user_email']
+
+    with st.form(key='custom_fields', clear_on_submit=False, enter_to_submit=True, border=True):
+        # First row with 4 columns
+        with st.container():
+            col1, col2= st.columns([2, 2])
+            
+            with col1:
+                st.markdown('##### Contact Name')
+                staff_name = st.text_input('Enter Contact Name',
+                                                value=contact_details.get('staff_name', '') if contact_details else '')
+            with col2:
+                st.markdown("##### Phone Number")
+                phone_number = st.text_input('Enter phone number',
+                                             value = contact_details.get('phone', '') if contact_details else '')
+
+        # Add empty rows of space    
+        st.write("")
+        st.write("")
+    
+     # Submit button - make sure it's properly within the form
+        submitted = st.form_submit_button(
+            label="Save Custom Contact Details",
+            help='Click to save/update custom details for this legislator',
+            type='primary'
+        )
+
+        # Add message below the form displaying who last saved the custom details
+        st.write("")
+        with st.container():
+            if contact_details:
+                # Get the user who saved the details, but remove .com/.us slug from email so it doesn't hyperlink the text
+                saved_by = contact_details.get('last_updated_by', 'Unknown')
+                who = saved_by.split('.')[0]
+
+                # Get date
+                when = contact_details.get('last_updated_on', 'Unknown')
+                when = when.strftime('%m-%d-%Y') # Format date to MM-DD-YYYY
+
+                # Display message
+                st.markdown(f"*Custom details last saved by {who} on {when}.*")
+
+    # Handle form submission outside the form
+    if submitted:
+        try:
+            # Update function call if needed
+            save_custom_contact_details_with_timestamp(
+                openstates_people_id, 
+                phone_number,
+                staff_name,
+                user_email,
+                org_id,
+                org_name
+            )
+            st.success(f"Custom details for point of contact {staff_name} saved successfully by {user_email} from {org_name}.")
+            
+        except Exception as e:
+            st.error(f"Error saving details: {str(e)}")
+    
