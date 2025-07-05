@@ -63,8 +63,15 @@ temp_offices AS (
     STRING_AGG(CASE WHEN classification = 'capitol' THEN name ELSE SPLIT_PART(address, ', ', -2) END || '@@' || phone || '@@' || address, '\n') office_details
     FROM snapshot.people_offices 
     GROUP BY openstates_people_id
-)
+),
 
+temp_contacts AS (
+    SELECT
+        openstates_people_id,
+        STRING_AGG(people_contact_id || '@@' || issue_area || '@@' || staffer_type || '@@' || staffer_contact || '@@' || generated_email, '\n') AS issue_contacts
+        FROM snapshot.people_contacts
+        GROUP BY openstates_people_id
+)
 -- Combine all processed data into a single view
 SELECT 
     p.openstates_people_id,
@@ -75,9 +82,11 @@ SELECT
     r.district,
     n.other_names,
     s.ext_sources,
-    o.office_details
+    o.office_details,
+    c.issue_contacts
 FROM temp_people p
 LEFT JOIN temp_roles r ON p.openstates_people_id = r.openstates_people_id
 LEFT JOIN temp_names n ON p.openstates_people_id = n.openstates_people_id
 LEFT JOIN temp_sources s ON p.openstates_people_id = s.openstates_people_id
-LEFT JOIN temp_offices o ON p.openstates_people_id = o.openstates_people_id; 
+LEFT JOIN temp_offices o ON p.openstates_people_id = o.openstates_people_id
+LEFT JOIN temp_contacts c ON p.openstates_people_id = c.openstates_people_id; 
