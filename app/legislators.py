@@ -31,7 +31,7 @@ st.session_state['user_email'] = 'jessiwang2000@gmail.com'
 st.title('Legislators')
 st.write(
     '''
-    This page shows legislator information for the current legislative session. 
+    This page shows legislator information for the current legislative session as collected from OpenStates and the [Capitol Codex](https://docs.google.com/spreadsheets/d/1gFeGy72R_-FSFrjXbKCAAvVsvNjyV7t_TUvFoB12vys/edit?gid=1422908451#gid=1422908451) Issues tabs. 
     '''
 )
 
@@ -52,6 +52,7 @@ def get_legislator_data():
 
 legislators = get_legislator_data()
 
+### THEME MENU
 # Mapping between user-friendly labels and internal theme values
 theme_options = {
     'narrow': 'streamlit',
@@ -62,7 +63,7 @@ theme_options = {
 if 'theme' not in st.session_state:
     st.session_state.theme = 'streamlit'  # Default theme
 
-# Initialize session state for selected bills
+# Initialize session state for selected legislators - is this being used?
 if 'selected_legislators' not in st.session_state:
     st.session_state.selected_legislators = []
 
@@ -81,6 +82,7 @@ with col1:
 with col2:    
     st.markdown("")
 
+### Download button
 with col3:
     download_button = st.download_button(key='legislators_download',
                        label='Download Full Data as CSV',
@@ -98,14 +100,22 @@ if selected_theme != st.session_state.theme:
 # Use the persisted theme
 theme = st.session_state.theme
 
+### TABLE CONTENT
+
 # Display count of total legislators above the table
 total_legislators = len(legislators)
 st.markdown(f"#### Total legislators: {total_legislators:,}")
 
-# Make the aggrid dataframe
-data = aggrid_styler.draw_leg_grid(legislators, theme=theme)
+cols = st.columns([4, 6])  # Adjust ratios as needed
 
-selected_rows = data.selected_rows
+with cols[0]:  # Left panel - Browse
+    st.subheader("Legislator Directory")
+    # Make the aggrid dataframe
+    data = aggrid_styler.draw_leg_grid(legislators, theme=theme)
 
-if selected_rows is not None and len(selected_rows) != 0:
+    selected_rows = data.selected_rows
+
+with cols[1]:  # Right panel - Detail View
+    if selected_rows is not None and len(selected_rows) > 0:
         display_legislator_info_text(selected_rows)
+
