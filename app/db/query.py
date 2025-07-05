@@ -130,6 +130,7 @@ LEGISLATOR_COLUMNS = [
     "other_names",
     "ext_sources",
     "office_details",
+    "issue_contacts",
     "last_updated_on"
 ]
 
@@ -435,8 +436,7 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
 
 def get_custom_contact_details_with_timestamp(openstates_people_id):
     '''
-    Fetches custom contact details for a specific openstates_people_id from the contact_custom_details table in postgres,
-    along with the timestamp of the last update and the user who made the changes.
+    Fetches custom contact details for a specific openstates_people_id from the contact_custom_details table in postgres
     '''
     # Load the database configuration
     db_config = config('postgres')
@@ -447,13 +447,12 @@ def get_custom_contact_details_with_timestamp(openstates_people_id):
     # Create a cursor that returns rows as dictionaries
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    cursor.execute("SELECT * FROM public.contact_custom_details WHERE openstates_people_id = %s", (openstates_people_id,))
-    result = cursor.fetchone()
+    cursor.execute("SELECT * FROM public.contact_custom_details WHERE openstates_people_id = '{}'".format(openstates_people_id))
+    result = cursor.fetchall() # There can be more than one custom contact detail
     conn.close()
     
     if result:
-        print(result)
-        result
+        return result
     else:
         return None
 
