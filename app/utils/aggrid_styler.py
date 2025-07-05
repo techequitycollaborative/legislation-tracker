@@ -121,19 +121,22 @@ def draw_leg_grid(
     builder.configure_columns(
         [
         'openstates_people_id',
+        'district',
         'other_names',
         'ext_sources',
-        'office_details'
+        'office_details',
+        'issue_contacts',
+        'last_updated_on'
         ],
         hide=True
         )
     
     # Configure special settings for individual columns 
     builder.configure_column('name',pinned='left',headerName = 'Name', checkboxSelection=True)
-    builder.configure_column('district',headerName = 'District',filter='agNumberColumnFilter', headerClass='left-align-header') # left align to make sure column header is justified left like the rest of the columns
+    # builder.configure_column('district',headerName = 'District',filter='agNumberColumnFilter', headerClass='left-align-header') # left align to make sure column header is justified left like the rest of the columns
     builder.configure_column('party',headerName = 'Party',filter='agSetColumnFilter')
     builder.configure_column('chamber',headerName = 'Chamber',filter='agSetColumnFilter')
-    builder.configure_column('last_updated_on',headerName = 'Updated as of',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="MM-dd-yyyy",sortable=True)
+    # builder.configure_column('last_updated_on',headerName = 'Updated as of',type=["dateColumnFilter", "customDateTimeFormat"],custom_format_string="MM-dd-yyyy",sortable=True)
 
     
     # Configure how user selects rows -- turned off for legislators table
