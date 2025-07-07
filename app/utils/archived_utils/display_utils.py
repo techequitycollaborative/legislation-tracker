@@ -842,8 +842,8 @@ def apply_row_style(row):
     color = COLOR_SCHEME[row['staffer_type']]
     return [f"background-color: {color['background']}; color: {color['text']}"] * len(row)
 
-def staffer_directory_tab(df):
-   # Create filter controls in columns at the top
+def staffer_filter(df):
+    # Create filter controls in columns at the top
     filter_col1, filter_col2, filter_col3 = st.columns(3)
     
     with filter_col1:
@@ -877,11 +877,14 @@ def staffer_directory_tab(df):
         ]
     if contact_type != "All":
         filtered_df = filtered_df[filtered_df['staffer_type'].isin(FILTER_SCHEME[contact_type])]
-    
+    return filtered_df
+
+def staffer_directory_tab(df):
+    # filtered_df = staffer_filter(df)
     # Display the filtered table
     st.dataframe(
         # filtered_df,
-        filtered_df.style.apply(apply_row_style, axis=1),
+        df.style.apply(apply_row_style, axis=1),
         column_config={
             "issue_area": "Issue Area",
             "staffer_contact": "Primary Contact",
@@ -897,13 +900,15 @@ def staffer_directory_tab(df):
     )
 
     # 5. Quick stats and export
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3 = st.columns([4, 3, 1])
     with col1:
-        st.caption(f"Showing {len(filtered_df)} of {len(df)} records. Only visible records are exported.")
+        st.caption(f"Showing {len(df)} of {len(st.session_state.contact_df)} records. Only visible records are exported.")
     with col2:
+        st.markdown('')
+    with col3:
         st.download_button(
-            "⬇️ Export Contacts to CSV",
-            filtered_df.to_csv(index=False),
+            "Export Contacts to CSV",
+            df.to_csv(index=False),
             "contacts.csv",
             "text/csv"
         )
@@ -932,6 +937,7 @@ def issue_editor_tab(df, openstates_people_id, org_id, org_name, user_email):
             changed_df = edited_df.loc[edited_df.custom_email.notnull() & edited_df.custom_contact.notnull()]
             changed_df.staffer_type = "user"
             st.session_state.contact_df.update(changed_df)
+
             # Update DB
             if save_custom_contact_details_with_timestamp(changed_df, openstates_people_id, user_email, org_id, org_name):
                 st.success("Custom details updated")
@@ -977,7 +983,7 @@ def display_legislator_info_text(selected_rows):
     last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
 
     # # Display Legislator Info Below the Table
-    st.subheader(f"{display_name} ({chamber[0]}D {district} - {party.title()})")
+    st.markdown(f"#### {display_name} ({chamber[0]}D {district} - {party.title()})")
 
     # Display other names as a pop-over
     with st.popover(f"_Other names_"):
@@ -989,14 +995,16 @@ def display_legislator_info_text(selected_rows):
     st.caption(f"Last updated on {last_updated}")
 
     # OFFICES
-    # Create an expander for each office
-    for i, contents in enumerate(display_offices):
-        office_name = f"**{contents[0]}**" # Write office name
-        st.markdown(office_name)
-        expander = st.expander('Click to view')
-        with st.container(key=f"office_text_{i}"):
-            phone_address = "\n\n".join(contents[1:])
-            expander.write(phone_address)
+    with st.container(border=True):
+        st.markdown("##### Office Details")
+        # Create an expander for each office
+        for i, contents in enumerate(display_offices):
+            office_name = f"**{contents[0]}**" # Write office name
+            st.markdown(office_name)
+            expander = st.expander('Click to view')
+            with st.container(key=f"office_text_{i}"):
+                phone_address = "\n\n".join(contents[1:])
+                expander.write(phone_address)
 
     #### Codex details
     # Codex extracted contacts
@@ -1019,28 +1027,33 @@ def display_legislator_info_text(selected_rows):
         for ccd in custom_contact_data:
             # Update existing rows if possible
             contact_df.loc[contact_df.people_contact_id == str(ccd["people_contact_id"]), ["staffer_type", "custom_contact", "custom_email"]] = ["user", ccd["custom_staffer_contact"], ccd["custom_staffer_email"]]
+    
     # Update session state by selection
     if st.session_state.selected_person != openstates_people_id:
         st.session_state.selected_person = openstates_people_id
         st.session_state.contact_df = contact_df
+        st.session_state.filtered_df = contact_df
         st.rerun()
 
-    st.markdown('##### Staffers by Issue Area')
-    if st.session_state['org_id'] == 1: # Contact editor only for TechEquity folks
-        # Tab layout to view and edit
-        tab1, tab2 = st.tabs(["Directory View", "Contact Editor"])
+    with st.container(border=True):
+        st.markdown('##### Staffers by Issue Area')
+        # Filter columns of directory before generating tab(s)
+        st.session_state.filtered_df = staffer_filter(st.session_state.contact_df)
+        if st.session_state['org_id'] == 1: # Contact editor only for TechEquity folks
+            # Tab layout to view and edit
+            tab1, tab2 = st.tabs(["Directory View", "Contact Editor"])
+                
+            with tab1:
+                staffer_directory_tab(st.session_state.filtered_df)
             
-        with tab1:
-            staffer_directory_tab(st.session_state.contact_df)
-        
-        with tab2:
-            issue_editor_tab(st.session_state.contact_df, openstates_people_id, org_id, org_name, user_email)
-    else: # If not TechEquity, only display (interim)
-        st.subheader('Staffer Directory View')
-        staffer_directory_tab(contact_df)
+            with tab2:
+                issue_editor_tab(st.session_state.filtered_df, openstates_people_id, org_id, org_name, user_email)
+        else: # If not TechEquity, only display (interim)
+            st.subheader('Staffer Directory View')
+            staffer_directory_tab(st.session_state.filtered_df)
 
     if ext_sources is not None:
-        with st.popover("Websites used for legislator info"):
+        with st.popover("_External sources_"):
             for source_link in ext_sources.split("\\n"):
                 # remove URL prefixes >> split on slashes >> build base URL
                 source_name = '.'.join(source_link.replace("https://", "").replace("www.", "").split("/")[0].split(".")[-4:])
