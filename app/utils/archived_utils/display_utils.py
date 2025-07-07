@@ -812,11 +812,132 @@ def display_committee_info_text(selected_rows):
 
 ############################################################
 
+##### HELPER FUNCTIONS
 # Styling the staffer contact rows
-def color_code(COLOR_MAP, row):
-    color = COLOR_MAP.get(row["staffer_type"], "white")
-    return [f"background-color: {color}"] * len(row)
+COLOR_SCHEME = {
+    "office": {
+        "background": "#FFFFFF",  # white
+        "border": "#B8D9FF",
+        "text": "#003366"
+    },
+    "committee": {
+        "background": "#FFFFFF",  # White
+        "border": "#ffe1e1",
+        "text": "#9c0202"
+    },
+    "user": {
+        "background": "#E6FFE6",  # Light green
+        "border": "#B8FFB8",
+        "text": "#006600"
+    }
+}
 
+FILTER_SCHEME = {
+    "Codex (automatic)": ["office", "committee"],
+    "Office": ["office"],
+    "Committee": ["committee"],
+    "User-added": ["user"]
+}
+def apply_row_style(row):
+    color = COLOR_SCHEME[row['staffer_type']]
+    return [f"background-color: {color['background']}; color: {color['text']}"] * len(row)
+
+def staffer_directory_tab(df):
+   # Create filter controls in columns at the top
+    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    
+    with filter_col1:
+        issue_filter = st.multiselect(
+            "Filter by Issue Area",
+            options=sorted(df['issue_area'].unique()),
+            default=None,
+            placeholder="All issues"
+        )
+    
+    with filter_col2:
+        staffer_filter = st.text_input(
+            "Filter by Staffer Name",
+            placeholder="Type to search..."
+        )
+    
+    with filter_col3:
+        contact_type = st.selectbox(
+            "Contact Type",
+            options=["All", "Codex (automatic)", "Office", "Committee", "User-added"],
+            index=0
+        )
+
+    # Apply filters
+    filtered_df = df.copy()
+    if issue_filter:
+        filtered_df = filtered_df[filtered_df['issue_area'].isin(issue_filter)]
+    if staffer_filter:
+        filtered_df = filtered_df[
+            filtered_df['staffer_contact'].str.contains(staffer_filter, case=False, na=False)
+        ]
+    if contact_type != "All":
+        filtered_df = filtered_df[filtered_df['staffer_type'].isin(FILTER_SCHEME[contact_type])]
+    
+    # Display the filtered table
+    st.dataframe(
+        # filtered_df,
+        filtered_df.style.apply(apply_row_style, axis=1),
+        column_config={
+            "issue_area": "Issue Area",
+            "staffer_contact": "Primary Contact",
+            "auto_email": "Default Email",
+            "custom_contact": "Custom Contact",
+            "custom_email": "Custom Email",
+            "people_contact_id": None,
+            "staffer_type": None
+        },
+        use_container_width=True,
+        height=600,
+        hide_index=True
+    )
+
+    # 5. Quick stats and export
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.caption(f"Showing {len(filtered_df)} of {len(df)} records. Only visible records are exported.")
+    with col2:
+        st.download_button(
+            "⬇️ Export Contacts to CSV",
+            filtered_df.to_csv(index=False),
+            "contacts.csv",
+            "text/csv"
+        )
+
+def issue_editor_tab(df, openstates_people_id, org_id, org_name, user_email):
+    with st.form("bulk_edit_form"):
+        edited_df = st.data_editor(
+            df.style.apply(apply_row_style, axis=1),
+            disabled=["people_contact_id", "issue_area", "staffer_contact", "auto_email", "staffer_type"],
+            column_config={
+                "custom_contact": st.column_config.TextColumn("Custom Contact"),
+                "custom_email": st.column_config.TextColumn("Custom Email"),
+                "people_contact_id": None,
+                "staffer_type": None,
+                "issue_area": "Issue Area",
+                "staffer_contact": "Codex Contact",
+                "auto_email": "Auto-generated email"
+            },
+            use_container_width=True,
+            hide_index=True,
+            height=600
+        )
+        if st.form_submit_button("💾 Save All Changes"):
+
+            # Get non-null rows for DB update
+            changed_df = edited_df.loc[edited_df.custom_email.notnull() & edited_df.custom_contact.notnull()]
+            changed_df.staffer_type = "user"
+            st.session_state.contact_df.update(changed_df)
+            # Update DB
+            if save_custom_contact_details_with_timestamp(changed_df, openstates_people_id, user_email, org_id, org_name):
+                st.success("Custom details updated")
+                st.rerun()
+
+##### CONTROLLER FUNCTION
 def display_legislator_info_text(selected_rows):
     '''
     Displays legislator information as markdown text when a row is selected in
@@ -848,187 +969,82 @@ def display_legislator_info_text(selected_rows):
     display_other_names = '- ' + other_names.replace("; ", "\n- ") # add newlines and hyphens for bullet formatting
     
     #### Office details
-    display_offices = [o.split("@@") for o in office_details.split("\\n")]
+    distinct_offices = set([o for o in office_details.split("\\n")]) # get unique set of offices
+    display_offices = [d.split('@@') for d in distinct_offices] # split unique offices by separator characters
+
+     #### Last updated date
+    # Format dates MM-DD-YYYY in the bill details
+    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
+
+    # # Display Legislator Info Below the Table
+    st.subheader(f"{display_name} ({chamber[0]}D {district} - {party.title()})")
+
+    # Display other names as a pop-over
+    with st.popover(f"_Other names_"):
+        if other_names is not None:
+            st.markdown(display_other_names)
+        else:
+            st.markdown('_No other recognized names._')
+
+    st.caption(f"Last updated on {last_updated}")
+
+    # OFFICES
+    # Create an expander for each office
+    for i, contents in enumerate(display_offices):
+        office_name = f"**{contents[0]}**" # Write office name
+        st.markdown(office_name)
+        expander = st.expander('Click to view')
+        with st.container(key=f"office_text_{i}"):
+            phone_address = "\n\n".join(contents[1:])
+            expander.write(phone_address)
 
     #### Codex details
     # Codex extracted contacts
 
-    contact_data = issue_contacts.split("\\n") # Split up aggregated data points
+    codex_data = issue_contacts.split("\\n") # Split up aggregated data points
 
-    custom_contact_data = get_custom_contact_details_with_timestamp(openstates_people_id)
-    contact_df = pd.DataFrame(columns=["people_contact_id", "issue_area", "staffer_type", "contact", "auto_email", "custom_email"])
-    for cd in contact_data:
+    # Transform into unified dataframe for display and editing
+    contact_df = pd.DataFrame(columns=["people_contact_id", "issue_area", "staffer_type", "staffer_contact", "auto_email", "custom_contact", "custom_email"])
+    # Loop over the codex data
+    for cd in codex_data:
         # extract contents of each contact data point
         snapshot_data = cd.split("@@")
         # extract relevant custom details
-        custom_details = None # TODO: link the auto-generated details with relevant custom corrections
-        if custom_details is None:
-            contact_df.loc[len(contact_df)] = snapshot_data + [None] # add dummy value for custom details to fill in later
-        else:
-            contact_df.loc[len(contact_df)] = snapshot_data + [custom_details["custom_staffer_email"]] # index into existing custom detail
+        contact_df.loc[len(contact_df)] = snapshot_data + [None, None] # add dummy value for custom details to fill in later
 
-    ## Codex diplsay specifics
-    # Map snake case names to display names
-    display_contact_column_config = {
-    "people_contact_id": None,
-    "issue_area": "Issue Area",
-    "staffer_type": None,
-    "contact": "Contact",
-    "auto_email": "Auto-detected email",
-    "custom_email": "User-added email"
-    }   
+    # If custom data is not None, merge by people_contact_id
+    with st.spinner("Loading custom contacts..."):
+        custom_contact_data = get_custom_contact_details_with_timestamp(openstates_people_id) # a list of dictionaries
+    if custom_contact_data != None:
+        for ccd in custom_contact_data:
+            # Update existing rows if possible
+            contact_df.loc[contact_df.people_contact_id == str(ccd["people_contact_id"]), ["staffer_type", "custom_contact", "custom_email"]] = ["user", ccd["custom_staffer_contact"], ccd["custom_staffer_email"]]
+    # Update session state by selection
+    if st.session_state.selected_person != openstates_people_id:
+        st.session_state.selected_person = openstates_people_id
+        st.session_state.contact_df = contact_df
+        st.rerun()
 
-    # map staffer types to color
-    display_staffer_type_colors = {
-    "office": "#869ec4",  
-    "committee":"#d6d6d6",
-    "user": "#FEA0A0"  
-    }
-
-    # Apply color coding
-    display_contacts = contact_df.style.apply(
-        lambda r: color_code(display_staffer_type_colors, r), 
-        axis=1
-    )
-
-    #### Last updated date
-    # Format dates MM-DD-YYYY in the bill details
-    last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
-    
-    ## STREAMLIT MARKDOWN
-
-    # # Display Legislator Info Below the Table
-    st.subheader(f"{display_name} ({chamber[0]}D {district})")
-    st.caption(f"{party} party member")
-    # TODO: is this update info even useful?
-    st.markdown(f"_Last updated on: {last_updated}_")
-
-    # Tabbed display for 45+ issues
-    tab1, tab2 = st.tabs(["📋 Summary", "✏️ Staffers by Issue Area"])
-    with tab1:
-        # OTHER NAMES
-        if other_names is not None:
-            st.markdown('**Alternate Names**') 
-            st.markdown(display_other_names)
-        else:
-            st.markdown('')
+    st.markdown('##### Staffers by Issue Area')
+    if st.session_state['org_id'] == 1: # Contact editor only for TechEquity folks
+        # Tab layout to view and edit
+        tab1, tab2 = st.tabs(["Directory View", "Contact Editor"])
+            
+        with tab1:
+            staffer_directory_tab(st.session_state.contact_df)
         
-        # OFFICES
-        # Create an expander for each office
-        for contents in display_offices:
-            office_name = f"**{contents[0]}**" # Write office name
-            st.markdown(office_name)
-            expander = st.expander('Click to view')
-            with st.container(key=f"{contents[0].lower()}_office_text"):
-                phone_address = "\n\n".join(contents[1:])
-                expander.write(phone_address)
+        with tab2:
+            issue_editor_tab(st.session_state.contact_df, openstates_people_id, org_id, org_name, user_email)
+    else: # If not TechEquity, only display (interim)
+        st.subheader('Staffer Directory View')
+        staffer_directory_tab(contact_df)
 
-        # READ ONLY CONTACTS
-        st.markdown("🗂️ **All Contacts by Issue Area (Read-Only)**")
-
-        # COLOR CODE
-        cols = st.columns(len(display_staffer_type_colors))
-        for i, (staffer_type, color) in enumerate(display_staffer_type_colors.items()):
-            with cols[i]:
-                st.markdown(
-                    f'<div style="display: inline-block; width: 15px; height: 15px; '
-                    f'background-color: {color}; margin-right: 5px; outline: 2px black; "></div>'
-                    f'<span>{staffer_type.title()}</span>',
-                    unsafe_allow_html=True
-                )
-        with st.expander("Click to view", expanded=False):
-
-            st.dataframe(
-                display_contacts,
-                height=600,
-                use_container_width=True,
-                hide_index=True,
-                column_config=display_contact_column_config
-            )
-    
-    with tab2:
-        st.caption('Use this section to enter custom details for contacting staff.', unsafe_allow_html=True)
-        # edited_df = st.data_editor(
-        #     display_contacts,
-        #     num_rows="fixed",
-        #     disabled=["issue_area", "auto_email"],  # Lock these
-        #     column_config={
-        #         "custom_staffer_contact": st.column_config.TextColumn(
-        #             "Your Custom Staffer Info",
-        #             help="Editable field"
-        #         ),
-        #         "custom_staffer_contact": st.column_config.TextColumn(
-        #             "Your Custom Staffer Email",
-        #             help="Editable field"
-        #         )
-        #     }
-        # )
-
-    
-
-    # with st.form(key='custom_fields', clear_on_submit=False, enter_to_submit=True, border=True):
-    #     # First row with 4 columns
-    #     with st.container():
-    #         col1, col2= st.columns([2, 2])
-            
-    #         with col1:
-    #             st.markdown('##### Staffer Contact')
-    #             staff_name = st.text_input('Enter details',
-    #                                             value=contact_details.get('custom_staffer_contact', '') if contact_details else '')
-    #         with col2:
-    #             st.markdown("##### Email")
-    #             phone_number = st.text_input('Enter email',
-    #                                          value = contact_details.get('custom_staffer_email', '') if contact_details else '')
-
-    #     # Add empty rows of space    
-    #     st.write("")
-    #     st.write("")
-    
-    #  # Submit button - make sure it's properly within the form
-    #     submitted = st.form_submit_button(
-    #         label="Save Custom Contact Details",
-    #         help='Click to save/update custom details for this legislator',
-    #         type='primary'
-    #     )
-
-    #     # Add message below the form displaying who last saved the custom details
-    #     st.write("")
-    #     with st.container():
-    #         if contact_details:
-    #             # Get the user who saved the details, but remove .com/.us slug from email so it doesn't hyperlink the text
-    #             saved_by = contact_details.get('last_updated_by', 'Unknown')
-    #             who = saved_by.split('.')[0]
-
-    #             # Get date
-    #             when = contact_details.get('last_updated_on', 'Unknown')
-    #             when = when.strftime('%m-%d-%Y') # Format date to MM-DD-YYYY
-
-    #             # Display message
-    #             st.markdown(f"*Custom details last saved by {who} on {when}.*")
-
-    # # Handle form submission outside the form
-    # if submitted:
-    #     try:
-    #         # Update function call if needed
-    #         save_custom_contact_details_with_timestamp(
-    #             openstates_people_id, 
-    #             phone_number,
-    #             staff_name,
-    #             user_email,
-    #             org_id,
-    #             org_name
-    #         )
-    #         st.success(f"Custom details for point of contact {staff_name} saved successfully by {user_email} from {org_name}.")
-            
-    #     except Exception as e:
-    #         st.error(f"Error saving details: {str(e)}")
-    
     if ext_sources is not None:
-        st.markdown('##### Source Links')
-        for source_link in ext_sources.split("\\n"):
-            # remove URL prefixes >> split on slashes >> build base URL
-            source_name = '.'.join(source_link.replace("https://", "").replace("www.", "").split("/")[0].split(".")[-4:])
-            st.link_button(source_name, str(source_link))
+        with st.popover("Websites used for legislator info"):
+            for source_link in ext_sources.split("\\n"):
+                # remove URL prefixes >> split on slashes >> build base URL
+                source_name = '.'.join(source_link.replace("https://", "").replace("www.", "").split("/")[0].split(".")[-4:])
+                st.link_button(source_name, str(source_link))
     else:
         st.markdown('#### ')
         st.markdown('')
