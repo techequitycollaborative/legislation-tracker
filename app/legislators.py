@@ -30,6 +30,7 @@ if 'selected_person' not in st.session_state:
     st.session_state.selected_person = None
 if 'contact_df' not in st.session_state:
     st.session_state.contact_df = pd.DataFrame()
+    st.session_state.filtered_df = pd.DataFrame()
 
 # Show the page title and description
 st.title('Legislators')
@@ -106,7 +107,7 @@ theme = st.session_state.theme
 total_legislators = len(legislators)
 st.markdown(f"#### Total legislators: {total_legislators:,}")
 
-cols = st.columns([4, 6])  # Adjust ratios as needed
+cols = st.columns([4, 6]) 
 
 with cols[0]:  # Left panel - Browse
     st.subheader("Legislator Directory")
