@@ -12,7 +12,7 @@ import pandas as pd
 import streamlit as st
 from db.query import query_table, LEGISLATOR_COLUMNS
 from utils import aggrid_styler
-from utils.utils import to_csv, transform_name
+from utils.general import to_csv, transform_name
 from utils.legislators import display_legislator_info_text
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
