@@ -21,11 +21,15 @@ from utils.display_utils import display_legislator_info_text
 #     st.stop()  # Stop execution if the user is not authenticated
 
 # # Access user info from session state
-# org_id = st.session_state.get('org_id')
-# org_name = st.session_state['org_name']
-# user_email = st.session_state['user_email']
-st.session_state['org_name'] = 'TechEquity'
-st.session_state['user_email'] = 'jessiwang2000@gmail.com'
+org_id = st.session_state.get('org_id')
+org_name = st.session_state['org_name']
+user_email = st.session_state['user_email']
+
+# Initialize pointers in session state to manage display details
+if 'selected_person' not in st.session_state:
+    st.session_state.selected_person = None
+if 'contact_df' not in st.session_state:
+    st.session_state.contact_df = pd.DataFrame()
 
 # Show the page title and description
 st.title('Legislators')
@@ -63,14 +67,10 @@ theme_options = {
 if 'theme' not in st.session_state:
     st.session_state.theme = 'streamlit'  # Default theme
 
-# Initialize session state for selected legislators - is this being used?
-if 'selected_legislators' not in st.session_state:
-    st.session_state.selected_legislators = []
-
 # Reverse mapping to get the label from the internal value
 label_from_theme = {v: k for k, v in theme_options.items()}
 
-# Create a two-column layout
+# Create a three-column layout
 col1, col2, col3 = st.columns([1, 7, 2])
 with col1:
     selected_label = st.selectbox(
@@ -85,7 +85,7 @@ with col2:
 ### Download button
 with col3:
     download_button = st.download_button(key='legislators_download',
-                       label='Download Full Data as CSV',
+                       label='Download Legislators as CSV',
                        data=to_csv(legislators),
                        file_name='legislators.csv',
                        mime='text/csv',
