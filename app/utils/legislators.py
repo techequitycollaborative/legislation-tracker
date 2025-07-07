@@ -10,7 +10,7 @@ Function for displaying legislator details on the Legislators Page.
 """
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_contact_details_with_timestamp, LEGISLATOR_COLUMNS
+from db.query import get_custom_contact_details_with_timestamp, save_custom_contact_details_with_timestamp, LEGISLATOR_COLUMNS
 
 ##### HELPER FUNCTIONS
 # Styling the staffer contact rows
