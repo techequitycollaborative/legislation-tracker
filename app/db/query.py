@@ -15,6 +15,7 @@ import psycopg2
 import psycopg2.extras
 from db.config import config
 import numpy as np
+import datetime
 from psycopg2.extensions import register_adapter, AsIs
 register_adapter(np.int64, AsIs)
 
@@ -538,6 +539,78 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
         cursor.close()
         conn.close()
 
+def save_custom_contact_details_with_timestamp(
+        contact_update_df,
+        openstates_people_id,
+        user_email=None, 
+        org_id=None, 
+        org_name=None
+        ):
+    '''
+    Saves or updates custom contact details for a specific openstates_people_id in the contact_custom_details table and records who made the changes (user_email, org_id, org_name) and when (timestamp).
+    '''
+    # Load the database configuration
+    db_config = config('postgres')
+    
+    today = datetime.date.today()
+    
+    # Establish connection to the PostgreSQL server
+    conn = psycopg2.connect(**db_config)
+    
+    # Create a cursor
+    cursor = conn.cursor()
+    
+    
+    try:
+        # Save updated data to a temporary table which drops after updates are committed
+        cursor.execute("""
+        CREATE TEMP TABLE temp_updates (
+            people_contact_id INT PRIMARY KEY,
+            openstates_people_id TEXT,
+            custom_staffer_contact TEXT,
+            custom_staffer_email TEXT,
+            last_updated_by TEXT,
+            last_updated_org_id INT,
+            last_updated_org_name TEXT,
+            last_updated_on DATE      
+        ) ON COMMIT DROP
+        """)
+        
+        # Insert updates to temp table
+        for _, row in contact_update_df.iterrows():
+            print(row)
+            cursor.execute("""
+                INSERT INTO temp_updates
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s::date)
+            """, (row['people_contact_id'], openstates_people_id, row['custom_contact'], row['custom_email'], user_email, org_id, org_name, today))
+        
+        # Apply updates to prod table
+        cursor.execute("""
+        INSERT INTO public.contact_custom_details 
+        (people_contact_id, openstates_people_id, custom_staffer_contact, custom_staffer_email, last_updated_by, last_updated_org_id, last_updated_org_name, last_updated_on)
+        SELECT *
+        FROM temp_updates
+        ON CONFLICT (people_contact_id) DO UPDATE SET
+            custom_staffer_contact = EXCLUDED.custom_staffer_contact,
+            custom_staffer_email = EXCLUDED.custom_staffer_email,
+            last_updated_by = EXCLUDED.last_updated_by,
+            last_updated_org_id = EXCLUDED.last_updated_org_id,
+            last_updated_org_name = EXCLUDED.last_updated_org_name,
+            last_updated_on = EXCLUDED.last_updated_on            
+        """)
+        conn.commit()
+        return True
+        
+    except Exception as e:
+        # Roll back the transaction in case of error
+        conn.rollback()
+        print(f"Error saving custom details for point of contact: {str(e)}")
+        raise e
+        
+    finally:
+        # Always close the connection
+        conn.close()
+
 
 ###################################################################################
 # DEPRECATED FUNCTIONS
@@ -628,5 +701,4 @@ def save_custom_bill_details(openstates_bill_id, bill_number, org_position, prio
     conn.close()
     
     print(f"Custom details for bill {bill_number} saved successfully.")
-
 
