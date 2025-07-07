@@ -60,7 +60,7 @@ temp_sources AS (
 -- Select capitol offices (only 1 per legislator) and district offices (more than 1 per legislator)
 temp_offices AS (
     SELECT openstates_people_id,
-    STRING_AGG(CASE WHEN classification = 'capitol' THEN name ELSE SPLIT_PART(address, ', ', -2) END || '@@' || phone || '@@' || address, '\n') office_details
+    STRING_AGG(CASE WHEN classification = 'capitol' THEN name ELSE SPLIT_PART(address, ', ', -2) END || '@@' || 'Phone: ' || phone || '@@' || address, '\n') office_details
     FROM snapshot.people_offices 
     GROUP BY openstates_people_id
 ),
