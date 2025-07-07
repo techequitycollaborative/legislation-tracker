@@ -11,9 +11,10 @@ Page to add bills to an org's private dashboard
 import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
-from utils.utils import format_bill_history, get_bill_topics, keywords, to_csv, get_bill_topics_multiple
+from utils.general import get_bill_topics, keywords, to_csv, get_bill_topics_multiple
 from db.query import get_org_dashboard_bills
-from utils.display_utils import display_org_dashboard_details, format_bill_history_dashboard
+from utils.org_dashboard import display_org_dashboard_details
+from utils.bill_history import format_bill_history
 
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
@@ -46,8 +47,6 @@ org_db_bills = get_org_dashboard_bills(org_id)
 # Update session state with user's org's dashboard bills
 st.session_state.org_dashboard_bills = org_db_bills
 
-#org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
-#org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
 # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
 # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
 org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
