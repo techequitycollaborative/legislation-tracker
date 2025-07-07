@@ -15,6 +15,7 @@ import psycopg2
 import psycopg2.extras
 from db.config import config
 import numpy as np
+import datetime
 from psycopg2.extensions import register_adapter, AsIs
 register_adapter(np.int64, AsIs)
 
@@ -542,7 +543,6 @@ def save_custom_bill_details_with_timestamp(openstates_bill_id, bill_number, org
     db_config = config('postgres')
     
     # Get current timestamp
-    import datetime
     today = datetime.date.today()
     current_timestamp = datetime.datetime.now()
     
@@ -609,9 +609,8 @@ def save_custom_bill_details_with_timestamp(openstates_bill_id, bill_number, org
 
 
 def save_custom_contact_details_with_timestamp(
-        openstates_people_id, 
-        phone,
-        staff_name,
+        contact_update_df,
+        openstates_people_id,
         user_email=None, 
         org_id=None, 
         org_name=None
@@ -622,10 +621,7 @@ def save_custom_contact_details_with_timestamp(
     # Load the database configuration
     db_config = config('postgres')
     
-    # Get current timestamp
-    import datetime
     today = datetime.date.today()
-    current_timestamp = datetime.datetime.now()
     
     # Establish connection to the PostgreSQL server
     conn = psycopg2.connect(**db_config)
@@ -633,46 +629,51 @@ def save_custom_contact_details_with_timestamp(
     # Create a cursor
     cursor = conn.cursor()
     
-    # Check if a record already exists for this bill
-    cursor.execute("SELECT 1 FROM public.contact_custom_details WHERE openstates_people_id = %s", (openstates_people_id,))
-    exists = cursor.fetchone()
     
     try:
-        if exists:
-            # Update existing record
-            cursor.execute("""
-                UPDATE public.contact_custom_details
-                SET phone = %s,
-                    staff_name = %s,
-                    last_updated_by = %s,
-                    last_updated_org_id = %s,
-                    last_updated_org_name = %s,
-                    last_updated_on = %s,
-                    last_updated_at = %s
-                WHERE openstates_people_id = %s
-            """,
-            (phone, staff_name, user_email, org_id, org_name, today, current_timestamp, openstates_people_id)
-            )
-        else:
-            # Insert new record
-            cursor.execute("""
-                INSERT INTO public.contact_custom_details
-                (openstates_people_id, phone, staff_name, last_updated_by, last_updated_org_id, 
-                 last_updated_org_name, last_updated_on, last_updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (openstates_people_id, phone, staff_name, user_email, org_id, org_name, today, current_timestamp)
-            )
+        # Save updated data to a temporary table which drops after updates are committed
+        cursor.execute("""
+        CREATE TEMP TABLE temp_updates (
+            people_contact_id INT PRIMARY KEY,
+            openstates_people_id TEXT,
+            custom_staffer_contact TEXT,
+            custom_staffer_email TEXT,
+            last_updated_by TEXT,
+            last_updated_org_id INT,
+            last_updated_org_name TEXT,
+            last_updated_on DATE      
+        ) ON COMMIT DROP
+        """)
         
-        # Commit the transaction
+        # Insert updates to temp table
+        for _, row in contact_update_df.iterrows():
+            print(row)
+            cursor.execute("""
+                INSERT INTO temp_updates
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s::date)
+            """, (row['people_contact_id'], openstates_people_id, row['custom_contact'], row['custom_email'], user_email, org_id, org_name, today))
+        
+        # Apply updates to prod table
+        cursor.execute("""
+        INSERT INTO public.contact_custom_details 
+        (people_contact_id, openstates_people_id, custom_staffer_contact, custom_staffer_email, last_updated_by, last_updated_org_id, last_updated_org_name, last_updated_on)
+        SELECT *
+        FROM temp_updates
+        ON CONFLICT (people_contact_id) DO UPDATE SET
+            custom_staffer_contact = EXCLUDED.custom_staffer_contact,
+            custom_staffer_email = EXCLUDED.custom_staffer_email,
+            last_updated_by = EXCLUDED.last_updated_by,
+            last_updated_org_id = EXCLUDED.last_updated_org_id,
+            last_updated_org_name = EXCLUDED.last_updated_org_name,
+            last_updated_on = EXCLUDED.last_updated_on            
+        """)
         conn.commit()
-        print(f"Custom details for point of contact {staff_name} saved successfully by {user_email} from {org_name}.")
         return True
         
     except Exception as e:
         # Roll back the transaction in case of error
         conn.rollback()
-        print(f"Error saving custom details for point of contact {staff_name}: {str(e)}")
+        print(f"Error saving custom details for point of contact: {str(e)}")
         raise e
         
     finally:
