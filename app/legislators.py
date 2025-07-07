@@ -11,7 +11,7 @@ import numpy as np
 import streamlit as st
 from db.query import query_table
 from utils import aggrid_styler
-from utils.utils import to_csv
+from utils.general import to_csv
 
 
 # Show the page title and description

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-display_utils.py
+utils/archived_utils/display_utils.py
 Created on Oct 15, 2024
 @author: danyasherbini
 
 Functions for displaying bill details in different formats and on different pages of the Legislation Tracker.
+IMPORTANT: THIS SCRIPT IS DEPRECATED. FUNCTIONS HAVE BEEN REFACTORED INTO INDIVIDUAL .PY FILES IN THE app/utils/ DIRECTORY.
 
 """
 import streamlit as st

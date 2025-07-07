@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.utils import display_bill_info_expander, to_csv, format_bill_history, get_bill_topics, keywords
+from utils.general import display_bill_info_expander, to_csv, format_bill_history, get_bill_topics, keywords
 
 # Page title and description
 st.title('Bills')

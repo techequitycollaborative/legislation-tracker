@@ -14,20 +14,18 @@ import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.utils import get_bill_topics, to_csv, keywords, format_bill_history, get_bill_topics_multiple
-from utils.display_utils import display_bill_info_text
+from utils.general import get_bill_topics, to_csv, keywords, get_bill_topics_multiple
+from utils.bills import display_bill_info_text
+from utils.bill_history import format_bill_history
 
 # Page title and description
 st.title('Bills')
 
 current_session = '2025-2026'
 
-st.write(
-    f"""
-    This page shows California assembly and senate bill information for the {current_session} legislative session. 
-    Please note that the page may take a few moments to load.
-    """
-)
+st.write(f"""This page shows California assembly and senate bill information for the {current_session} legislative session.
+Please note that the page may take a few moments to load.
+""")
 
 ############################ LOAD AND PROCESS BILLS DATA #############################
 

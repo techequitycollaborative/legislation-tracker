@@ -11,9 +11,10 @@ Page to add bills to user's private dashboard
 import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
-from utils.utils import format_bill_history, get_bill_topics, keywords, to_csv, get_bill_topics_multiple
+from utils.general import get_bill_topics, keywords, to_csv, get_bill_topics_multiple
 from db.query import get_my_dashboard_bills, clear_all_my_dashboard_bills
-from utils.display_utils import display_dashboard_details
+from utils.my_dashboard import display_dashboard_details
+from utils.bill_history import format_bill_history
 
 
 # Page title

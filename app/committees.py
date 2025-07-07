@@ -15,8 +15,8 @@ import pandas as pd
 import streamlit as st
 from db.query import query_table, COMMITTEE_COLUMNS
 from utils import aggrid_styler
-from utils.utils import to_csv
-from utils.display_utils import display_committee_info_text
+from utils.general import to_csv
+from utils.committees import display_committee_info_text
 
 # Page title and description
 st.title('Committees')
