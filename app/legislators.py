@@ -33,12 +33,16 @@ if 'contact_df' not in st.session_state:
     st.session_state.filtered_df = pd.DataFrame()
 
 # Show the page title and description
-st.title('Legislators')
-st.write(
-    '''
-    This page shows legislator information for the current legislative session as collected from OpenStates and the [Capitol Codex](https://docs.google.com/spreadsheets/d/1gFeGy72R_-FSFrjXbKCAAvVsvNjyV7t_TUvFoB12vys/edit?gid=1422908451#gid=1422908451) Issues tabs. 
-    '''
-)
+st.title('💼 Legislators')
+
+st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
+- This page shows legislator information for the current legislative session as collected from OpenStates and the [Capitol Codex](https://docs.google.com/spreadsheets/d/1gFeGy72R_-FSFrjXbKCAAvVsvNjyV7t_TUvFoB12vys/edit?gid=1422908451#gid=1422908451) Issues tabs. 
+- Click on a legislator to view additional details, such as staff contact information.                                          
+""")
+
+# Add space between expander and main content
+st.markdown(" ")
+st.markdown(" ")
 
 # Load data
 def get_legislator_data():

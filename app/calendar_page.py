@@ -23,13 +23,14 @@ import numpy as np
 
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
-st.title('Calendar')
+st.title('📅 Calendar')
 
-st.markdown("This calendar displays overall legislative events and deadlines, as well as bill-specific events for the current session. Use the filters on the left to search for specific events.")
-
-with st.expander("Important notes about the calendar", expanded=False):
+with st.expander("About this page", icon="ℹ️", expanded=False):
     st.markdown(
         '''
+        This calendar displays overall legislative events and deadlines, as well as bill-specific events for the current session. Use the filters on the left in the sidebar to search for specific events.
+        
+        Important notes about the calendar:
         - **Time zone:** Events take place in Pacific Time but are displayed in your local time zone.
         - **All-day events:** Some events have no available time information and may be marked as "all-day" events.
         - **Updated events:** Events with a :pencil2: icon have had their time, location, room, or agenda order changed since the tool was last updated.
@@ -38,6 +39,8 @@ with st.expander("Important notes about the calendar", expanded=False):
         - **View:** For best experience, view calendar in full screen mode.
         '''
     )
+
+# Add space between expander and main content
 st.markdown(" ")
 st.markdown(" ")
 
