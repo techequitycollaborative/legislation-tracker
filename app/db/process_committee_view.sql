@@ -1,19 +1,18 @@
 -- Title: process_committee_view.sql
 
--- Pulls bill data from OpenStates API and processes for display in Streamlit app.
--- Sources data from various tables in the Snapshot schema 
--- Ouputs final, clean bills table for the legislation tracker as a SQL view (not as a table) including latest status, 
--- date introduced, and properly formatted bill history columns.
+-- Pulls committee data from PostgreSQL and processes for display in Streamlit app.
+-- Sources data from various tables in the Snapshot and ca_dev schema 
+-- Ouputs final, clean committee table for the legislation tracker as a SQL view (not as a table) including next upcoming hearing, 
+-- links, chairs, vice chairs, and membership lists
 
 -- Inputs: 
 ----- ca_dev.committee: for most committee info
+----- ca_dev.bill_schedule: for all upcoming bill events
 ----- public.processed_committee_assignment_2025_2026: for filtered/processed committee assignment information
------ snapshot.bill_sponsor: for author, coauthors
------ ca_dev.bill_schedule_new: for upcoming bill events for the current legislative session (senate & assembly)
 
 -- Output: 
 ----- schema: public
------ view name: processed_bills_from_snapshot_{leg_session}
+----- view name: processed_committee_2025_2026{leg_session}
 
 DROP VIEW IF EXISTS processed_committee_2025_2026;
 CREATE OR REPLACE VIEW processed_committee_2025_2026 AS

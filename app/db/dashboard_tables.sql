@@ -38,5 +38,5 @@ CREATE TABLE IF NOT EXISTS bill_custom_details (
     last_updated_org_id INT,
     last_updated_org_name TEXT,
     last_updated_on DATE,
-    last_updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
