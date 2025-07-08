@@ -15,12 +15,16 @@ from utils.general import to_csv
 
 
 # Show the page title and description
-st.title('Legislators')
-st.write(
-    '''
-    This page shows legislator information for the current legislative session. 
-    '''
-)
+st.title('💼 Legislators')
+
+st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
+- This page shows legislator information for the current legislative session.
+- Click on a legislator to view additional details, such as staff contact information.                                          
+""")
+
+# Add space between expander and main content
+st.markdown(" ")
+st.markdown(" ")
 
 # Load data
 def get_and_clean_leg_data():

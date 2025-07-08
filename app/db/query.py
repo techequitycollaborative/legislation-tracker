@@ -502,6 +502,28 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
         cursor.close()
         conn.close()
 
+##################################################################################
+
+def get_all_custom_bill_details():
+    """
+    Fetches all custom bill details for a specific bill from all organizations.
+    """
+    db_config = config('postgres')
+    conn = psycopg2.connect(**db_config)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cursor.execute("""
+        SELECT * FROM public.bill_custom_details
+        ORDER BY bill_number ASC
+    """, )
+    
+    results = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return [dict(row) for row in results]
+
 
 ###################################################################################
 # DEPRECATED FUNCTIONS

@@ -18,7 +18,18 @@ from utils.bill_history import format_bill_history
 
 
 # Page title
-st.title('My Dashboard')
+st.title('📌 My Dashboard')
+
+st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
+- Use this page to track bills relevant to you.
+- Only you can view this page and all bills saved to it.
+- To add bills to this dashboard, select a bill on the 📝 Bills page and then click the "Add to My Dashboard" button.
+- To add custom advocacy details to a bill, go to your 🏢 Organization Dashboard. Custom advocacy details are viewable on this page, but editable only from your 🏢 Organization Dashboard.
+""")
+
+# Add space between expander and main content
+st.markdown(" ")
+st.markdown(" ")
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:

@@ -19,13 +19,16 @@ from utils.general import to_csv
 from utils.committees import display_committee_info_text
 
 # Page title and description
-st.title('Committees')
-st.write(
-    '''
-    This page shows California Assembly and Senate committee information (upcoming hearings, memberships, links). 
-    Please note that the page may take a few moments to load.
-    '''
-)
+st.title('🗣 Committees')
+
+st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
+- This page shows California Assembly and Senate committee information (upcoming hearings, memberships, links). 
+- Click on a committee to view additional details.                                               
+""")
+
+# Add space between expander and main content
+st.markdown(" ")
+st.markdown(" ")
 
 ############################ LOAD AND PROCESS COMMITTEE DATA #############################
 # Load committee membership data
