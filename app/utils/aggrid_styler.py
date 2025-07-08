@@ -238,3 +238,72 @@ def draw_committee_grid(
         key=key,
         css=css
     )
+
+
+
+
+############################################################
+
+def draw_advocacy_grid(
+        df,
+        formatter: dict = None,
+        #selection='single', -- selection turned off
+        #use_checkbox=True, -- turned off
+        #header_checkbox = True, -- turned off
+        fit_columns=True, # change to True to make all column width based on the variable and fit the entire table to the window frame
+        theme='streamlit', # options = streamlit, alpine, balham, material
+        height: int = 600,
+        wrap_text: bool = False,
+        auto_height: bool = False,
+        key=None,
+        css: dict = None
+):
+
+    # Reorder columns: move 'last_updated_org_name' (Organization) to second position
+    cols = list(df.columns)
+    if 'last_updated_org_name' in cols and 'bill_number' in cols:
+        cols.insert(1, cols.pop(cols.index('last_updated_org_name')))  # move org column to index 1 (second)
+        df = df[cols]
+
+    # Initialize the GridOptionsBuilder from the dataframe passed into the function
+    builder = GridOptionsBuilder().from_dataframe(df)
+
+    # Configure default column settings for all columns
+    builder.configure_default_column(
+        enableFilter=True,
+        filter='agTextColumnFilter',
+        floatingFilter=True, # floating filter: adds a row under the header row for the filter
+        columnSize='sizeToFit'
+        )
+    
+    # Configure special settings for certain columns (batch)
+    builder.configure_columns(['bill_custom_details_id','openstates_bill_id','last_updated_org_id','community_sponsor','coalition','action_taken','last_updated_at'],hide=True)
+    
+    # Configure special settings for individual columns 
+    builder.configure_column('bill_number',pinned='left',headerName = 'Bill Number')
+    builder.configure_column('last_updated_org_name',headerName = 'Organization',filter='agSetColumnFilter')
+    builder.configure_column('org_position',headerName = 'Position',filter='agSetColumnFilter')
+    builder.configure_column('priority_tier',headerName = 'Priority',filter='agSetColumnFilter')
+    builder.configure_column('assigned_to',headerName = 'Point of Contact: Name',filter='agSetColumnFilter')
+    builder.configure_column('last_updated_by',headerName = 'Point of Contact: Email',filter='agSetColumnFilter')
+    builder.configure_column('letter_of_support',headerName = 'Letter of Support',filter=None)
+    builder.configure_column('last_updated_on',headerName = 'Last Updated',filter=None)
+    
+    # Configure how user selects rows -- turned off for legislators table
+    #builder.configure_selection(selection_mode=selection, use_checkbox=use_checkbox) # no selection needed for legislator table
+    builder.configure_auto_height(autoHeight=False) # configure height of the table
+    
+    # Build the grid options dictionary
+    grid_options = builder.build()
+
+    return AgGrid(
+        df,
+        gridOptions=grid_options, # pass the grid options dictionary built above
+        update_mode=GridUpdateMode.SELECTION_CHANGED | GridUpdateMode.VALUE_CHANGED, # ensures the df is updated dynamically
+        allow_unsafe_jscode=True,
+        fit_columns_on_grid_load=fit_columns,
+        height=height,
+        theme=theme,
+        key=key,
+        css=css
+    )

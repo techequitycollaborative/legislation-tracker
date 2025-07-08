@@ -19,13 +19,20 @@ from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
 
 # Page title and description
-st.title('Bills')
+st.title('📝 Bills')
 
 current_session = '2025-2026'
 
-st.write(f"""This page shows California assembly and senate bill information for the {current_session} legislative session.
-Please note that the page may take a few moments to load.
+st.expander("About this page", icon="ℹ️", expanded=False).markdown(f""" 
+- This page shows California assembly and senate bill information for the {current_session} legislative session.
+- Use the column filters to search for specific bills by bill number, author, topic, and more.    
+- Click on a bill to view additional details and add the bill to your dashboards.                                                               
+- Please note that this page may take a few moments to load due to the volume of data.                                              
 """)
+
+# Add space between expander and main content
+st.markdown(" ")
+st.markdown(" ")
 
 ############################ LOAD AND PROCESS BILLS DATA #############################
 

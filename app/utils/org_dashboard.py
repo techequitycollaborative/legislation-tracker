@@ -154,7 +154,7 @@ def display_org_dashboard_details(selected_rows):
     custom_details = get_custom_bill_details_with_timestamp(openstates_bill_id, org_id)
 
     # Form for custom user-entered fields
-    st.markdown('#### Custom Bill Details')
+    st.markdown('#### Custom Advocacy Details')
     st.markdown('Use this section to enter custom details for this bill. <span title="These fields are also viewable on the My Dashboard page if you add this bill to your personal dashboard, but are only editable from your Organization Dashboard." style="cursor: help;">💬</span>', unsafe_allow_html=True)
 
     with st.form(key='custom_fields', clear_on_submit=False, enter_to_submit=True, border=True):

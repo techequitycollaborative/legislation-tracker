@@ -28,7 +28,18 @@ org_name = st.session_state['org_name']
 user_email = st.session_state['user_email']
 
 # Page title
-st.title(f"{org_name}'s Dashboard")
+st.title(f"🏢 {org_name}'s Dashboard")
+
+st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
+- Use this page to track bills relevant to your organization.
+- Anyone in your organization with access to the CA Legislation Tracker can view this page and all bills saved to it.
+- To add bills to this dashboard, select a bill on the 📝 Bills page and then click the "Add to {org_name} Dashboard" button.
+- To add custom advocacy details to a bill, select a bill on this dashboard and edit the "Custom Advocacy Details" section. This data is only editable from this page, but is viewable for bills on your 📌 My Dashboard and viewable to fellow organizations on the 📣 Advocacy Hub page.                                         
+""")
+
+# Add space between expander and main content
+st.markdown(" ")
+st.markdown(" ")
 
 # Clear dashboard button -- DISABLED FOR NOW BC IT MIGHT GET MESSY HAVING THIS OPTION WITH MANY USERS SHARING ONE ORG DASHBOARD. but if we want to add it, the clear button on the my dashboard works.
 #col1, col2 = st.columns([4, 1])
