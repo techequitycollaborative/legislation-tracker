@@ -45,6 +45,9 @@ def display_dashboard_details(selected_rows):
     org_name = st.session_state.get('org_name', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
     
+    # Correct escaped newlines for bill excerpt
+    bill_text = bill_text.replace("\\n\\n", "\n\n")
+    
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
     st.divider()
