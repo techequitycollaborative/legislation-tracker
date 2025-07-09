@@ -3,7 +3,6 @@
 """
 utils/org_dashboard.py
 Created on Oct 15, 2024
-@author: danyasherbini
 
 Utility function for displaying bill details on the ORG DASHBOARD page.
 
@@ -12,6 +11,7 @@ Utility function for displaying bill details on the ORG DASHBOARD page.
 import streamlit as st
 import pandas as pd
 from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard
+from .general import bill_topic_grid
 
 def display_org_dashboard_details(selected_rows):
     '''
@@ -141,12 +141,8 @@ def display_org_dashboard_details(selected_rows):
             
             st.markdown('')
 
-            if bill_topic:
-                st.markdown('##### Bill Topic')
-                st.markdown(bill_topic)
-            else:
-                st.markdown('#### ')
-                st.markdown('')
+            st.markdown('##### Bill Topic')
+            bill_topic_grid(bill_topic)
 
             st.markdown('')
 
