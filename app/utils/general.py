@@ -136,3 +136,71 @@ def transform_name(name):
         return f"{parts[-1]}, {' '.join(parts[0:-1])}"
     else:
         return f"{parts[-2]}, {' '.join(parts[0:-2])}, {parts[-1].replace(',', '')}"
+    
+###############################################################################
+
+def get_topic_color(topic):
+    # Handle empty/null case first (returns light gray)
+    if not topic or topic == "0":
+        return "#f0f0f0"  # Light gray for empty/default
+    
+    # Define color mapping for each category 
+    color_map = {
+        "AI": "#E1D5E7",  # Soft lavender
+        "Discrimination": "#F5C2C7",  # Dusty rose
+        "Education": "#B8D8EB",  # Pale sky blue
+        "Environment": "#C3E6C3",  # Mint green
+        "Health": "#F8D6B3",  # Peach
+        "Housing": "#C9C9EE",  # Periwinkle
+        "Labor": "#FFE0B3",  # Pale amber
+        "Data, Surveillence, Privacy": "#B3E0E6",  # Powder blue
+        "Disinformation": "#D4C5C0",  # Warm gray
+        "Judicial System": "#B3B3D6",  # Soft denim
+        "Safety": "#E6B3B3",  # Blush pink
+        "Other": "#E0E0E0"   # Light gray
+    }
+    
+    # Return the corresponding color or default if not found
+    return color_map.get(topic, "#FFFFFF")  # ultimate fallback on white if needed
+
+def bill_topic_grid(bill_topic_lst):
+    # TODO: decide if we want to display something for bills without set topics
+    if not bill_topic_lst:
+        bill_topic_lst = ["0"]  # Default for empty list
+    
+    # Always use 3 columns layout
+    cols = st.columns(3)
+    
+    for idx, topic in enumerate(bill_topic_lst):
+        # Use modulo to select 1st, 2nd or 3rd column
+        col = cols[idx % 3]
+
+        # Transform topic text for display assuming the null case is in scope
+        display_text = topic if topic != "0" else "None set"
+        
+        with col:
+            container = st.container() # Create a container to fill with HTML
+            container.markdown(
+                f"""
+                <div style="
+                    background-color: {get_topic_color(topic)};
+                    padding: 20px;
+                    border-radius: 5px;
+                    text-align: center;
+                    height: 70px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    {display_text}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    
+    # Visual indication of empty slots
+    remaining_slots = (3 - (len(bill_topic_lst) % 3)) % 3
+    if remaining_slots > 0 and len(bill_topic_lst) > 0:
+        for i in range(remaining_slots):
+            cols[(len(bill_topic_lst) + i) % 3].container()
+    return

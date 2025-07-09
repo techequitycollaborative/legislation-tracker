@@ -11,6 +11,7 @@ Function for displaying bill details on the Bills Page.
 import streamlit as st
 import pandas as pd
 from db.query import add_bill_to_dashboard, add_bill_to_org_dashboard, BILL_COLUMNS
+from .general import bill_topic_grid
 
 def display_bill_info_text(selected_rows):
     '''
@@ -48,6 +49,10 @@ def display_bill_info_text(selected_rows):
     org_name = st.session_state.get('org_name', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
     
+
+    # # Prepare bill topics for markdown display
+    # bill_topic = ''.join([f"- {t}" for t in bill_topic])
+
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
     st.divider()
@@ -142,12 +147,8 @@ def display_bill_info_text(selected_rows):
             
             st.markdown('')
 
-            if bill_topic is not None:
-                st.markdown('##### Bill Topic')
-                st.markdown(bill_topic)
-            else:
-                st.markdown('#### ')
-                st.markdown('')
+            st.markdown('##### Bill Topic')
+            bill_topic_grid(bill_topic)
 
             st.markdown('')
 
