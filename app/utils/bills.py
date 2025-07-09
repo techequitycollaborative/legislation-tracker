@@ -3,7 +3,6 @@
 """
 utils/bills.py
 Created on Oct 15, 2024
-@author: danyasherbini
 
 Function for displaying bill details on the Bills Page.
 
@@ -48,11 +47,13 @@ def display_bill_info_text(selected_rows):
     org_id = st.session_state.get('org_id', 'Unknown Org ID')
     org_name = st.session_state.get('org_name', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
-    
 
     # # Prepare bill topics for markdown display
     # bill_topic = ''.join([f"- {t}" for t in bill_topic])
 
+    # Correct escaped newlines for bill excerpt
+    bill_text = bill_text.replace("\\n\\n", "\n\n")
+    
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
     st.divider()

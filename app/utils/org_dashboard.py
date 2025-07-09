@@ -3,7 +3,6 @@
 """
 utils/org_dashboard.py
 Created on Oct 15, 2024
-@author: danyasherbini
 
 Utility function for displaying bill details on the ORG DASHBOARD page.
 
@@ -45,6 +44,9 @@ def display_org_dashboard_details(selected_rows):
     org_id = st.session_state.get('org_id', 'Unknown Org ID')
     org_name = st.session_state.get('org_name', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
+
+    # Correct escaped newlines for bill excerpt
+    bill_text = bill_text.replace("\\n\\n", "\n\n")
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')
