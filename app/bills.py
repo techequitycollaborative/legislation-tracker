@@ -99,9 +99,9 @@ with col2:
 
 with col3:
     st.download_button(
-        label='Download Data as CSV',
+        label='Download Bills',
         data=to_csv(bills),
-        file_name='selected_bills.csv',
+        file_name='bills.csv',
         mime='text/csv',
         use_container_width=True
     )

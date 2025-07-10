@@ -107,6 +107,8 @@ def clear_login_cookies():
         del st.session_state["backup_user_email"]
 
 '''
+
+############################# AUTH FUNCTIONS #############################
         
 # Improved security and validation functions
 def validate_email(email: str) -> bool:
@@ -320,6 +322,37 @@ def get_organization_by_id(org_id: int) -> Optional[Tuple]:
     finally:
         if conn:
             conn.close()
+
+
+############################# AI WORKING GROUP VALIDATION #############################
+
+def is_user_in_working_group(user_email):
+    """
+    Check if the user is in the AI Working Group by querying the approved_users table.
+    """
+    conn, c = get_db_connection()
+    if not conn or not c:
+        return False  # Prefer returning False for clean boolean logic
+
+    try:
+        c.execute("""
+            SELECT ai_working_group FROM public.approved_users WHERE email = %s;
+        """, (user_email,))
+        result = c.fetchone()
+
+        if result and isinstance(result[0], str):
+            return result[0].strip().lower() == 'yes'
+        else:
+            return False
+
+    except psycopg2.Error as e:
+        st.error(f"Database error: {e}")
+        return False  # Avoid returning None unless there's a specific reason
+
+    finally:
+        conn.close()
+
+############################# SIGN UP AND LOGIN PAGE #############################
 
 def signup_page():
     """

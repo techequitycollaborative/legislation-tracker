@@ -89,6 +89,8 @@ def draw_bill_grid(
         #enable_enterprise_modules=False # this might get rid of the ag grid trial watermark but also disables the filter/pivot on the side of the table
     )
 
+############################################################
+
 
 # Ag grid styler function for legislators table
 def draw_leg_grid(
@@ -157,6 +159,9 @@ def draw_leg_grid(
         key=key,
         css=css
     )
+
+############################################################
+
 
 def draw_committee_grid(
         df,
@@ -251,8 +256,6 @@ def draw_committee_grid(
         key=key,
         css=css
     )
-
-
 
 
 ############################################################

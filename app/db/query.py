@@ -615,10 +615,12 @@ def save_custom_contact_details_with_timestamp(
 
         
 ##################################################################################
+# Advocacy details functions
 
 def get_all_custom_bill_details():
     """
     Fetches all custom bill details for a specific bill from all organizations.
+    For use on the advocacy hub page.
     """
     db_config = config('postgres')
     conn = psycopg2.connect(**db_config)
@@ -637,93 +639,213 @@ def get_all_custom_bill_details():
     return [dict(row) for row in results]
 
 
-###################################################################################
-# DEPRECATED FUNCTIONS
-
-def get_custom_bill_details(openstates_bill_id, org_id):
-    '''
-    Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page.
-    Fetches bills by bill id and organization id in order to ensure only an org's custom bill details render on their own org dashboard.
-    '''
-    # Load the database configuration
+def get_all_custom_bill_details_for_bill(openstates_bill_id):
+    """
+    Fetch all custom advocacy details for a single bill across all organizations.
+    For use on the AI Working Group dashboard.
+    """
     db_config = config('postgres')
-    # Establish connection to the PostgreSQL server
     conn = psycopg2.connect(**db_config)
-    print("Connected to the PostgreSQL database.")
-    
-    # Create a cursor that returns rows as dictionaries
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    
-    cursor.execute("""
-                    SELECT * FROM public.bill_custom_details 
-                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
-                    """, (openstates_bill_id, org_id))
-    result = cursor.fetchone()
+
+    query = """
+        SELECT * FROM public.bill_custom_details
+        WHERE openstates_bill_id = %s
+        ORDER BY last_updated_org_name ASC
+    """
+    cursor.execute(query, (openstates_bill_id,))
+    results = cursor.fetchall()
+
+    cursor.close()
     conn.close()
+
+    return [dict(row) for row in results]
+
+###############################################################################
+
+# AI Working Group Dashboard Functions
+
+def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
+    user_email = st.session_state.get('user_email')
+    org_name = st.session_state.get('org_name')
     
-    if result:
-        return {
-            "org_position": result["org_position"],
-            "priority_tier": result["priority_tier"],
-            "community_sponsor": result["community_sponsor"],
-            "coalition": result["coalition"],
-            "letter_of_support": result["letter_of_support"],
-            "assigned_to": result["assigned_to"],
-            "action_taken": result["action_taken"],
-        }
-    else:
-        return None
+    if not openstates_bill_id or not bill_number or not user_email or not org_name:
+        st.error("Missing required information to save this bill.")
+        return
+
+    try:
+        db_config = config('postgres')
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Check if bill already exists for this org/user
+        cursor.execute("""
+            SELECT COUNT(*) FROM public.working_group_dashboard
+            WHERE openstates_bill_id = %s AND added_by_org = %s AND added_by_user = %s;
+        """, (openstates_bill_id, org_name, user_email))
+
+        count = cursor.fetchone()[0]
+
+        if count == 0:
+            cursor.execute("""
+                INSERT INTO public.working_group_dashboard 
+                (openstates_bill_id, bill_number, added_by_org, added_by_user)
+                VALUES (%s, %s, %s, %s);
+            """, (openstates_bill_id, bill_number, org_name, user_email))
+
+            conn.commit()
+            st.success(f'Bill {bill_number} added to Working Group Dashboard!')
+        else:
+            st.warning(f'Bill {bill_number} is already in the Working Group Dashboard.')
+
+    except Exception as e:
+        st.error(f"Error adding bill to Working Group Dashboard: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
-def save_custom_bill_details(openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, assigned_to, action_taken, org_id):
+def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     '''
-    Saves or updates custom bill details for a specific openstates_bill_id in the bill_custom_details table
+    Removes a selected bill from the AI working group dashboard, deletes it from the database, and updates session state.
     '''
-    # Load the database configuration
     db_config = config('postgres')
-    
-    # Establish connection to the PostgreSQL server
+
     conn = psycopg2.connect(**db_config)
-    
-    # Create a cursor
     cursor = conn.cursor()
     
-    # Check if a record already exists for this bill
     cursor.execute("""
-                    SELECT * FROM public.bill_custom_details 
-                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
-                """, (openstates_bill_id, org_id))
-    exists = cursor.fetchone()
+        DELETE FROM public.working_group_dashboard 
+        WHERE openstates_bill_id = %s;
+    """, (openstates_bill_id,))
     
-    if exists:
-        # Update existing record
-        cursor.execute("""
-            UPDATE public.bill_custom_details 
-            SET bill_number = %s,
-                org_position = %s,
-                priority_tier = %s,
-                community_sponsor = %s,
-                coalition = %s,      
-                letter_of_support = %s,
-                assigned_to = %s,
-                action_taken = %s
-            WHERE openstates_bill_id = %s
-            """, 
-            (bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, assigned_to, action_taken, openstates_bill_id)
-        )
-    else:
-        # Insert new record
-        cursor.execute("""
-            INSERT INTO public.bill_custom_details 
-            (openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, assigned_to, action_taken)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, 
-            (openstates_bill_id, bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, assigned_to, action_taken)
-        )
-    
-    # Commit the transaction
     conn.commit()
-    conn.close()
+    st.success(f'Bill {bill_number} removed from AI Working Group dashboard!')
     
-    print(f"Custom details for bill {bill_number} saved successfully.")
+    cursor.close()
+    conn.close()
+    st.rerun()
+
+
+def get_working_group_bills():
+    '''
+    Fetches bills from the working_group_dashboard table in the PostgreSQL database.
+    '''
+    try:
+        db_config = config('postgres')
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        query = f"""
+            SELECT 
+                b.openstates_bill_id,
+                b.bill_number,
+                b.bill_name,
+                b.status,
+                b.date_introduced,
+                b.leg_session,
+                b.author,
+                b.coauthors, 
+                b.chamber,
+                b.leginfo_link,
+                b.bill_text,
+                b.bill_history,
+                b.bill_event,
+                b.event_text,
+                b.last_updated_on
+            FROM public.processed_bills_from_snapshot_2025_2026 b
+            INNER JOIN public.working_group_dashboard wgd
+                ON wgd.openstates_bill_id = b.openstates_bill_id;
+
+        """
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
+    
+    except Exception as e:
+        print(f"Error fetching AI Working Group bills: {e}")
+        return pd.DataFrame(columns=BILL_COLUMNS)
+
+
+def get_discussion_comments(bill_number: str) -> pd.DataFrame:
+    '''
+    Fetches discussion comments for a specific bill from the working_group_discussions table in the PostgreSQL database.
+    '''
+    db_config = config('postgres')
+    conn = psycopg2.connect(**db_config)
+    print("Connected to the PostgreSQL database.")
+
+    query = """
+        SELECT user_email, comment, timestamp
+        FROM public.working_group_discussions
+        WHERE bill_number = %s
+        ORDER BY timestamp DESC;
+    """
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, (bill_number,))
+        records = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(records, columns=columns)
+
+    conn.close()
+    print("Database connection closed.")
+    return df
+
+
+def save_comment(bill_number: str, user_email: str, comment: str):
+    '''
+    Saves a comment to the working group discussion table in the PostgreSQL database.
+    '''
+    db_config = config('postgres')
+    conn = psycopg2.connect(**db_config)
+    print("Connected to the PostgreSQL database.")
+
+    query = """
+        INSERT INTO public.working_group_discussions (bill_number, user_email, comment, timestamp)
+        VALUES (%s, %s, %s, %s);
+    """
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, (bill_number, user_email, comment, datetime.utcnow()))
+        conn.commit()
+
+    conn.close()
+    print("Comment inserted and database connection closed.")
+
+
+def get_ai_members():
+    '''
+    Get list of names of AI Working Group members from the database.
+    '''
+    try:
+        db_config = config('postgres')
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        query = f"""
+            SELECT name, email, org_name
+            FROM public.approved_users
+            WHERE ai_working_group = 'yes';
+        """
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return pd.DataFrame(rows, columns=['name', 'email', 'org_name']) if rows else pd.DataFrame(columns=['name', 'email', 'org_name'])
+
+    except Exception as e:
+        print(f"Error fetching AI Working Group members: {e}")
+        return []
+
+
+
 

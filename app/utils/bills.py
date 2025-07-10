@@ -9,7 +9,7 @@ Function for displaying bill details on the Bills Page.
 """
 import streamlit as st
 import pandas as pd
-from db.query import add_bill_to_dashboard, add_bill_to_org_dashboard, BILL_COLUMNS
+from db.query import add_bill_to_dashboard, add_bill_to_org_dashboard, add_bill_to_working_group_dashboard, BILL_COLUMNS
 from .general import bill_topic_grid
 
 def display_bill_info_text(selected_rows):
@@ -73,6 +73,11 @@ def display_bill_info_text(selected_rows):
             if st.button('Add to My Dashboard', use_container_width=True,type='secondary'):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_dashboard(openstates_bill_id, bill_number)
+
+            if st.session_state.get('working_group', False):
+                if st.button('Add to AI Working Group Dashboard', use_container_width=True,type='secondary'):
+                    # Call the function to add the bill to the dashboard
+                    add_bill_to_working_group_dashboard(openstates_bill_id, bill_number)
     
     # Add empty rows of space  
     st.write("")
