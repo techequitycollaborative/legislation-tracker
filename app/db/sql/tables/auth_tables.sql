@@ -9,7 +9,10 @@ CREATE TABLE IF NOT EXISTS approved_users (
     org_name VARCHAR(100),
     user_role VARCHAR(20) CHECK (
         user_role IN ('admin', 'basic', 'custom')
-    )
+    ),
+    ai_working_group VARCHAR(3) CHECK (
+        ai_working_group IN ('yes', 'no')
+    ) DEFAULT 'no'
 );
 
 

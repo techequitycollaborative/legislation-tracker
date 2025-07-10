@@ -9,7 +9,7 @@ This is the main script of the Legislation Tracker. To run the app locally, run:
 
 import streamlit as st
 import datetime
-from utils.authentication import login_page, signup_page, logout, get_organization_by_id
+from utils.authentication import login_page, signup_page, logout, get_organization_by_id, is_user_in_working_group
 
 
 # Page configuration
@@ -72,12 +72,17 @@ if 'authenticated' not in st.session_state:
         login_page()
 
 else:
-    # Get org_id from session state
+    # Get org and user info
     org_id = st.session_state.get('org_id')
-    user_org = st.session_state.get('user_org')
-    
-    # Get organization info using the correct function
+    user_org = st.session_state.get('org_name')
     org_info = get_organization_by_id(org_id) if org_id else None
+    user_name = st.session_state['user_name']
+    first_name = user_name.split()[0] # get first name from user name
+    
+    # Check if the user is in the Working Group
+    user_email = st.session_state.get('user_email')
+    user_in_working_group = is_user_in_working_group(user_email)
+    st.session_state['working_group'] = user_in_working_group  # Store in session state for easy access
 
     # Create grouped navigation structure
     pages = {
@@ -100,8 +105,10 @@ else:
                 default=False
             ),
             st.Page('my_dashboard.py', title='My Dashboard', icon='📌', url_path='my_dashboard'),
-
-        ],
+        ] + (
+            [st.Page('ai_wg_dashboard.py', title='AI Working Group Dashboard', icon='🤝', url_path='ai_working_group_dashboard')]
+            if user_in_working_group else []
+        ),
     }
 
     # Build grouped sidebar navigation
@@ -114,7 +121,13 @@ else:
     # Run the correct page based on query parameter navigation
     pg.run()
 
+    # Additional navigation bar items
+    st.sidebar.markdown("### Account")
+    st.sidebar.markdown(f"**User:** {user_name}")
+    st.sidebar.markdown(f"**Email:** {user_email}")
+    st.sidebar.markdown(f"**Organization:** {user_org}")
+    
     # Add the logout button to the bottom of the navigation bar
-    st.sidebar.markdown("<br>" * 16, unsafe_allow_html=True)  # Push logout button down
+    #st.sidebar.markdown("<br>" * 16, unsafe_allow_html=True)
     if st.sidebar.button('Log out', key='logout'):
         logout()

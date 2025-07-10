@@ -8,6 +8,13 @@ Home page for the Legislation Tracker.
 """
 
 import streamlit as st
+from utils.css_utils import load_css_with_fallback, DEFAULT_FALLBACK_CSS
+
+# Load custom CSS with fallback
+load_css_with_fallback(
+    primary_css='styles/home.css',
+    fallback_css=DEFAULT_FALLBACK_CSS
+)
 
 ############################ TITLE & WELCOME TEXT #############################
 
@@ -15,8 +22,9 @@ import streamlit as st
 st.title('Welcome to the CA Legislation Tracker!')
 
 ############################### ABOUT THE APP ###############################
-st.divider()
-st.markdown("### About")
+st.markdown(" ") 
+st.markdown('<h3 class="section-header">About</h3>', unsafe_allow_html=True)
+st.markdown(" ") 
 
 st.markdown(
 """
@@ -24,32 +32,55 @@ The California Legislation Tracker is a custom web application built by [TechEqu
 """,
 unsafe_allow_html=True)
 
+
+# Custom HTML for equal height containers with colored bars
 col1, col2, col3, col4 = st.columns([1,1,1,1])
 
 with col1:
-    with st.container(border=True):
-        st.markdown("**Live Data Updates**")
-        st.markdown("Automatically collects and displays California legislative data and updates in real time.")
+    st.markdown("""
+    <div class="feature-card card-1">
+        <div class="feature-title">Live Data Updates</div>
+        <div class="feature-description">
+            Automatically collects and displays California legislative data and updates in real time.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with col2:
-    with st.container(border=True):
-        st.markdown("**Centralized Information Hub**")
-        st.markdown("Consolidated bill data in one platform, limiting the need to search across disparate sources.")
+    st.markdown("""
+    <div class="feature-card card-2">
+        <div class="feature-title">Centralized Information Hub</div>
+        <div class="feature-description">
+            Consolidated bill data in one platform, limiting the need to search across disparate sources.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with col3:
-    with st.container(border=True):
-        st.markdown("**Advanced Search & Filters**")
-        st.markdown("Search and filter data by various fields in order to more easily find specific bill information.")
+    st.markdown("""
+    <div class="feature-card card-3">
+        <div class="feature-title">Advanced Search & Filters</div>
+        <div class="feature-description">
+            Search and filter data by various fields in order to more easily find specific bill information.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with col4:
-    with st.container(border=True):
-        st.markdown("**Bill Tracking**")
-        st.markdown("Track your organization’s advocacy work through auto-generated fields and custom data entry.")    
+    st.markdown("""
+    <div class="feature-card card-4">
+        <div class="feature-title">Bill Tracking</div>
+        <div class="feature-description">
+            Track your organization's advocacy work through auto-generated fields and custom data entry.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     
 ############################### PAGE DESCRIPTIONS ################################
-st.divider()
-st.markdown("### Pages")
+st.markdown(" ") 
+st.markdown('<h3 class="section-header">Pages</h3>', unsafe_allow_html=True)
+st.markdown(" ") 
 
 # Access user info
 org_id = st.session_state.get('org_id')
@@ -92,11 +123,10 @@ for group, content in grouped_pages.items():
     
 
 ################################ FAQs #################################
-st.divider()
 
-st.markdown("""
-### FAQs
-""")
+st.markdown(" ") 
+st.markdown('<h3 class="section-header">FAQs</h3>', unsafe_allow_html=True)
+st.markdown(" ")
 
 st.expander("Where is the data in the CA Legislation Tracker sourced from?", expanded=False).markdown("We source data from the OpenStates REST API and directly from the California LegInfo websites.")
 
@@ -108,11 +138,9 @@ The main legislative data (i.e., Bills, Legislators, Committees) is updated twic
 st.expander("I noticed some data was incorrect or outdated.", expanded=False).markdown("This is possible. The California legislative websites may contain errors, or may not be updated on a timely basis, so there may be discrepencies from time to time. We do our best to ensure accuracy. We encourage advocacy professionals to double check information such as timing and location of Assembly and Senate meetings and hearings, or other time-sensitive information. If you notice recurring issues, please contact us.")
 
 ################################ CONTACT #################################
-st.divider()
-
-st.markdown("""
-### Contact
-""")
+st.markdown(" ") 
+st.markdown('<h3 class="section-header">Contact</h3>', unsafe_allow_html=True)
+st.markdown(" ") 
 
 st.markdown("""
 **Submit Feedback**
