@@ -40,7 +40,7 @@ st.markdown("""
 st.expander("ℹ️ About this page", expanded=False).markdown("""
 - Use this page to track bills as a working group.
 - To add a bill to this dashboard, select a bill on the 📝 Bills page and then click the "Add to AI Working Group Dashboard" button.
-- Only logged in members of the AI Working Group cab view this page and add bills to it.                                                        
+- Only approved and logged in members of the AI Working Group can view this page and add bills to it.                                                        
 """)
 
 # Add space between expander and main content
