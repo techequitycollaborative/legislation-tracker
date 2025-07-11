@@ -196,7 +196,7 @@ def display_dashboard_details(selected_rows):
                 st.text(custom_details.get('assigned_to', '') if custom_details else '')
 
             with col7:
-                st.markdown('##### Letter of Support')
+                st.markdown('##### Letter')
                 letter_of_support = custom_details.get('letter_of_support', '') if custom_details else ''
                 if letter_of_support:
                     st.link_button('Open Link', str(letter_of_support))

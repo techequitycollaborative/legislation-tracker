@@ -208,8 +208,8 @@ def display_org_dashboard_details(selected_rows):
             
             with col5:
                 st.markdown('##### Action Taken')
-                action_taken_options = ['','None', 'Letter of Support In Progress',
-                                    'Letter of Support Drafted', 'Letter of Support Submitted']
+                action_taken_options = ['','None', 'Letter In Progress',
+                                    'Letter Drafted', 'Letter Submitted']
                 
                 # Get the index
                 action_taken_default = 0
@@ -226,13 +226,13 @@ def display_org_dashboard_details(selected_rows):
                                         value=custom_details.get('assigned_to', '') if custom_details else '')
             
             with col7:
-                st.markdown('##### Letter of Support')
-                letter_of_support = st.text_input('Enter link to letter of support',
+                st.markdown('##### Letter')
+                letter_of_support = st.text_input('Enter link to letter of support/opposition',
                                                 value=custom_details.get('letter_of_support', '') if custom_details else '')
             
             with col8:
                 if letter_of_support:
-                    st.markdown('##### View Support Letter')
+                    st.markdown('##### View Letter')
                     st.markdown('Open link to (must be valid URL in previous field)')
                     st.link_button('Open Link', str(letter_of_support))
                 else:

@@ -125,7 +125,7 @@ st.markdown(" ")
 ############################## TABS SECTION ##############################
 # Tabs for different sections
 st.markdown('<h3 class="section-header">Working Group Info</h3>', unsafe_allow_html=True)
-tab1, tab2, tab3 = st.tabs(["🕒 Recently Updated Bills", "📄 Letters of Support", "👥 Working Group Members",])
+tab1, tab2, tab3 = st.tabs(["🕒 Recently Updated Bills", "📄 Letters", "👥 Working Group Members",])
 
 ############################## Recently Updated Bills ##############################
 with tab1:
@@ -178,7 +178,7 @@ with tab2:
     custom_details = pd.DataFrame(get_all_custom_bill_details())
 
     if custom_details.empty or 'letter_of_support' not in custom_details.columns:
-        st.info("No letters of support available.")
+        st.info("No letters available.")
     else:
         # Filter only rows with valid links
         valid_letters = custom_details[

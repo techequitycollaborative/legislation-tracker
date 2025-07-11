@@ -35,7 +35,7 @@ with st.expander("About this page", icon="ℹ️", expanded=False):
         - **All-day events:** Some events have no available time information and may be marked as "all-day" events.
         - **Updated events:** Events with a :pencil2: icon have had their time, location, room, or agenda order changed since the tool was last updated.
         - **Moved/postponed events:** Crossed out events have been moved or postponed to a different date. For bill-specific events, please note that the hearing itself may still be scheduled, but that particular bill may have been removed from the agenda. If available, the new event date is included as a separate event in the calendar.
-        - **Letter of support deadlines:** Events with an :envelope: icon are deadlines for letters of support. These deadlines are automatically generated to be 7 days before the committee hearing date; please check committee websites to verify committee-specific rules.
+        - **Letter deadlines:** Events with an :envelope: icon are deadlines for letters. These deadlines are automatically generated to be 7 days before the committee hearing date; please check committee websites to verify committee-specific rules.
         - **View:** For best experience, view calendar in full screen mode.
         '''
     )

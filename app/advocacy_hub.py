@@ -37,7 +37,13 @@ st.expander("About this page", icon="ℹ️", expanded=False).markdown("""
 st.markdown(" ")
 st.markdown(" ")
 
+# Helper function to check if a column is blank
+# Using this instead of pd.isna() in order to check for empty strings bc right now, you can only overwrite custom bill details with a string, you can't remove it from the database
+# TO DO: Update the database/query functions to allow for removing custom bill details
+def is_blank(series):
+    return series.isna() | (series == "")
 
+# Get all custom bill details from the database
 records = get_all_custom_bill_details()
 
 if records:
@@ -46,6 +52,9 @@ if records:
     # Format dates
     df["last_updated_on"] = pd.to_datetime(df["last_updated_on"]).dt.date
     df["last_updated_at"] = pd.to_datetime(df["last_updated_at"]).dt.time
+
+    # Sort by last_updated_on in descending order
+    df = df.sort_values(by="last_updated_on", ascending=False)
 
     col1, col2, col3 = st.columns([4.5,.25,3.25])
 
@@ -78,8 +87,13 @@ if records:
             # Display only these columns in this order
             df_display = df[desired_order]
 
-            # Sort by last_updated_on in descending order
-            df = df.sort_values(by="last_updated_on", ascending=False)
+            # Remove rows where all of these columns are blank
+            df_display = df_display[~(
+                is_blank(df_display["org_position"]) &
+                is_blank(df_display["priority_tier"]) &
+                is_blank(df_display["letter_of_support"]) &
+                is_blank(df_display["assigned_to"])
+            )]
 
             # Display table
             st.data_editor(
@@ -92,7 +106,7 @@ if records:
                     "org_position": st.column_config.Column("Position", help="Organization's position on the bill"),
                     "priority_tier": st.column_config.Column("Priority", help="Priority tier assigned to the bill by the organization"),
                     "assigned_to": st.column_config.Column("Point of Contact", help="Organization member assigned to this bill"),
-                    "letter_of_support": st.column_config.LinkColumn("Letter of Support", display_text="Letter of Support", help="Letter of Support provided by the organization"),
+                    "letter_of_support": st.column_config.LinkColumn("Letter", display_text="Link to Letter", help="Letter of Support or Opposition provided by the organization"),
                 },
                 hide_index=True,
                 disabled=True  # Table is not editable
@@ -105,18 +119,18 @@ if records:
     with col3:
         with st.container(border=True):
             
-            st.subheader("📄 Letters of Support")
+            st.subheader("📄 Letters")
             st.markdown(" ")
             
-            # Group letters by bill
-            grouped = df[pd.notna(df["letter_of_support"])].groupby("bill_number")
+            # Group letters by bill and don't display letters that are blank in the db
+            grouped = df[~is_blank(df["letter_of_support"])].groupby("bill_number")
 
             for bill_number, group in grouped:
                 st.markdown(f"**{bill_number}**")
                 for _, row in group.iterrows():
                     org_name = row["last_updated_org_name"]
                     letter_link = row["letter_of_support"]
-                    st.markdown(f"- [{org_name}'s Letter of Support]({letter_link})")
+                    st.markdown(f"- [{org_name}'s Letter]({letter_link})")
                 st.markdown("---")  # horizontal divider between bills
 
 
