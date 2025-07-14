@@ -100,7 +100,7 @@ else:
             st.Page('advocacy_hub.py', title='Advocacy Hub', icon='📣', url_path='advocacy_hub'),
             st.Page(
                 'org_dashboard.py',
-                title=f"{org_info[1]} Dashboard" if org_info else "Organization Dashboard",
+                title=f"{user_org_nickname} Dashboard" if org_info else "Organization Dashboard",
                 icon='🏢',
                 url_path='org_dashboard',
                 default=False
