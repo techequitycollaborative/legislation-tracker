@@ -25,10 +25,11 @@ if 'authenticated' not in st.session_state:
 # Access user info from session state
 org_id = st.session_state.get('org_id')
 org_name = st.session_state['org_name']
+org_nickname = st.session_state.get('nickname')
 user_email = st.session_state['user_email']
 
 # Page title
-st.title(f"🏢 {org_name}'s Dashboard")
+st.title(f"🏢 {org_nickname}'s Dashboard")
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to your organization.

@@ -313,7 +313,7 @@ def get_organization_by_id(org_id: int) -> Optional[Tuple]:
         return None
     
     try:
-        c.execute("SELECT id, name, domain FROM approved_organizations WHERE id=%s", (org_id,))
+        c.execute("SELECT id, name, domain, nickname FROM approved_organizations WHERE id=%s", (org_id,))
         org = c.fetchone()
         return org
     except psycopg2.Error as e:
@@ -475,6 +475,7 @@ def login_page():
             org = get_organization_by_id(user[4])
             if org:
                 st.session_state['org_name'] = org[1]
+                st.session_state['nickname'] = org[3]
             
             #set_login_cookie(user[2])  # <-- Persist login
             st.rerun()

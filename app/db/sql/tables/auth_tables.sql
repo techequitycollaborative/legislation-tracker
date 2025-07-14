@@ -17,10 +17,11 @@ CREATE TABLE IF NOT EXISTS approved_users (
 
 
 -- Table: organizations
-CREATE TABLE IF NOT EXISTS organizations (
+CREATE TABLE IF NOT EXISTS approved_organizations (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
-    domain TEXT
+    domain TEXT,
+    nickname TEXT,
 );
 
 -- Table: logged_users
