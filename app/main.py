@@ -75,6 +75,7 @@ else:
     # Get org and user info
     org_id = st.session_state.get('org_id')
     user_org = st.session_state.get('org_name')
+    user_org_nickname = st.session_state.get('nickname')
     org_info = get_organization_by_id(org_id) if org_id else None
     user_name = st.session_state['user_name']
     first_name = user_name.split()[0] # get first name from user name
@@ -125,7 +126,7 @@ else:
     st.sidebar.markdown("### Account")
     st.sidebar.markdown(f"**User:** {user_name}")
     st.sidebar.markdown(f"**Email:** {user_email}")
-    st.sidebar.markdown(f"**Organization:** {user_org}")
+    st.sidebar.markdown(f"**Organization:** {user_org_nickname}")
     
     # Add the logout button to the bottom of the navigation bar
     #st.sidebar.markdown("<br>" * 16, unsafe_allow_html=True)

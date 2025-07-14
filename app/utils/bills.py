@@ -46,6 +46,7 @@ def display_bill_info_text(selected_rows):
     # Get the org and user details from session state
     org_id = st.session_state.get('org_id', 'Unknown Org ID')
     org_name = st.session_state.get('org_name', 'Unknown Org')
+    org_nickname = st.session_state.get('nickname', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
 
     # # Prepare bill topics for markdown display
@@ -65,7 +66,7 @@ def display_bill_info_text(selected_rows):
             st.markdown(f'### {bill_number}')
         with col2:
             # Add to ORG DASHBOARD button
-            if st.button(f"Add to {org_name} Dashboard", use_container_width=True, type='primary'):
+            if st.button(f"Add to {org_nickname} Dashboard", use_container_width=True, type='primary'):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_org_dashboard(openstates_bill_id, bill_number)
 
