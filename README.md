@@ -69,7 +69,7 @@ streamlit run main.py
 ```
 
 ### Folder Structure
-
+```
 app/
 ├── main.py                  # Entry point for Streamlit
 ├── pages                    # Pages are listed in app/ as individual.py files
@@ -81,3 +81,4 @@ app/
 ├── requirements.txt
 ├── README.md
 └── .ini
+```
