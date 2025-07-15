@@ -1,11 +1,16 @@
+<img src="app/assets/logo.png" alt="TechEquity Logo" width="10%"/>
+
 # CA Legislation Tracker
 The California Legislation Tracker is a web application built with Streamlit and PostgreSQL that aggregates and displays live bill data from multiple sources all in one place, making it easier and quicker for users to access the information they need for their advocacy work.
 
 ### Key features
-- **Live Data Updates**: Automatically collects and displays California legislative data and updates in real time, sourced from LegInfo websites and the OpenStates API.
+- **Live Data Updates**: Automatically collects and displays California legislative data, sourced from LegInfo websites and the OpenStates API, and updates in real time.
 - **Centralized Information Hub**: Consolidated bill data in one platform, limiting the need to search across disparate sources.
 - **Advanced Search & Filters**: Search and filter data by various fields in order to more easily find specific bill information.
 - **Bill Tracking**: Track your organization's advocacy work through auto-generated fields and custom data entry.
+
+![App Demo](app/assets/demo.gif)
+
 
 ## For Developers
 
