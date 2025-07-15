@@ -72,7 +72,7 @@ streamlit run main.py
 ```
 app/
 ├── main.py                  # Entry point for Streamlit
-├── pages                    # Pages are listed in app/ as individual.py files
+├── pages                    # Pages are listed in app/ as individual Python files
 ├── utils/                   # Reusable utility functions
 ├── db/                      # Database sql scripts and query functions
 ├── data/                    # Example data + legislative calendar event data
