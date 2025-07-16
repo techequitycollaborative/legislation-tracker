@@ -37,6 +37,7 @@ Housing:
     - house
     - housing
     - mortgage
+    - dwelling
 
 AI:
   keywords:
@@ -112,7 +113,12 @@ Safety:
   keywords: []
 
 Kids:
-  keywords: []
+  keywords:
+    - childcare
+    - children
+    - child
+    - kid
+    - family
 
 Government:
   keywords: []
