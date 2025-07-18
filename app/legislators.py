@@ -123,4 +123,13 @@ with cols[0]:  # Left panel - Browse
 with cols[1]:  # Right panel - Detail View
     if selected_rows is not None and len(selected_rows) > 0:
         display_legislator_info_text(selected_rows)
+    else:
+        st.markdown("#")
+        st.markdown("#")
+        st.markdown("#")
+        st.markdown("""
+                    <div style="text-align: center"> 
+                    <b><i>No current selection.</i> </b>
+                    </div>
+        """, unsafe_allow_html=True)
 

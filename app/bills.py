@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.general import get_bill_topics, to_csv, keywords, get_bill_topics_multiple
+from utils.general import to_csv, keyword_to_topics, global_keyword_regex, get_bill_topics_multiple
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
 
@@ -56,9 +56,12 @@ def load_bills_table():
     bills['last_updated_on'] = pd.to_datetime(bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Get bill topic and format bill history
-    bills = get_bill_topics_multiple(bills, keyword_dict= keywords)  # Get bill topics
+    bills = get_bill_topics_multiple(
+         bills, 
+         keyword_dict = keyword_to_topics,
+         keyword_regex = global_keyword_regex
+    )  # Get bill topics
     bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
-
     return bills
 
 # Initialize session state for bills and load bills if not set

@@ -1,0 +1,127 @@
+Labor:
+  keywords:
+    - work
+    - worker
+    - workplace
+    - "workplace surveillance"
+    - labor
+    - employment
+    - employee
+    - employees
+    - employer
+    - employers
+    - "gig economy"
+    - "gig work"
+    - "contract work"
+    - "contract workers"
+    - "content moderator"
+    - "data labeler"
+    - "data labeller"
+    - "ghost work"
+    - "robo bosses"
+    - wages
+    - salary
+    - salaries
+    - "training data"
+    - hiring
+
+Housing:
+  keywords:
+    - eviction
+    - tenant
+    - tenancy
+    - rent
+    - renter
+    - rental
+    - "rental pricing"
+    - house
+    - housing
+    - mortgage
+    - dwelling
+
+AI:
+  keywords:
+    - "artificial intelligence"
+    - algorithm
+    - algorithmic
+    - automated
+    - "automated decision-making"
+    - autonomous
+    - robotics
+    - deepfake
+    - "computer science"
+    - "surveillance pricing"
+    - "data centers"
+    - "data center"
+    - "training data"
+    - "data privacy"
+    - "CCPA"
+    - "California Consumer Privacy Act"
+    - "deceptive media"
+    - bot
+    - bots
+    - AI
+
+Discrimination:
+  keywords: []
+
+Education:
+  keywords: []
+
+Environment:
+  keywords: []
+
+Health:
+  keywords:
+    - health
+    - healthcare
+    - "health care"
+    - medical
+    - medication
+    - medicine
+    - pharmaceutical
+    - pharmacy
+    - "health insurce"
+    - insurance
+    - "health plan"
+
+"Data, Surveillence, Privacy":
+  keywords:
+      - "data centers"
+      - "data center"
+      - "training data"
+      - "data privacy"
+      - "CCPA"
+      - "data labeler"
+      - "data labeller"
+      - data
+      - "workplace surveillance"
+      - "California Consumer Privacy Act"
+      - "surveillance pricing"
+      - "information practices"
+
+
+Disinformation:
+  keywords: []
+
+"Judicial System":
+  keywords:
+    - judicial
+    - judiciary
+
+Safety:
+  keywords: []
+
+Kids:
+  keywords:
+    - childcare
+    - children
+    - child
+    - kid
+    - family
+
+Government:
+  keywords: []
+
+"Collusion, Price Fixing":
+  keywords: []

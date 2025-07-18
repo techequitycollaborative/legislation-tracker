@@ -16,7 +16,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-
+from yaml import safe_load
+from collections import defaultdict
 
 def get_bill_topics(df, keyword_dict):
     """
@@ -44,18 +45,65 @@ def get_bill_topics(df, keyword_dict):
 
     return df
 
-
-# Keyword/topic mapping
-keywords = {
-    ('artificial intelligence', 'algorithm', 'automated', 'automated decision-making', 'AI', 'algorithmic', 'autonomous', 'data centers', 'data center', 'training data','data privacy','CCPA','robotics','surveillance pricing', 'deepfake', 'computer science'): 'AI',
-    ('housing', 'eviction', 'tenant', 'renter', 'tenancy', 'house', 'rental', 'rent', 'rental pricing', 'mortgage'): 'Housing',
-    #('health', 'healthcare', 'health care', 'medical', 'medication', 'medicine', 'pharmaceutical', 'pharmacy', 'health insurance', 'insurance', 'health plan'): 'Health',
-    ('work', 'worker', 'workplace', 'workplace surveillance', 'labor', 'employment', 'gig economy', 'gig work', 'contract work', 'contract workers', 'content moderator', 'data labeler', 'data labeller', 'ghost work','robo bosses','wages','salary','salaries'): 'Labor'
-}
-
 ###############################################################################
 
-def get_bill_topics_multiple(df, keyword_dict):
+# TODO: find a better place for this to live - maybe in the session state or populated in the database itself...
+# Load topic_keywords.yaml as a dictionary
+with open("utils/topic_keywords.yaml") as f:
+    topic_config = safe_load(f)
+
+# Initialize dictionary mapping
+keyword_to_topics = defaultdict(list) # keyword, List[topic1, topic2]
+all_keywords = set() # A global set of keywords for optimized DF updates
+
+# Fill mapping and update global set
+for topic, data in topic_config.items():
+    # Select keywords if available
+    keywords = data["keywords"]
+
+    # if a topic does not have keywords, treat it like its own keyword
+    if not keywords:
+        keywords = [topic] 
+    
+    # Now update the keyword -> topic mapping
+    for keyword in keywords:
+        # normalize to lowercase
+        keyword_to_topics[keyword.lower()].append(topic)
+    
+    # Finally update the global set
+    all_keywords.update(keywords) 
+
+# Create global regex pattern
+pattern = '|'.join(rf'\b{re.escape(word)}\b' for word in all_keywords)
+global_keyword_regex = re.compile(rf"\b{pattern}\b", flags=re.IGNORECASE)
+
+def get_topics_for_row(current_keywords, keyword_dict):
+    """
+    Tags each bill in a row's matching keywords with ONE OR MORE TOPICS 
+
+    Parameters:
+        - current_keywords (list): A list of matching keywords
+        - keyword_dict (dict): A dictionary where keys are tuples of keywords and
+                               values are the corresponding topics to apply.
+
+    Returns:
+        - topics (list): A list of unique topics that correspond to the set of keywords
+    """
+    topics = set() # store unique set of matched topics
+    if current_keywords:    
+        for kw in current_keywords:
+            # Update the set with a list of topics based on normalized keyword
+            found = keyword_dict.get(kw, [])
+            topics.update(found)
+
+    # Check if topics were detected
+    if topics:
+        return list(topics)
+    else:
+        return ["Other"]
+
+
+def get_bill_topics_multiple(df, keyword_dict, keyword_regex):
     """
     Tags each bill in the DataFrame with ONE OR MORE TOPICS based on keywords found in the 'bill_name' column.
 
@@ -63,24 +111,20 @@ def get_bill_topics_multiple(df, keyword_dict):
         - df (DataFrame): Input DataFrame containing a 'bill_name' column.
         - keyword_dict (dict): A dictionary where keys are tuples of keywords and
                                values are the corresponding topics to apply.
+        - keyword_regex (regex object): compiled regular expression pattern consisting of all keywords
 
     Returns:
         - df (DataFrame): A DataFrame with a new 'bill_topic' column containing a list of assigned topics.
     """
+    # Extract all keyword matches in a bill name
+    df["keyword_matches"] = df["bill_name"].str.lower().str.findall(keyword_regex)
 
-    # Initialize the 'bill_topic' column with empty lists
-    df['bill_topic'] = [[] for _ in range(len(df))]
-
-    for keywords, label in keyword_dict.items():
-        # Use word boundaries to prevent partial matches
-        pattern = '|'.join(rf'\b{re.escape(word)}\b' for word in keywords)
-        
-        # Find which rows match this pattern (case-insensitive)
-        matches = df['bill_name'].str.contains(pattern, na=False, case=False, regex=True)
-        
-        # Append the label to the matching rows
-        df.loc[matches, 'bill_topic'] = df.loc[matches, 'bill_topic'].apply(lambda x: x + [label])
-
+    # Map keyword matches to a topic list
+    df["bill_topic"] = df["keyword_matches"].apply(
+        lambda keywords: get_topics_for_row(keywords, keyword_dict)
+    )
+    # Drop helper column
+    df = df.drop("keyword_matches", axis=1)
     return df
 
 
@@ -136,7 +180,21 @@ def transform_name(name):
         return f"{parts[-1]}, {' '.join(parts[0:-1])}"
     else:
         return f"{parts[-2]}, {' '.join(parts[0:-2])}, {parts[-1].replace(',', '')}"
-    
+
+###############################################################################
+
+def clean_markdown(text):
+    # Un-escape newlines
+    result = text.replace("\\n", "\n")
+
+    # Escape Markdown special characters
+    result = result.replace("$", "\$")
+    result = result.replace("%", "\%")
+    result = result.replace("+", "\+")
+    result = result.replace("-", "\-")
+    result = result.replace("!", "\!")  
+
+    return result
 ###############################################################################
 
 def get_topic_color(topic):
@@ -166,7 +224,7 @@ def get_topic_color(topic):
 def bill_topic_grid(bill_topic_lst):
     # TODO: decide if we want to display something for bills without set topics
     if not bill_topic_lst:
-        bill_topic_lst = ["0"]  # Default for empty list
+        bill_topic_lst = ["Other"]  # Default for empty list
     
     # Always use 3 columns layout
     cols = st.columns(3)
