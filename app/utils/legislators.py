@@ -237,6 +237,13 @@ def display_legislator_info_text(selected_rows):
 
     with st.container(border=True):
         st.markdown('##### Staffers by Issue Area')
+        # Staffer color legend
+        st.markdown("")
+        st.markdown(f"""
+                    <span style='color:{COLOR_SCHEME["office"]["text"]};'>Legislator office contacts;</span>
+                    <span style='color:{COLOR_SCHEME["committee"]["text"]};'>Committee contacts;</span>
+                    <span style='color:{COLOR_SCHEME["user"]["text"]};'>User-edited contacts</span>
+        """, unsafe_allow_html=True)
         # Filter columns of directory before generating tab(s)
         st.session_state.filtered_df = staffer_filter(st.session_state.contact_df)
         if st.session_state['org_id'] == 1: # Contact editor only for TechEquity folks
