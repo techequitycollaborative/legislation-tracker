@@ -10,7 +10,7 @@ Function for displaying bill details on the Bills Page.
 import streamlit as st
 import pandas as pd
 from db.query import add_bill_to_dashboard, add_bill_to_org_dashboard, add_bill_to_working_group_dashboard, BILL_COLUMNS
-from .general import bill_topic_grid
+from .general import bill_topic_grid, clean_markdown
 
 def display_bill_info_text(selected_rows):
     '''
@@ -49,11 +49,8 @@ def display_bill_info_text(selected_rows):
     org_nickname = st.session_state.get('nickname', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
 
-    # # Prepare bill topics for markdown display
-    # bill_topic = ''.join([f"- {t}" for t in bill_topic])
-
-    # Correct escaped newlines for bill excerpt
-    bill_text = bill_text.replace("\\n\\n", "\n\n")
+    # Un-escape and escape special characters in bill text for Markdown
+    bill_text = clean_markdown(bill_text)
     
     # Display Bill Info Below the Table
     st.markdown('### Bill Details')

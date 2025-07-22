@@ -10,7 +10,7 @@ Function for displaying bills on the AI Working Group page.
 import streamlit as st
 import pandas as pd
 from db.query import get_all_custom_bill_details_for_bill, remove_bill_from_wg_dashboard
-from .general import bill_topic_grid
+from .general import bill_topic_grid, clean_markdown
 
 def display_working_group_bill_details(selected_rows):
     '''
@@ -45,8 +45,8 @@ def display_working_group_bill_details(selected_rows):
     org_name = st.session_state.get('org_name', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
     
-    # Correct escaped newlines for bill excerpt
-    bill_text = bill_text.replace("\\n\\n", "\n\n")
+    # Un-escape and escape special characters in bill text for Markdown
+    bill_text = clean_markdown(bill_text)
     
     # Display Bill Info Below the Table
 
