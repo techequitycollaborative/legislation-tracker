@@ -17,6 +17,7 @@ from utils import aggrid_styler
 from utils.general import to_csv, keyword_to_topics, global_keyword_regex, get_bill_topics_multiple
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
+from itertools import chain # For flattening bill topic list in bill topic expander
 
 # Page title and description
 st.title('📝 Bills')
@@ -89,7 +90,7 @@ if 'theme' not in st.session_state:
 label_from_theme = {v: k for k, v in theme_options.items()}
 
 # Create a two-column layout
-col1, col2, col3 = st.columns([1, 7, 2])
+col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
     selected_label = st.selectbox(
         'Change grid theme:',
@@ -117,9 +118,32 @@ if selected_theme != st.session_state.theme:
 # Use the persisted theme
 theme = st.session_state.theme
 
-# Display count of total bills above the table
-total_bills = len(bills)
-st.markdown(f"#### Total bills: {total_bills:,}")
+# Display list of bill topics above the table
+col1, col2, col3 = st.columns([2, 6, 2])
+with col1:
+    # Display count of total bills above the table
+    total_bills = len(bills)
+    st.markdown(f"#### Total bills: {total_bills:,}")
+
+with col2:
+    st.markdown("")
+
+with col3:
+    # Flatten the list of lists in 'bill_topic' and clean whitespace
+    unique_topics = sorted(set(
+        topic.strip()
+        for topic in chain.from_iterable(bills['bill_topic'])
+        if isinstance(topic, str) and topic.strip()
+    ))
+
+    # Display bill topics via dialog pop-up
+    @st.dialog("View List of Bill Topics")
+    def show_topic_dialog():
+        st.markdown(
+            " | ".join([f"`{topic}`" for topic in unique_topics])
+        )
+    # Trigger the dialog with a button
+    st.button("*View List of Bill Topics*", on_click=show_topic_dialog, use_container_width=True)
 
 # Display the aggrid table
 data = aggrid_styler.draw_bill_grid(bills, theme=theme)
