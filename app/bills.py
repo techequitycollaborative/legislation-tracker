@@ -118,7 +118,7 @@ if selected_theme != st.session_state.theme:
 # Use the persisted theme
 theme = st.session_state.theme
 
-# Disaplay list of bill topics above the table
+# Display list of bill topics above the table
 col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
     # Display count of total bills above the table
