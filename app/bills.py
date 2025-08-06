@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 from db.query import get_data
 from utils import aggrid_styler
-from utils.general import to_csv, keyword_to_topics, global_keyword_regex, get_bill_topics_multiple
+from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
 from itertools import chain # For flattening bill topic list in bill topic expander
@@ -56,12 +56,11 @@ def load_bills_table():
     bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
     bills['last_updated_on'] = pd.to_datetime(bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-    # Get bill topic and format bill history
-    bills = get_bill_topics_multiple(
-         bills, 
-         keyword_dict = keyword_to_topics,
-         keyword_regex = global_keyword_regex
-    )  # Get bill topics
+    # Wrangle assigned-topic string to a Python list for web app manipulation
+    bills['bill_topic'] = bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+    bills = bills.drop(columns=['assigned_topics'])
+    
+    # Format bill history
     bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
     return bills
 
@@ -130,11 +129,8 @@ with col2:
 
 with col3:
     # Flatten the list of lists in 'bill_topic' and clean whitespace
-    unique_topics = sorted(set(
-        topic.strip()
-        for topic in chain.from_iterable(bills['bill_topic'])
-        if isinstance(topic, str) and topic.strip()
-    ))
+    unique_topics = list(topic_config.keys())
+    unique_topics.append("Other")
 
     # Display bill topics via dialog pop-up
     @st.dialog("Bill Topics")
