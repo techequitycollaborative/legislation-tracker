@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.log
+*.csv
+*.ipynb
+.dockerignore
+.env
+.git/
+.venv/
+node_modules/
+data/
+secrets/
