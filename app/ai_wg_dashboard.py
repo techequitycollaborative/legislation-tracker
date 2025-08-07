@@ -18,7 +18,7 @@ from db.query import (
     get_all_custom_bill_details
 )
 from utils.bill_history import format_bill_history
-from utils.general import to_csv, keyword_to_topics, global_keyword_regex, get_bill_topics_multiple
+from utils.general import to_csv
 from utils.ai_working_group import display_working_group_bill_details
 from utils.css_utils import load_css_with_fallback, DEFAULT_FALLBACK_CSS
 
@@ -78,7 +78,11 @@ if not wg_bills.empty:
     wg_bills['last_updated_on'] = pd.to_datetime(wg_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Minor data processing to match bills table
-    wg_bills = get_bill_topics_multiple(wg_bills, keyword_dict= keyword_to_topics, keyword_regex=global_keyword_regex)  # Get bill topics
+    # wg_bills = get_bill_topics_multiple(wg_bills, keyword_dict= keyword_to_topics, keyword_regex=global_keyword_regex)  # Get bill topics
+    # Wrangle assigned-topic string to a Python list for web app manipulation
+    wg_bills['bill_topic'] = wg_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+    bills = wg_bills.drop(columns=['assigned_topics'])
+
     wg_bills['bill_history'] = wg_bills['bill_history'].apply(format_bill_history) #Format bill history
 
     # Default sorting: by upcoming bill_event

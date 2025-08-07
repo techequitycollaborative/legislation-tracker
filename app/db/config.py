@@ -15,7 +15,7 @@ Date: Jan 15, 2025
 import os
 from configparser import ConfigParser
 
-def config(section):
+def config(section, filename = 'db/credentials.ini'):
     '''
     Params: section string (i.e. 'postgres')
     Returns: database credentials as string values, to be used as inputs to query function in query.py
@@ -33,7 +33,6 @@ def config(section):
     # Check if environment variables are empty
     if all(value is None for value in db_config.values()):
         # If environment variables are not set, fall back to the credentials.ini file
-        filename = 'db/credentials.ini'
         parser = ConfigParser()
         if parser.read(filename):
             if parser.has_section(section):

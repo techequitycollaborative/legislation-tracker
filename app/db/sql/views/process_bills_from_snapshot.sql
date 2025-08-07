@@ -73,6 +73,19 @@ bill_authors AS (
         STRING_AGG(CASE WHEN primary_author = 'False' THEN full_name END, ', ') AS coauthors
     FROM snapshot.bill_sponsor
     GROUP BY openstates_bill_id
+),
+
+bill_topics AS (
+    SELECT
+        openstates_bill_id,
+        STRING_AGG(bt.topic_phrase, '; ' ORDER BY bt.topic_phrase ASC) AS assigned_topics
+    FROM (
+        SELECT DISTINCT
+        openstates_bill_id,
+        topic_phrase
+        FROM snapshot.bill_topics
+    ) as bt
+    GROUP BY openstates_bill_id
 )
 
 -- Combine all processed data into a single view
@@ -91,9 +104,11 @@ SELECT
     h.bill_history,
 	bs.event_date::date AS bill_event,
     bs.event_text,
+    t.assigned_topics,
     b.last_updated_on::date
 FROM temp_bills b
 LEFT JOIN latest_status s ON b.openstates_bill_id = s.openstates_bill_id
 LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
 LEFT JOIN bill_authors a ON b.openstates_bill_id = a.openstates_bill_id
-LEFT JOIN ca_dev.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id; -- Add bill events from bill schedule table
+LEFT JOIN ca_dev.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id -- Add bill events from bill schedule table
+LEFT JOIN bill_topics t ON b.openstates_bill_id = t.openstates_bill_id;

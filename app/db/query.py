@@ -100,9 +100,9 @@ BILL_COLUMNS = [
     'leginfo_link', 
     'bill_text', 
     'bill_history',
-    #'bill_topic', # This is not in the processed bills table in the db, so we don't include it here
     'bill_event', 
     'event_text',
+    'assigned_topics',
     'last_updated_on'
 ]
 
@@ -165,6 +165,7 @@ def get_my_dashboard_bills(user_email):
                 b.bill_history,
                 b.bill_event,
                 b.event_text,
+                b.assigned_topics,
                 b.last_updated_on
             FROM public.processed_bills_from_snapshot_2025_2026 b
             LEFT JOIN public.user_bill_dashboard ubd
@@ -301,6 +302,7 @@ def get_org_dashboard_bills(org_id):
                 b.bill_history,
                 b.bill_event,
                 b.event_text,
+                b.assigned_topics,
                 b.last_updated_on
             FROM public.processed_bills_from_snapshot_2025_2026 b
             LEFT JOIN public.org_bill_dashboard ubd
