@@ -74,7 +74,7 @@ def get_data():
     @st.cache_data
     def get_bills():
         # Query the database for bills
-        bills = query_table('public', 'processed_bills_from_snapshot_2025_2026') # this is pulling a view, not a table
+        bills = query_table('public', 'bills_2025_2026') # this is pulling a view, not a table
         return bills
     
     # Call the cached function to get the data

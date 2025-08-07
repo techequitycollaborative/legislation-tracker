@@ -15,8 +15,8 @@
 ----- schema: public
 ----- view name: processed_bills_from_snapshot_{leg_session}
 
-DROP VIEW IF EXISTS processed_bills_from_snapshot_2025_2026;
-CREATE OR REPLACE VIEW processed_bills_from_snapshot_2025_2026 AS
+DROP VIEW IF EXISTS bills_2025_2026;
+CREATE OR REPLACE VIEW bills_2025_2026 AS
 
 -- Copy data from snapshot.bill and clean up
 WITH temp_bills AS (
