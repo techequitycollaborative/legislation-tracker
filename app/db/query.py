@@ -71,7 +71,7 @@ def get_data():
     Use query_table to load main bills table (or view) and cache it.
     """
     # Cache the function that retrieves the data
-    @st.cache_data
+    @st.cache_data()
     def get_bills():
         # Query the database for bills
         bills = query_table('public', 'bills_2025_2026') # this is pulling a view, not a table
@@ -167,7 +167,7 @@ def get_my_dashboard_bills(user_email):
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM public.processed_bills_from_snapshot_2025_2026 b
+            FROM public.bills_2025_2026 b
             LEFT JOIN public.user_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
             WHERE ubd.user_email = %s;
@@ -304,7 +304,7 @@ def get_org_dashboard_bills(org_id):
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM public.processed_bills_from_snapshot_2025_2026 b
+            FROM public.bills_2025_2026 b
             LEFT JOIN public.org_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
             WHERE ubd.org_id = %s;
@@ -757,7 +757,7 @@ def get_working_group_bills():
                 b.bill_event,
                 b.event_text,
                 b.last_updated_on
-            FROM public.processed_bills_from_snapshot_2025_2026 b
+            FROM public.bills_2025_2026 b
             INNER JOIN public.working_group_dashboard wgd
                 ON wgd.openstates_bill_id = b.openstates_bill_id;
 
