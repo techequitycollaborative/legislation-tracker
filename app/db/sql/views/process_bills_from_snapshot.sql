@@ -13,7 +13,7 @@
 
 -- Output: 
 ----- schema: public
------ view name: processed_bills_from_snapshot_{leg_session}
+----- view name: bills_{leg_session}
 
 DROP VIEW IF EXISTS bills_2025_2026;
 CREATE OR REPLACE VIEW bills_2025_2026 AS
