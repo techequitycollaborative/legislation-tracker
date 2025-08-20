@@ -56,8 +56,10 @@ def load_bills_table():
     bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
     bills['last_updated_on'] = pd.to_datetime(bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-    # Wrangle assigned-topic string to a Python list for web app manipulation
-    bills['bill_topic'] = bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+    # Convert assigned_topics into string for AgGrid. AgGrid cannot hash Python lists or sets.
+    bills['bill_topic'] = bills['assigned_topics'].apply(lambda x: "; ".join(x.split("; ")) if pd.notna(x) and x.strip() else "Other")
+        
+    # Drop the original assigned_topics column from the display table
     bills = bills.drop(columns=['assigned_topics'])
     
     # Format bill history
