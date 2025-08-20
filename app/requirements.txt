@@ -3,7 +3,7 @@ numpy==2.2.1
 pandas==2.2.3
 streamlit==1.40.2
 streamlit_calendar==1.2.1
-streamlit-aggrid
+streamlit-aggrid==1.1.6
 psycopg2-binary==2.9.9
 sqlalchemy==2.0.30
 streamlit-google-auth==1.1.8
