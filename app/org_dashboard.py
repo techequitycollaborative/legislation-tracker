@@ -66,14 +66,11 @@ org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strft
 org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
 # Minor data processing to match bills table
-# Convert assigned_topics into string for AgGrid. AgGrid cannot hash Python lists or sets.
-org_db_bills['bill_topic'] = org_db_bills['assigned_topics'].apply(lambda x: "; ".join(x.split("; ")) if pd.notna(x) and x.strip() else "Other")
-    
-# Drop the original assigned_topics column from the display table
+# Wrangle assigned-topic string to a Python list for web app manipulation
+org_db_bills['bill_topic'] = org_db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
 org_db_bills = org_db_bills.drop(columns=['assigned_topics'])
 
-#Format bill history
-org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) 
+org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
 # Default sorting: by upcoming bill_event
 org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
