@@ -92,7 +92,7 @@ leg_events = load_leg_events()
 # Load events specific to individual bills
 @st.cache_data(ttl=10 * 60 * 60) # Cache for 10 hours
 def load_bill_events():
-    bills = query_table('public', 'processed_bills_from_snapshot_2025_2026') # Get bill info from processed_bills table
+    bills = query_table('public', 'bills_2025_2026') # Get bill info from processed_bills table
     events = query_table('ca_dev', 'bill_schedule') # Get bill events from bill_schedule table
 
     # Subset columns we want from each table

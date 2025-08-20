@@ -756,6 +756,7 @@ def get_working_group_bills():
                 b.bill_history,
                 b.bill_event,
                 b.event_text,
+                b.assigned_topics,
                 b.last_updated_on
             FROM public.bills_2025_2026 b
             INNER JOIN public.working_group_dashboard wgd
