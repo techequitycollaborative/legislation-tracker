@@ -1,4 +1,5 @@
 keras==3.11.3
+nltk==3.9.1
 pyarrow==20.0.0
 safetensors==0.5.3
 sentence-transformers==5.0.0
