@@ -10,3 +10,4 @@ tornado==6.5.1
 tqdm==4.67.1
 traitlets==5.14.3
 transformers==4.53.2
+tf-keras==2.20.1
