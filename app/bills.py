@@ -64,12 +64,8 @@ def load_bills_table():
     bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
     return bills
 
-# Initialize session state for bills and load bills if not set
-if 'bills' not in st.session_state:
-     st.session_state.bills = load_bills_table()
-
-# Assign bills variable to session state bills for future access / to enable caching
-bills = st.session_state.bills
+# Load bills data
+bills = load_bills_table()
 
 # Initialize session state for selected bills
 if 'selected_bills' not in st.session_state:
