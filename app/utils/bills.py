@@ -11,7 +11,7 @@ import streamlit as st
 import pandas as pd
 from db.query import add_bill_to_dashboard, add_bill_to_org_dashboard, add_bill_to_working_group_dashboard, BILL_COLUMNS
 from .general import bill_topic_grid, clean_markdown
-from .profiling import profile
+from .profiling import profile, timer
 
 @profile("Bills - display bill details")
 def display_bill_info_text(selected_rows):
@@ -67,7 +67,8 @@ def display_bill_info_text(selected_rows):
             # Add to ORG DASHBOARD button
             if st.button(f"Add to {org_nickname} Dashboard", use_container_width=True, type='primary'):
                 # Call the function to add the bill to the dashboard
-                add_bill_to_org_dashboard(openstates_bill_id, bill_number)
+                with timer("DB - Add bill to dashboard"):
+                    add_bill_to_org_dashboard(openstates_bill_id, bill_number)
 
             # Add to MY DASHBOARD button
             if st.button('Add to My Dashboard', use_container_width=True,type='secondary'):
