@@ -12,7 +12,9 @@ import streamlit as st
 import pandas as pd
 from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard
 from .general import bill_topic_grid, clean_markdown
+from .profiling import profile, timer
 
+@profile("Dashboard - display bill details")
 def display_org_dashboard_details(selected_rows):
     '''
     Displays bill details on the ORG DASHBOARD page when a row is selected; features a button to remove a bill from your dashboard.
@@ -61,11 +63,12 @@ def display_org_dashboard_details(selected_rows):
             # If button is clicked: 
             if st.button(f"Remove from {org_name} Dashboard", use_container_width=True, type='primary'):
                 # Call the function to remove the bill from the dashboard
-                remove_bill_from_org_dashboard(openstates_bill_id, bill_number)
+                with timer("DB - Remove bill from dashboard"):
+                    remove_bill_from_org_dashboard(openstates_bill_id, bill_number)
                 
-                # Deselect the row and stop execution
-                st.session_state.selected_rows = None
-                st.rerun()  # Refresh the app to reflect the change
+                    # Deselect the row and stop execution
+                    st.session_state.selected_rows = None
+                    st.rerun()  # Refresh the app to reflect the change
 
     # Add empty rows of space  
     st.write("")

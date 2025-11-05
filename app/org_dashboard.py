@@ -15,7 +15,9 @@ from utils.general import to_csv
 from db.query import get_org_dashboard_bills
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
+from utils.profiling import timer, profile, show_performance_metrics, track_rerun
 
+track_rerun("Org Dashboard")
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:
@@ -53,27 +55,28 @@ st.markdown(" ")
 if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None:
     st.session_state.org_dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
 
-# Fetch the user's org's saved bills from the database
-org_db_bills = get_org_dashboard_bills(org_id)
+with timer("Dashboard - fetch and prepare bills data"):
+    # Fetch the user's org's saved bills from the database
+    org_db_bills = get_org_dashboard_bills(org_id)
 
-# Update session state with user's org's dashboard bills
-st.session_state.org_dashboard_bills = org_db_bills
+    # Update session state with user's org's dashboard bills
+    st.session_state.org_dashboard_bills = org_db_bills
 
-# Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-# KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+    org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+    org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-# Minor data processing to match bills table
-# Wrangle assigned-topic string to a Python list for web app manipulation
-org_db_bills['bill_topic'] = org_db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
-org_db_bills = org_db_bills.drop(columns=['assigned_topics'])
+    # Minor data processing to match bills table
+    # Wrangle assigned-topic string to a Python list for web app manipulation
+    org_db_bills['bill_topic'] = org_db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+    org_db_bills = org_db_bills.drop(columns=['assigned_topics'])
 
-org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
+    org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-# Default sorting: by upcoming bill_event
-org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
+    # Default sorting: by upcoming bill_event
+    org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
 
 # Mapping between user-friendly labels and internal theme values
 theme_options = {
@@ -121,7 +124,8 @@ theme = st.session_state.theme
 if not org_db_bills.empty:
     total_org_db_bills = len(org_db_bills)
     st.markdown(f"#### {org_name}'s saved bills: {total_org_db_bills} total bills")
-    data = draw_bill_grid(org_db_bills, theme=theme)
+    with timer("Dashboard - draw AgGrid"):
+        data = draw_bill_grid(org_db_bills, theme=theme)
 
     # Display bill details for dashboard bills
     if 'selected_bills' not in st.session_state:
@@ -134,8 +138,3 @@ if not org_db_bills.empty:
 
 elif org_db_bills.empty:
     st.write('No bills selected yet.')
-
-
-
-
-
