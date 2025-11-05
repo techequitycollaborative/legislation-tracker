@@ -16,6 +16,7 @@ import os
 from db.config import config
 from typing import Optional, Tuple, List
 from datetime import datetime, timedelta
+from utils.profiling import profile, show_performance_metrics, track_rerun
 
 '''
 # Cookies functions for keeping users logged in -- TURNED OFF BC THESE ARE STILL IN DEVELOPMENT!!
@@ -428,10 +429,12 @@ def signup_page():
         st.session_state['show_signup'] = False
         st.rerun()
 
+@profile("Login - render and verify credentials")
 def login_page():
     """
     Render the login page with improved error handling.
     """
+    track_rerun("Login")
     # Show success message if coming from signup
     if st.session_state.get('signup_success'):
         st.success("Account created successfully! Please log in.")
@@ -486,6 +489,8 @@ def login_page():
     if st.button("Create an Account"):
         st.session_state['show_signup'] = True
         st.rerun()
+    
+    show_performance_metrics()
 
 def logout():
     """

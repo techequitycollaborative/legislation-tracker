@@ -12,7 +12,9 @@ import streamlit as st
 import pandas as pd
 from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard
 from .general import bill_topic_grid, clean_markdown
+from .profiling import profile
 
+@profile("Dashboard - display bill details")
 def display_org_dashboard_details(selected_rows):
     '''
     Displays bill details on the ORG DASHBOARD page when a row is selected; features a button to remove a bill from your dashboard.

@@ -17,8 +17,7 @@ from utils import aggrid_styler
 from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
-from itertools import chain # For flattening bill topic list in bill topic expander
-
+from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
 # Page title and description
 st.title('📝 Bills')
 
@@ -36,7 +35,9 @@ st.markdown(" ")
 st.markdown(" ")
 
 ############################ LOAD AND PROCESS BILLS DATA #############################
+track_rerun("Bills")
 
+@profile("DB - Fetch bills table data")
 @st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 11.5)
 def load_bills_table():
     # Get data
@@ -142,12 +143,12 @@ with col3:
     st.button("*View List of Bill Topics*", on_click=show_topic_dialog, use_container_width=True)
 
 # Display the aggrid table
-data = aggrid_styler.draw_bill_grid(bills, theme=theme)
+with timer("Bills - draw AgGrid"):
+    data = aggrid_styler.draw_bill_grid(bills, theme=theme)
     
 selected_rows = data.selected_rows
 
 if selected_rows is not None and len(selected_rows) != 0:
+        track_event("Row selected")
         display_bill_info_text(selected_rows)
-
-
 
