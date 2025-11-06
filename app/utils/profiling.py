@@ -6,7 +6,7 @@ from functools import wraps
 from contextlib import contextmanager
 
 # Globals - turn off in production
-PROFILING_ENABLED = True
+PROFILING_ENABLED = True # TODO: add this to credentials/config?
 MAX_TIMINGS = 50
 
 # Set up logging for console output
@@ -24,53 +24,63 @@ def init_profiling():
         st.session_state.rerun_count = {}
     if 'event_count' not in st.session_state:
         st.session_state.event_count = {}
+    if 'curr_page' not in st.session_state:
+        st.session_state.curr_page = "Main"
+    # if 'event_start_time' not in st.session_state:
+    #     st.session_state.event_start_time = {}
 
 
 def track_rerun(page_name):
     """
-    Track page reruns. Call this at the top of each page function.
-    
-    Args:
-        page_name: Name of the page (e.g., "Info", "Dashboard", "Login")
+    Track page reruns and measure how long the rerun takes to complete.
+    Call this at the VERY TOP of each page function.
     """
     if not PROFILING_ENABLED:
         return
     
-    # Initialize rerun counter
-    if 'rerun_count' not in st.session_state:
-        st.session_state.rerun_count = {}
+    # Mark when this rerun started
+    rerun_start = time.time()
     
-    # Increment counter for this page
+    # Increment counter
     if page_name not in st.session_state.rerun_count:
         st.session_state.rerun_count[page_name] = 0
     st.session_state.rerun_count[page_name] += 1
     
     count = st.session_state.rerun_count[page_name]
-    logger.info(f"🔄 PAGE RERUN: {page_name} (rerun #{count})")
+    logger.info(f"🔄 PAGE RERUN: {page_name} (rerun #{count}) started")
     
-    # Display rerun counter in UI
-    st.caption(f"🔄 {page_name} page - Rerun #{count}")
+    # Store when this rerun started
+    st.session_state[f'_rerun_start_{page_name}'] = rerun_start
+    
+    st.caption(f"🔵 {page_name} page - Rerun #{count}")
 
-def track_event(label):
+
+def track_rerun_complete(page_name):
     """
-    Track specific user interactions or events that may trigger reruns.
-    Useful for debugging row selection or callbacks.
+    Call this at the VERY END of each page function to measure total rerun time.
     """
     if not PROFILING_ENABLED:
         return
     
-    if 'event_count' not in st.session_state:
-        st.session_state.event_count = {}
+    rerun_end = time.time()
+    rerun_start = st.session_state.get(f'_rerun_start_{page_name}')
     
-    if label not in st.session_state.event_count:
-        st.session_state.event_count[label] = 0
-    st.session_state.event_count[label] += 1
-    
-    count = st.session_state.event_count[label]
-    logger.info(f"🔹 EVENT: {label} (trigger #{count})")
-    
-    # Display in UI
-    st.caption(f"🔹 {label} - Trigger #{count}")
+    if rerun_start:
+        duration = rerun_end - rerun_start
+        logger.info(f"✅ PAGE RERUN COMPLETE: {page_name} - {duration:.3f}s total")
+        
+        st.session_state.timings.append((f"🔄 {page_name} - Full rerun duration", duration, rerun_end))
+        
+        # Color code
+        if duration < 1.0:
+            color = "🟢"
+        elif duration < 3.0:
+            color = "🟡"
+        else:
+            color = "🔴"
+        
+        st.caption(f"{color} Page took {duration:.2f}s to render")
+
 
 @contextmanager
 def timer(label):
@@ -88,13 +98,7 @@ def timer(label):
         duration = time.time() - start
         logger.info(f"END: {label} - {duration:.3f}s")
         
-        if 'timings' not in st.session_state:
-            st.session_state.timings = []
         st.session_state.timings.append((label, duration, time.time()))
-        
-        # Cap timings to MAX_TIMINGS
-        if len(st.session_state.timings) > MAX_TIMINGS:
-            st.session_state.timings = st.session_state.timings[-MAX_TIMINGS:]
         
         # Optional stack trace for debugging
         stack_summary = traceback.format_stack(limit=3)
@@ -121,10 +125,6 @@ def profile(label):
                     st.session_state.timings = []
                 st.session_state.timings.append((label, duration, time.time()))
                 
-                # Cap timings
-                if len(st.session_state.timings) > MAX_TIMINGS:
-                    st.session_state.timings = st.session_state.timings[-MAX_TIMINGS:]
-                
                 return result
             except Exception as e:
                 logger.error(f"ERROR: {label} - {str(e)}")
@@ -138,6 +138,10 @@ def show_performance_metrics():
         return
     
     if 'timings' in st.session_state and st.session_state.timings:
+        # Cap timings
+        if len(st.session_state.timings) > MAX_TIMINGS:
+            st.session_state.timings = st.session_state.timings[-MAX_TIMINGS:]
+
         with st.expander("⏱️ Performance Metrics", expanded=False):
             # Show rerun counts
             if 'rerun_count' in st.session_state:
@@ -172,7 +176,9 @@ def show_performance_metrics():
                     st.session_state.timings = []
                     st.session_state.rerun_count = {}
                     st.session_state.event_count = {}
+                    st.session_state.last_rerun_time = {}
                     st.rerun()
             with col2:
                 total_time = sum(d for _, d, _ in recent)
                 st.metric("Total Time", f"{total_time:.2f}s")
+    track_rerun_complete(st.session_state.curr_page)  # ← End timing

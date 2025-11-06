@@ -71,7 +71,7 @@ if 'authenticated' not in st.session_state:
     if st.session_state.get('show_signup', False):
         signup_page()
     else:
-        with timer("DB - Authenticate credentials"):
+        with timer("main.py - login_page"):
             login_page()
 
 else:

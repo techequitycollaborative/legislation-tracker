@@ -17,6 +17,7 @@ import streamlit as st
 from streamlit_calendar import calendar
 from db.query import query_table
 from db.query import get_my_dashboard_bills, get_org_dashboard_bills
+from utils.profiling import profile
 from datetime import datetime, timedelta, date
 import pytz
 import numpy as np
@@ -24,6 +25,7 @@ import numpy as np
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
 st.title('📅 Calendar')
+st.session_state.curr_page = "Calendar"
 
 with st.expander("About this page", icon="ℹ️", expanded=False):
     st.markdown(
@@ -90,6 +92,7 @@ def load_leg_events():
 leg_events = load_leg_events()
 
 # Load events specific to individual bills
+@profile("calendar_page.py - load_bill_events")
 @st.cache_data(ttl=10 * 60 * 60) # Cache for 10 hours
 def load_bill_events():
     bills = query_table('public', 'bills_2025_2026') # Get bill info from processed_bills table

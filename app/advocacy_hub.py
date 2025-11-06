@@ -25,6 +25,7 @@ user_email = st.session_state['user_email']
 
 # Page title
 st.title("📣 Advocacy Hub")
+st.session_state.curr_page = "Advocacy Hub"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
 - This page displays custom advocacy information from organizations using the Legislation Tracker.

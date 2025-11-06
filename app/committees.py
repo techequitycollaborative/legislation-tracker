@@ -13,13 +13,15 @@ Committees page with:
 import numpy as np
 import pandas as pd
 import streamlit as st
-from db.query import query_table, COMMITTEE_COLUMNS
+from db.query import Query, COMMITTEE_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv
 from utils.committees import display_committee_info_text
+from utils.profiling import profile
 
 # Page title and description
 st.title('🗣 Committees')
+st.session_state.curr_page = "Committees"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
 - This page shows California Assembly and Senate committee information (upcoming hearings, memberships, links). 
@@ -32,16 +34,21 @@ st.markdown(" ")
 
 ############################ LOAD AND PROCESS COMMITTEE DATA #############################
 # Load committee membership data
+@profile("committees.py - get_committee_data")
 def get_committee_data():
-    """
-    Use query_table to load, clean, and cache committee data.
-    """
     # Cache the function that retrieves the data
     @st.cache_data
     def committee_cache():
-        # Query the database for processed committees
-        committee = query_table('public', 'processed_committee_2025_2026')
-
+        # Get data
+        committee_query = """
+            SELECT * FROM public.processed_committee_2025_2026
+        """
+            
+        committee = Query(
+            page_name="legislators",
+            query=committee_query,
+        ).fetch_records()
+        
         # Generate chamber name from ID
         committee['chamber'] = np.where(committee['chamber_id']==1,'Assembly','Senate') 
 

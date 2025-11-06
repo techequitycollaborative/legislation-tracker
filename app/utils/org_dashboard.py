@@ -14,7 +14,7 @@ from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_de
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer
 
-@profile("Dashboard - display bill details")
+@profile("utils/org_dashboard.py - display_org_dashboard_details")
 def display_org_dashboard_details(selected_rows):
     '''
     Displays bill details on the ORG DASHBOARD page when a row is selected; features a button to remove a bill from your dashboard.
@@ -63,7 +63,7 @@ def display_org_dashboard_details(selected_rows):
             # If button is clicked: 
             if st.button(f"Remove from {org_name} Dashboard", use_container_width=True, type='primary'):
                 # Call the function to remove the bill from the dashboard
-                with timer("DB - Remove bill from dashboard"):
+                with timer("utils/org_dashboard.py - remove_bill_from_org_dashboard"):
                     remove_bill_from_org_dashboard(openstates_bill_id, bill_number)
                 
                     # Deselect the row and stop execution

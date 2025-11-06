@@ -12,13 +12,14 @@ import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
 from utils.general import to_csv
-from db.query import get_my_dashboard_bills, clear_all_my_dashboard_bills
+from db.query import Query
 from utils.my_dashboard import display_dashboard_details
 from utils.bill_history import format_bill_history
-
+from utils.profiling import profile
 
 # Page title
 st.title('📌 My Dashboard')
+st.session_state.curr_page = "My Dashboard"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to you.
@@ -47,7 +48,18 @@ first_name = user_name.split()[0]  # Get the first name for a more personal gree
 col1, col2 = st.columns([4, 1])
 with col2:
     if st.button('Clear Dashboard', use_container_width=True, type='primary'):
-        clear_all_my_dashboard_bills(user_email)  # Actually remove the bills from the DB
+        clear_q = f"""
+            DELETE FROM public.user_bill_dashboard WHERE user_email = {user_email}
+        """
+        clear_success_msg = "User dashboard cleared."
+
+        clear_query = Query(
+            page_name="my_dashboard",
+            query=clear_q,
+            success_msg=clear_success_msg
+        )
+
+        clear_query.update_records()  # Actually remove the bills from the DB
         st.session_state.selected_bills = []
         st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
         st.success('Dashboard cleared!')
@@ -56,26 +68,61 @@ with col2:
 if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
     st.session_state.dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
 
-# Fetch the user's saved bills from the database
-db_bills = get_my_dashboard_bills(user_email)
-print(db_bills)
-# Update session state with user's dashboard bills
-#st.session_state.dashboard_bills = db_bills
+@profile("my_dashboard.py - get_user_dashboard_data")
+def get_user_dashboard_data():
+    @st.cache_data
+    def user_dashboard_cache():
+        user_dashboard_q = f"""
+            SELECT 
+                b.openstates_bill_id,
+                b.bill_number,
+                b.bill_name,
+                b.status,
+                b.date_introduced,
+                b.leg_session,
+                b.author,
+                b.coauthors, 
+                b.chamber,
+                b.leginfo_link,
+                b.bill_text,
+                b.bill_history,
+                b.bill_event,
+                b.event_text,
+                b.assigned_topics,
+                b.last_updated_on
+            FROM public.bills_2025_2026 b
+            LEFT JOIN public.user_bill_dashboard ubd
+                ON ubd.openstates_bill_id = b.openstates_bill_id
+            WHERE ubd.user_email = '{user_email}';
+        """
+        db_bills = Query(
+            page_name="my_dashboard",
+            query=user_dashboard_q
+        ).fetch_records()
 
-# Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-# KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-db_bills['last_updated_on'] = pd.to_datetime(db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+        # Update session state with user's dashboard bills
+        #st.session_state.dashboard_bills = db_bills
 
-# Minor data processing to match bills table
-# Wrangle assigned-topic string to a Python list for web app manipulation
-db_bills['bill_topic'] = db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
-db_bills = db_bills.drop(columns=['assigned_topics'])
-db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
+        # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+        # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+        db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+        db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+        db_bills['last_updated_on'] = pd.to_datetime(db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-# Default sorting: by upcoming bill_event
-db_bills = db_bills.sort_values(by='bill_event', ascending=False)
+        # Minor data processing to match bills table
+        # Wrangle assigned-topic string to a Python list for web app manipulation
+        db_bills['bill_topic'] = db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+        db_bills = db_bills.drop(columns=['assigned_topics'])
+        db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
+
+        # Default sorting: by upcoming bill_event
+        db_bills = db_bills.sort_values(by='bill_event', ascending=False)
+        return db_bills
+    user_dashboard = user_dashboard_cache()
+    return user_dashboard
+
+db_bills = get_user_dashboard_data()
+st.session_state.dashboard_bills = db_bills
 
 # Mapping between user-friendly labels and internal theme values
 theme_options = {

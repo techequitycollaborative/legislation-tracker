@@ -11,6 +11,7 @@ Function for displaying legislator details on the Legislators Page.
 import streamlit as st
 import pandas as pd
 from db.query import get_custom_contact_details_with_timestamp, save_custom_contact_details_with_timestamp, LEGISLATOR_COLUMNS
+from .profiling import profile, timer
 
 ##### HELPER FUNCTIONS
 # Styling the staffer contact rows
@@ -144,6 +145,7 @@ def issue_editor_tab(df, openstates_people_id, org_id, org_name, user_email):
                 st.rerun()
 
 ##### CONTROLLER FUNCTION
+@profile("utils/legislators.py - display_legislator_info_text")
 def display_legislator_info_text(selected_rows):
     '''
     Displays legislator information as markdown text when a row is selected in
