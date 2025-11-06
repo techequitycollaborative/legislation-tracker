@@ -6,7 +6,7 @@ from functools import wraps
 from contextlib import contextmanager
 
 # Globals - turn off in production
-PROFILING_ENABLED = True
+PROFILING_ENABLED = True # TODO: add this to credentials/config?
 MAX_TIMINGS = 50
 
 # Set up logging for console output

@@ -12,7 +12,7 @@ Bills page with:
 
 import streamlit as st
 import pandas as pd
-from db.query import get_data
+from db.query import Query, BILL_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
@@ -37,11 +37,19 @@ st.markdown(" ")
 ############################ LOAD AND PROCESS BILLS DATA #############################
 track_rerun("Bills")
 
-@profile("DB - Fetch bills table data")
+@profile("bills.py - load_bills_table")
 @st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 11.5)
 def load_bills_table():
     # Get data
-    bills = get_data()
+    bills_query = """
+        SELECT * FROM public.bills_2025_2026
+    """
+
+    bills = Query(
+        page_name="bills",
+        query=bills_query,
+        df_columns=BILL_COLUMNS
+    ).fetch_records()
 
     # Minor data processing
     # Convert to datetime (without formatting yet)

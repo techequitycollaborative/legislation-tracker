@@ -12,7 +12,7 @@ import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
 from utils.general import to_csv
-from db.query import get_org_dashboard_bills
+from db.query import Query, BILL_COLUMNS
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun
@@ -55,28 +55,63 @@ st.markdown(" ")
 if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None:
     st.session_state.org_dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
 
-with timer("Dashboard - fetch and prepare bills data"):
-    # Fetch the user's org's saved bills from the database
-    org_db_bills = get_org_dashboard_bills(org_id)
+@profile("org_dashboard.py - get_org_dashboard_data")
+def get_org_dashboard_data():
+    @st.cache_data
+    def org_dashboard_cache():
+        org_dashboard_q = f"""
+            SELECT 
+                b.openstates_bill_id,
+                b.bill_number,
+                b.bill_name,
+                b.status,
+                b.date_introduced,
+                b.leg_session,
+                b.author,
+                b.coauthors, 
+                b.chamber,
+                b.leginfo_link,
+                b.bill_text,
+                b.bill_history,
+                b.bill_event,
+                b.event_text,
+                b.assigned_topics,
+                b.last_updated_on
+            FROM public.bills_2025_2026 b
+            LEFT JOIN public.org_bill_dashboard ubd
+                ON ubd.openstates_bill_id = b.openstates_bill_id
+            WHERE ubd.org_id = {org_id};
+        """
+        org_db_bills = Query(
+            page_name="org_dashboard",
+            query=org_dashboard_q,
+            df_columns=BILL_COLUMNS
+        ).fetch_records()
 
-    # Update session state with user's org's dashboard bills
-    st.session_state.org_dashboard_bills = org_db_bills
+        # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+        # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+        org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+        org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+        org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+        # Minor data processing to match bills table
+        # Wrangle assigned-topic string to a Python list for web app manipulation
+        org_db_bills['bill_topic'] = org_db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+        org_db_bills = org_db_bills.drop(columns=['assigned_topics'])
 
-    # Minor data processing to match bills table
-    # Wrangle assigned-topic string to a Python list for web app manipulation
-    org_db_bills['bill_topic'] = org_db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
-    org_db_bills = org_db_bills.drop(columns=['assigned_topics'])
+        org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-    org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
+        # Default sorting: by upcoming bill_event
+        org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
+        
+        return org_db_bills
+    
+    org_dashboard = org_dashboard_cache()
+    return org_dashboard
 
-    # Default sorting: by upcoming bill_event
-    org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
+org_db_bills = get_org_dashboard_data()
+# Update session state with user's org's dashboard bills
+st.session_state.org_dashboard_bills = org_db_bills
 
 # Mapping between user-friendly labels and internal theme values
 theme_options = {

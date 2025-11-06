@@ -10,10 +10,11 @@ This page of the app contains legislator information.
 import numpy as np
 import pandas as pd
 import streamlit as st
-from db.query import query_table, LEGISLATOR_COLUMNS
+from db.query import Query, LEGISLATOR_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv, transform_name
 from utils.legislators import display_legislator_info_text
+from utils.profiling import profile
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 # if 'authenticated' not in st.session_state:
@@ -45,6 +46,7 @@ st.markdown(" ")
 st.markdown(" ")
 
 # Load data
+@profile("legislators.py - get_legislator_data")
 def get_legislator_data():
     """
     Use query_table to load, clean, and cache legislator data
@@ -52,10 +54,21 @@ def get_legislator_data():
     # Cache the function that retrieves the data
     @st.cache_data
     def legislator_cache():
-        legislator = query_table('public', 'processed_legislators_from_snapshot_2025_2026')
+        # Get data
+        legislator_query = """
+            SELECT * FROM public.processed_legislators_from_snapshot_2025_2026
+        """
+            
+        legislator = Query(
+            page_name="legislators",
+            query=legislator_query
+        ).fetch_records()
+
+        # On-the-fly
         legislator["name"] = legislator["name"].apply(transform_name)
         legislator["last_updated_on"] = pd.to_datetime(legislator['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
         return legislator[LEGISLATOR_COLUMNS]
+    
     legislators = legislator_cache()
     return legislators
 

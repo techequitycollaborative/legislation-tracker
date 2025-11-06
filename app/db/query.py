@@ -14,13 +14,83 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 from db.config import config
+from db.connect import pool
 import numpy as np
 import datetime
 from psycopg2.extensions import register_adapter, AsIs
 register_adapter(np.int64, AsIs)
+import sys
+sys.path.append("..")
+from utils.profiling import profile, timer, logger
+
+###############################################################################
+class Query:
+    def __init__(
+            self, 
+            page_name, 
+            query,
+            df_columns=None, 
+            error_msg="",
+            warning_msg="",
+            success_msg="Query successful.", 
+        ):
+        self.name = page_name
+        self.query = query
+        self.df_columns = df_columns
+        self.error_message = error_msg
+        self.warning_message = warning_msg
+        self.success_message = success_msg
+    
+    @profile("query.py - Query object fetch records")
+    def fetch_records(self):
+        conn = pool.getconn()
+        logger.info(f"Connected to PostgreSQL database.")
+        # Default empty set value in case there are no records to fetch
+        records = []
+
+        with conn.cursor() as cursor:
+            cursor.execute(self.query)
+            records = cursor.fetchall()
+
+            if self.df_columns == None:
+                self.df_columns = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(records, columns=self.df_columns)
+        
+        pool.putconn(conn)
+        logger.info(f"Database connection closed.")
+
+        return df
+    
+    @profile("query.py - Query object check if record exists")
+    def check_for_record(self):
+        conn = pool.getconn()
+
+        with conn.cursor() as cursor:
+            cursor.execute(self.query)
+            count = cursor.fetchone()[0]
+        
+        if not count:
+            st.warning(self.warning_message)
+        
+        pool.putconn(conn)
+        return bool(count)
+    
+    @profile("query.py - Query object update records and rerun Streamlit")
+    def update_records(self):
+        conn = pool.getconn()
+        logger.info(f"Connected to PostgreSQL database.")
+
+        with conn.cursor() as cursor:
+            cursor.execute(self.query)
+            conn.commit()
+
+        st.success(self.success_message)
+        pool.putconn(conn) 
+        st.rerun()
 
 ###############################################################################
 
+@profile("query.py - query_table func")
 def query_table(schema, table):
     """
     Parameters
@@ -35,12 +105,7 @@ def query_table(schema, table):
     pd.DataFrame
         The queried table in DataFrame format.
     """
-    
-    # Load the database configuration
-    db_config = config('postgres')
-    
-    # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     print("Connected to the PostgreSQL database.")
     
     # Define SQL query
@@ -53,34 +118,31 @@ def query_table(schema, table):
         columns = [desc[0] for desc in cursor.description]
         df = pd.DataFrame(records, columns=columns)
     
-    # Close the connection
-    conn.close()
+    pool.putconn(conn)
     print("Database connection closed.")
     
     return df
-
-
-###############################################################################
-
-# Query bill tables -- processing of which has already been done in postgres database
-# Cache these functions so database query functions don't reload every time the app
-# reruns (i.e. if the user interacts with the table)
-
-def get_data():
-    """
-    Use query_table to load main bills table (or view) and cache it.
-    """
-    # Cache the function that retrieves the data
-    @st.cache_data()
-    def get_bills():
-        # Query the database for bills
-        bills = query_table('public', 'bills_2025_2026') # this is pulling a view, not a table
-        return bills
     
-    # Call the cached function to get the data
-    bills = get_bills()
+# ###############################################################################
+
+# # Query bill tables -- processing of which has already been done in postgres database
+# # Cache these functions so database query functions don't reload every time the app
+# # reruns (i.e. if the user interacts with the table)
+
+# def get_data():
+#     """
+#     Use query_table to load main bills table (or view) and cache it.
+#     """
+#     # Cache the function that retrieves the data
+#     def get_bills():
+#         # Query the database for bills
+#         bills = query_table('public', 'bills_2025_2026') # this is pulling a view, not a table
+#         return bills
     
-    return bills
+#     # Call the cached function to get the data
+#     bills = get_bills()
+    
+#     return bills
 
 ###############################################################################
 
@@ -136,6 +198,7 @@ LEGISLATOR_COLUMNS = [
 ]
 
 #@st.cache_data(ttl=120)  #  Cache for 2 mins -- Needs to be turned off for rerun to work for remove bill from dashboard button
+@profile("query.py - get_my_dashboard_bills")
 def get_my_dashboard_bills(user_email):
     '''
     Fetches bills from the user's dashboard in the database and returns them as a DataFrame.
@@ -145,10 +208,8 @@ def get_my_dashboard_bills(user_email):
 
     '''
     try:
-        db_config = config('postgres')
-        conn = psycopg2.connect(**db_config)
+        conn = pool.getconn()
         cursor = conn.cursor()
-
         query = f"""
             SELECT 
                 b.openstates_bill_id,
@@ -175,8 +236,7 @@ def get_my_dashboard_bills(user_email):
 
         cursor.execute(query, (user_email,))
         rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        pool.putconn(conn)
 
         return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
     
@@ -184,16 +244,16 @@ def get_my_dashboard_bills(user_email):
         print(f"Error fetching dashboard bills: {e}")
         return pd.DataFrame(columns=BILL_COLUMNS)
 
-
+@profile("query.py - add_bill_to_dashboard")
 def add_bill_to_dashboard(openstates_bill_id, bill_number):
     '''
     Adds a selected bill to the user's dashboard, persists it to the database, and updates session state.
     '''
     user_email = st.session_state['user_email']
     org_id = st.session_state.get('org_id')
-    db_config = config('postgres')
+    
 
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     cursor = conn.cursor()
     
     # Check if bill already exists for this user
@@ -227,18 +287,17 @@ def add_bill_to_dashboard(openstates_bill_id, bill_number):
     else:
         st.warning(f'Bill {bill_number} is already in your dashboard.')
 
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
 
-
+@profile("query.py - remove_bill_from_dashboard")
 def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     '''
     Removes a selected bill from the user's dashboard, deletes it from the database, and updates session state.
     '''
     user_email = st.session_state['user_email']
-    db_config = config('postgres')
+    
 
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -249,30 +308,30 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     conn.commit()
     st.success(f'Bill {bill_number} removed from dashboard!')
     
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
     st.rerun()
 
+@profile("query.py - clear_all_my_dashboard_bills")
 def clear_all_my_dashboard_bills(user_email):
     '''
     Clears ALL bills from the user's personal dashboard, deletes them from the database, and updates session state.
     '''
     user_email = st.session_state['user_email']
     
-    db_config = config('postgres')
-    conn = psycopg2.connect(**db_config)
+    
+    conn = pool.getconn()
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM public.user_bill_dashboard WHERE user_email = %s", (user_email,))
     
     conn.commit()
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
     st.rerun()
 
 ###############################################################################
 
 # ORG DASHBOARD FUNCTIONS
+@profile("query.py - get_org_dashboard_bills")
 def get_org_dashboard_bills(org_id):
     '''
     Fetches bills from the org dashboard in the database and returns them as a DataFrame.
@@ -282,8 +341,8 @@ def get_org_dashboard_bills(org_id):
 
     '''
     try:
-        db_config = config('postgres')
-        conn = psycopg2.connect(**db_config)
+        
+        conn = pool.getconn()
         cursor = conn.cursor()
 
         query = f"""
@@ -312,8 +371,7 @@ def get_org_dashboard_bills(org_id):
 
         cursor.execute(query, (org_id,))
         rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        pool.putconn(conn)
 
         return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
     
@@ -322,16 +380,16 @@ def get_org_dashboard_bills(org_id):
         return pd.DataFrame(columns=BILL_COLUMNS)
         #raise -- only for local debugging, not for production use as it could break the app if the database is down or the query fails
     
-
+@profile("query.py - add_bill_to_org_dashboard")
 def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
     '''
     Adds a selected bill to the user's ORG dashboard, persists it to the database, and updates session state.
     '''
     user_email = st.session_state['user_email']
     org_id = st.session_state.get('org_id')
-    db_config = config('postgres')
+    
 
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     cursor = conn.cursor()
     
     # Check if bill already exists for this org
@@ -365,19 +423,18 @@ def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
     else:
         st.warning(f'Bill {bill_number} is already in your dashboard.')
 
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
 
-
+@profile("query.py - remove_bill_from_org_dashboard")
 def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
     '''
     Removes a selected bill from the user's ORG dashboard, deletes it from the database, and updates session state.
     '''
     user_email = st.session_state['user_email']
     org_id = st.session_state.get('org_id')
-    db_config = config('postgres')
+    
 
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -388,21 +445,20 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
     conn.commit()
     st.success(f'Bill {bill_number} removed from dashboard!')
     
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
     st.rerun()
 
 ###############################################################################
-
+@profile("query.py - get_custom_bill_details_with_timestamp")
 def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     '''
     Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page, 
     along with the timestamp of the last update and the user who made the changes.
     '''
     # Load the database configuration
-    db_config = config('postgres')
+    
     # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     print("Connected to the PostgreSQL database.")
     
     # Create a cursor that returns rows as dictionaries
@@ -414,8 +470,7 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
                     """, (openstates_bill_id, org_id))
     result = cursor.fetchone()
 
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
     
     if result:
         return {
@@ -436,15 +491,15 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     else:
         return None
 
-
+@profile("query.py - get_custom_contact_details_with_timestamp")
 def get_custom_contact_details_with_timestamp(openstates_people_id):
     '''
     Fetches custom contact details for a specific openstates_people_id from the contact_custom_details table in postgres
     '''
     # Load the database configuration
-    db_config = config('postgres')
+    
     # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     print("Connected to the PostgreSQL database.")
     
     # Create a cursor that returns rows as dictionaries
@@ -460,15 +515,15 @@ def get_custom_contact_details_with_timestamp(openstates_people_id):
         return None
 
 ##################################################################################
-
+@profile("query.py - save_custom_bill_details_with_timestamp")
 def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_tier, community_sponsor, 
-                      coalition, letter_of_support, openstates_bill_id, assigned_to, action_taken, user_email, org_id, org_name):
+                    coalition, letter_of_support, openstates_bill_id, assigned_to, action_taken, user_email, org_id, org_name):
     '''
     Saves or updates custom bill details for a specific openstates_bill_id and a specific org_id in the bill_custom_details table.
     Records who made the changes (user_email, org_id, org_name) and when (timestamp).
     '''
     # Load the database configuration
-    db_config = config('postgres')
+    
     
     # Get current timestamp
     import datetime
@@ -476,7 +531,7 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
     current_timestamp = datetime.datetime.now()
     
     # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     
     # Create a cursor
     cursor = conn.cursor()
@@ -509,7 +564,7 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
                 WHERE openstates_bill_id = %s AND last_updated_org_id = %s
             """,
             (bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, 
-             assigned_to, action_taken, user_email, org_id, org_name, today, current_timestamp, openstates_bill_id, org_id)
+            assigned_to, action_taken, user_email, org_id, org_name, today, current_timestamp, openstates_bill_id, org_id)
             )
         else:
             # Insert new record
@@ -538,11 +593,10 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
         
     finally:
         # Always close the connection
-        cursor.close()
-        conn.close()
+        pool.putconn(conn)
 
 ##################################################################################
-
+@profile("query.py - save_custom_contact_details_with_timestamp")
 def save_custom_contact_details_with_timestamp(
         contact_update_df,
         openstates_people_id,
@@ -554,12 +608,12 @@ def save_custom_contact_details_with_timestamp(
     Saves or updates custom contact details for a specific openstates_people_id in the contact_custom_details table and records who made the changes (user_email, org_id, org_name) and when (timestamp).
     '''
     # Load the database configuration
-    db_config = config('postgres')
+    
     
     today = datetime.date.today()
     
     # Establish connection to the PostgreSQL server
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     
     # Create a cursor
     cursor = conn.cursor()
@@ -618,14 +672,14 @@ def save_custom_contact_details_with_timestamp(
         
 ##################################################################################
 # Advocacy details functions
-
+@profile("query.py - get_all_custom_bill_details")
 def get_all_custom_bill_details():
     """
     Fetches all custom bill details for a specific bill from all organizations.
     For use on the advocacy hub page.
     """
-    db_config = config('postgres')
-    conn = psycopg2.connect(**db_config)
+    
+    conn = pool.getconn()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     cursor.execute("""
@@ -635,19 +689,18 @@ def get_all_custom_bill_details():
     
     results = cursor.fetchall()
 
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
 
     return [dict(row) for row in results]
 
-
+@profile("query.py - get_all_custom_bill_details_for_bill")
 def get_all_custom_bill_details_for_bill(openstates_bill_id):
     """
     Fetch all custom advocacy details for a single bill across all organizations.
     For use on the AI Working Group dashboard.
     """
-    db_config = config('postgres')
-    conn = psycopg2.connect(**db_config)
+    
+    conn = pool.getconn()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     query = """
@@ -658,15 +711,14 @@ def get_all_custom_bill_details_for_bill(openstates_bill_id):
     cursor.execute(query, (openstates_bill_id,))
     results = cursor.fetchall()
 
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
 
     return [dict(row) for row in results]
 
 ###############################################################################
 
 # AI Working Group Dashboard Functions
-
+@profile("query.py - add_bill_to_working_group_dashboard")
 def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
     user_email = st.session_state.get('user_email')
     org_name = st.session_state.get('org_name')
@@ -676,8 +728,8 @@ def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
         return
 
     try:
-        db_config = config('postgres')
-        conn = psycopg2.connect(**db_config)
+        
+        conn = pool.getconn()
         cursor = conn.cursor()
 
         # Check if bill already exists for this org/user
@@ -708,14 +760,14 @@ def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
         if conn:
             conn.close()
 
-
+@profile("query.py - remove_bill_from_wg_dashboard")
 def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     '''
     Removes a selected bill from the AI working group dashboard, deletes it from the database, and updates session state.
     '''
-    db_config = config('postgres')
+    
 
-    conn = psycopg2.connect(**db_config)
+    conn = pool.getconn()
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -726,18 +778,17 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     conn.commit()
     st.success(f'Bill {bill_number} removed from AI Working Group dashboard!')
     
-    cursor.close()
-    conn.close()
+    pool.putconn(conn)
     st.rerun()
 
-
+@profile("query.py - get_working_group_bills")
 def get_working_group_bills():
     '''
     Fetches bills from the working_group_dashboard table in the PostgreSQL database.
     '''
     try:
-        db_config = config('postgres')
-        conn = psycopg2.connect(**db_config)
+        
+        conn = pool.getconn()
         cursor = conn.cursor()
 
         query = f"""
@@ -766,8 +817,7 @@ def get_working_group_bills():
 
         cursor.execute(query)
         rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        pool.putconn(conn)
 
         return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
     
@@ -775,13 +825,13 @@ def get_working_group_bills():
         print(f"Error fetching AI Working Group bills: {e}")
         return pd.DataFrame(columns=BILL_COLUMNS)
 
-
+@profile("query.py - get_discussion_comments")
 def get_discussion_comments(bill_number: str) -> pd.DataFrame:
     '''
     Fetches discussion comments for a specific bill from the working_group_discussions table in the PostgreSQL database.
     '''
-    db_config = config('postgres')
-    conn = psycopg2.connect(**db_config)
+    
+    conn = pool.getconn()
     print("Connected to the PostgreSQL database.")
 
     query = """
@@ -801,13 +851,13 @@ def get_discussion_comments(bill_number: str) -> pd.DataFrame:
     print("Database connection closed.")
     return df
 
-
+@profile("query.py - save_comment")
 def save_comment(bill_number: str, user_email: str, comment: str):
     '''
     Saves a comment to the working group discussion table in the PostgreSQL database.
     '''
-    db_config = config('postgres')
-    conn = psycopg2.connect(**db_config)
+    
+    conn = pool.getconn()
     print("Connected to the PostgreSQL database.")
 
     query = """
@@ -822,14 +872,14 @@ def save_comment(bill_number: str, user_email: str, comment: str):
     conn.close()
     print("Comment inserted and database connection closed.")
 
-
+@profile("query.py - get_ai_members")
 def get_ai_members():
     '''
     Get list of names of AI Working Group members from the database.
     '''
     try:
-        db_config = config('postgres')
-        conn = psycopg2.connect(**db_config)
+        
+        conn = pool.getconn()
         cursor = conn.cursor()
 
         query = f"""
@@ -840,8 +890,7 @@ def get_ai_members():
 
         cursor.execute(query)
         rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        pool.putconn(conn)
 
         return pd.DataFrame(rows, columns=['name', 'email', 'org_name']) if rows else pd.DataFrame(columns=['name', 'email', 'org_name'])
 

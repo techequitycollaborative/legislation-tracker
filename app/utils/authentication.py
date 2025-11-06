@@ -14,6 +14,7 @@ import psycopg2
 import re
 import os
 from db.config import config
+from db.connect import pool
 from typing import Optional, Tuple, List
 from datetime import datetime, timedelta
 from utils.profiling import profile, show_performance_metrics, track_rerun
@@ -185,8 +186,7 @@ def get_db_connection():
         tuple: Database connection and cursor
     """
     try:
-        db_config = config('postgres')
-        conn = psycopg2.connect(**db_config)
+        conn = pool.getconn()
         return conn, conn.cursor()
     except (Exception, psycopg2.Error) as error:
         st.error(f"Error connecting to database: {error}")
@@ -214,8 +214,7 @@ def get_user(email: str) -> Optional[Tuple]:
         st.error(f"Database error: {e}")
         return None
     finally:
-        if conn:
-            conn.close()
+        pool.putconn(conn)
 
 def is_approved_user(email: str) -> bool:
     """
@@ -239,8 +238,7 @@ def is_approved_user(email: str) -> bool:
         st.error(f"Database error: {e}")
         return False
     finally:
-        if conn:
-            conn.close()
+        pool.putconn(conn)
 
 def get_all_organizations() -> List[Tuple]:
     """
@@ -261,8 +259,7 @@ def get_all_organizations() -> List[Tuple]:
         st.error(f"Database error: {e}")
         return []
     finally:
-        if conn:
-            conn.close()
+        pool.putconn(conn)
 
 def create_user(name: str, email: str, password: str, org_id: int) -> Optional[int]:
     """
@@ -296,8 +293,7 @@ def create_user(name: str, email: str, password: str, org_id: int) -> Optional[i
         conn.rollback()
         return None
     finally:
-        if conn:
-            conn.close()
+        pool.putconn(conn)
 
 def get_organization_by_id(org_id: int) -> Optional[Tuple]:
     """
@@ -321,8 +317,7 @@ def get_organization_by_id(org_id: int) -> Optional[Tuple]:
         st.error(f"Database error: {e}")
         return None
     finally:
-        if conn:
-            conn.close()
+        pool.putconn(conn)
 
 
 ############################# AI WORKING GROUP VALIDATION #############################
@@ -351,7 +346,7 @@ def is_user_in_working_group(user_email):
         return False  # Avoid returning None unless there's a specific reason
 
     finally:
-        conn.close()
+        pool.putconn(conn)
 
 ############################# SIGN UP AND LOGIN PAGE #############################
 
@@ -429,7 +424,7 @@ def signup_page():
         st.session_state['show_signup'] = False
         st.rerun()
 
-@profile("Login - render and verify credentials")
+@profile("utils/authentication.py - login_page")
 def login_page():
     """
     Render the login page with improved error handling.

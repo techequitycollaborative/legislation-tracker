@@ -11,7 +11,9 @@ import streamlit as st
 import pandas as pd
 from db.query import get_all_custom_bill_details_for_bill, remove_bill_from_wg_dashboard
 from .general import bill_topic_grid, clean_markdown
+from .profiling import profile, timer
 
+@profile("utils/ai_working_group.py - display_working_group_bill_details")
 def display_working_group_bill_details(selected_rows):
     '''
     Displays bill details on the AI WORKING GROUP DASHBOARD page when a row is selected.

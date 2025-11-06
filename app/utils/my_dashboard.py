@@ -12,7 +12,9 @@ import streamlit as st
 import pandas as pd
 from db.query import get_custom_bill_details_with_timestamp, remove_bill_from_dashboard
 from .general import bill_topic_grid, clean_markdown
+from .profiling import profile, timer
 
+@profile("utils/my_dashboard.py - display_dashboard_details")
 def display_dashboard_details(selected_rows):
     '''
     Displays bill details on the MY DASHBOARD page when a row is selected.
