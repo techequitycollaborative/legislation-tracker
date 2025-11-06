@@ -19,6 +19,7 @@ from utils.profiling import profile
 
 # Page title
 st.title('📌 My Dashboard')
+st.session_state.curr_page = "My Dashboard"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to you.

@@ -25,6 +25,7 @@ import numpy as np
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
 st.title('📅 Calendar')
+st.session_state.curr_page = "Calendar"
 
 with st.expander("About this page", icon="ℹ️", expanded=False):
     st.markdown(

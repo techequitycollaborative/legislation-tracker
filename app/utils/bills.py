@@ -67,7 +67,7 @@ def display_bill_info_text(selected_rows):
             # Add to ORG DASHBOARD button
             if st.button(f"Add to {org_nickname} Dashboard", use_container_width=True, type='primary'):
                 # Call the function to add the bill to the dashboard
-                with timer("DB - Add bill to dashboard"):
+                with timer("utils/bills.py - add_bill_to_org_dashboard"):
                     add_bill_to_org_dashboard(openstates_bill_id, bill_number)
 
             # Add to MY DASHBOARD button

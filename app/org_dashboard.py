@@ -32,6 +32,7 @@ user_email = st.session_state['user_email']
 
 # Page title
 st.title(f"🏢 {org_nickname}'s Dashboard")
+st.session_state.curr_page = f"{org_nickname}'s Dashboard"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to your organization.
@@ -159,7 +160,7 @@ theme = st.session_state.theme
 if not org_db_bills.empty:
     total_org_db_bills = len(org_db_bills)
     st.markdown(f"#### {org_name}'s saved bills: {total_org_db_bills} total bills")
-    with timer("Dashboard - draw AgGrid"):
+    with timer("org_dashboard.py - draw_bill_grid"):
         data = draw_bill_grid(org_db_bills, theme=theme)
 
     # Display bill details for dashboard bills

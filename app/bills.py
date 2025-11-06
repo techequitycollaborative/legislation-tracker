@@ -17,9 +17,10 @@ from utils import aggrid_styler
 from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
-from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
+from utils.profiling import timer, profile, track_rerun
 # Page title and description
 st.title('📝 Bills')
+st.session_state.curr_page = "Bills"
 
 current_session = '2025-2026'
 
@@ -151,12 +152,12 @@ with col3:
     st.button("*View List of Bill Topics*", on_click=show_topic_dialog, use_container_width=True)
 
 # Display the aggrid table
-with timer("Bills - draw AgGrid"):
+with timer("bills.py - draw_bill_grid"):
     data = aggrid_styler.draw_bill_grid(bills, theme=theme)
     
-selected_rows = data.selected_rows
+# selected_rows = data.selected_rows
 
-if selected_rows is not None and len(selected_rows) != 0:
-        track_event("Row selected")
-        display_bill_info_text(selected_rows)
+if data.selected_rows is not None and len(data.selected_rows) != 0:
+        with timer("AgGrid row selected"):
+            display_bill_info_text(data.selected_rows)
 

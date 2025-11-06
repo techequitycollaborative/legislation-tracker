@@ -36,6 +36,7 @@ st.markdown("""
     <h1>AI Working Group Dashboard</h1>
 </div>
 """, unsafe_allow_html=True)
+st.session_state.curr_page = "AI Working Group Dashboard"
 
 st.expander("ℹ️ About this page", expanded=False).markdown("""
 - Use this page to track bills as a working group.

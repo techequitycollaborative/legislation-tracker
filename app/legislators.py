@@ -35,6 +35,7 @@ if 'contact_df' not in st.session_state:
 
 # Show the page title and description
 st.title('💼 Legislators')
+st.session_state.curr_page = "Legislators"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
 - This page shows legislator information for the current legislative session as collected from OpenStates and the [Capitol Codex](https://docs.google.com/spreadsheets/d/1gFeGy72R_-FSFrjXbKCAAvVsvNjyV7t_TUvFoB12vys/edit?gid=1422908451#gid=1422908451) Issues tabs. 
