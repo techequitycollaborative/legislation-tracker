@@ -273,6 +273,7 @@ def clear_all_my_dashboard_bills(user_email):
 ###############################################################################
 
 # ORG DASHBOARD FUNCTIONS
+#@st.cache_data(ttl=120, show_spinner="Getting your dashboard bills")  #  Cache for 2 mins
 def get_org_dashboard_bills(org_id):
     '''
     Fetches bills from the org dashboard in the database and returns them as a DataFrame.
