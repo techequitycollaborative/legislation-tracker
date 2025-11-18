@@ -14,13 +14,11 @@ from db.query import Query, LEGISLATOR_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv, transform_name
 from utils.legislators import display_legislator_info_text
-<<<<<<< HEAD
-from utils.profiling import profile
-=======
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
 from utils.legislators import initialize_filter_state, display_legislator_filters, apply_legislator_filters, display_legislator_table
 
->>>>>>> b9e42d2 (legislators table updated to streamlit df)
+
+############################ SESSION STATE #############################
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 # if 'authenticated' not in st.session_state:
@@ -39,6 +37,11 @@ if 'contact_df' not in st.session_state:
     st.session_state.contact_df = pd.DataFrame()
     st.session_state.filtered_df = pd.DataFrame()
 
+# Initialize session state for filters
+initialize_filter_state()
+
+############################ PAGE SETUP #############################
+
 # Show the page title and description
 st.title('💼 Legislators')
 st.session_state.curr_page = "Legislators"
@@ -51,6 +54,10 @@ st.expander("About this page", icon="ℹ️", expanded=False).markdown("""
 # Add space between expander and main content
 st.markdown(" ")
 st.markdown(" ")
+
+
+############################ LOAD AND PROCESS DATA #############################
+track_rerun("Legislators")
 
 # Load data
 @profile("DB - Fetch LEGISLATOR table data")
@@ -82,11 +89,7 @@ def get_legislator_data():
     
     return legislators
 
-#with st.spinner("Loading legislator data..."):
 legislators = get_legislator_data()
-
-
-### TABLE CONTENT
 
 ############################ FILTERS #############################
 # Display filters and get filter values

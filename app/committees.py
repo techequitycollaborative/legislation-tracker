@@ -16,8 +16,13 @@ import streamlit as st
 from db.query import Query, COMMITTEE_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv
+<<<<<<< HEAD
 from utils.committees import display_committee_info_text
 from utils.profiling import profile
+=======
+from utils.committees import display_committee_info_text, initialize_filter_state, display_committee_filters, apply_committee_filters, display_committee_table
+from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
+>>>>>>> 317cead (Separated calendar utility functions into separate script)
 
 # Page title and description
 st.title('🗣 Committees')
@@ -33,11 +38,13 @@ st.markdown(" ")
 st.markdown(" ")
 
 ############################ LOAD AND PROCESS COMMITTEE DATA #############################
+track_rerun("Committees")
+
 # Load committee membership data
-@profile("committees.py - get_committee_data")
+@profile("DB - Fetch COMMITTEE table data")
 def get_committee_data():
     # Cache the function that retrieves the data
-    @st.cache_data
+    @st.cache_data(show_spinner="Loading committee data...")
     def committee_cache():
         # Get data
         committee_query = """
@@ -54,6 +61,9 @@ def get_committee_data():
 
         # Clean up next hearing format
         committee["next_hearing"] = pd.to_datetime(committee['committee_event'], errors='coerce').dt.strftime('%Y-%m-%d')
+
+        # Only show committee hearing date if it's in the future
+        committee["next_hearing"] = np.where(pd.to_datetime(committee["next_hearing"]) >= pd.Timestamp.now(), committee["next_hearing"], "No upcoming hearing scheduled")
 
         # Fill NA values for chair and vice chair
         committee["committee_chair"] = committee["committee_chair"].fillna("*None appointed*")
@@ -72,58 +82,50 @@ def get_committee_data():
 
 committees = get_committee_data()
 
+############################ SESSION STATE #############################
+
 # # Initialize session state for selected committees
 if 'selected_committees' not in st.session_state:
     st.session_state.selected_committees = []
 
-# Mapping between user-friendly labels and internal theme values
-theme_options = {
-    'narrow': 'streamlit',
-    'wide': 'alpine'
-}
+# Initialize session state for filters
+initialize_filter_state()
 
-# Initialize session state for theme if not set
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'streamlit'  # Default theme
+############################ FILTERS #############################
 
-# Reverse mapping to get the label from the internal value
-label_from_theme = {v: k for k, v in theme_options.items()}
+# Display filters and get filter values
+filter_values = display_committee_filters(committees)
+selected_name, selected_chamber, hearing_search, chairperson_search, vice_chairperson_search = filter_values
 
-# Create a two-column layout
-col1, col2, col3 = st.columns([1, 7, 2])
+# Apply filters
+filtered_committees = apply_committee_filters(
+    committees, 
+    selected_name, 
+    selected_chamber,
+    hearing_search,
+    chairperson_search,
+    vice_chairperson_search
+)
+
+# Update total committees count
+col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
-    selected_label = st.selectbox(
-        'Change grid theme:',
-        options=list(theme_options.keys()),
-        index=list(theme_options.keys()).index(label_from_theme[st.session_state.theme])
-    )
+    total_committees = len(filtered_committees)
+    st.markdown(f"#### Total committees: {total_committees:,}")
+    if len(filtered_committees) < len(committees):
+        st.caption(f"(filtered from {len(committees):,} total)")
 
-with col2:    
-    st.markdown("")
+############################ MAIN TABLE / DATAFRAME #############################
 
-with col3:
-    st.download_button(
-        label='Download Data as CSV',
-        data=to_csv(committees),
-        file_name='committees.csv',
-        mime='text/csv',
-        use_container_width=True
-    )
+# Display the table
+with timer("Committees - draw streamlit df"):
+    data = display_committee_table(filtered_committees)
 
-# Update session state if the user picks a new theme
-selected_theme = theme_options[selected_label]
-if selected_theme != st.session_state.theme:
-    st.session_state.theme = selected_theme
-
-# Use the persisted theme
-theme = st.session_state.theme
-
-# # Display the aggrid table
-data = aggrid_styler.draw_committee_grid(committees, theme=theme)
-    
-selected_rows = data.selected_rows
-
-if selected_rows is not None and len(selected_rows) != 0:
-        display_committee_info_text(selected_rows)
+# Access selected rows
+if data.selection.rows:
+    track_event("Row selected")
+    selected_index = data.selection.rows[0]  # Get first selected row index
+    selected_bill_data = filtered_committees.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
+    display_committee_info_text(selected_bill_data)
 
 
