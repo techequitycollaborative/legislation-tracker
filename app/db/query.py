@@ -247,10 +247,14 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     """, (openstates_bill_id, user_email))
     
     conn.commit()
-    st.success(f'Bill {bill_number} removed from dashboard!')
     
     cursor.close()
     conn.close()
+    
+    # Clear the cache so data reloads
+    st.cache_data.clear()
+    
+    st.success(f'Bill {bill_number} removed from dashboard!')
     st.rerun()
 
 def clear_all_my_dashboard_bills(user_email):
@@ -387,10 +391,14 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
     """, (openstates_bill_id, org_id))
     
     conn.commit()
-    st.success(f'Bill {bill_number} removed from dashboard!')
     
     cursor.close()
     conn.close()
+
+    # Clear the cache so data reloads
+    st.cache_data.clear()
+
+    st.success(f'Bill {bill_number} removed from dashboard!')
     st.rerun()
 
 ###############################################################################
@@ -725,10 +733,14 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     """, (openstates_bill_id,))
     
     conn.commit()
-    st.success(f'Bill {bill_number} removed from AI Working Group dashboard!')
     
     cursor.close()
     conn.close()
+
+    # Clear the cache so data reloads
+    st.cache_data.clear()
+
+    st.success(f'Bill {bill_number} removed from AI Working Group dashboard!')
     st.rerun()
 
 

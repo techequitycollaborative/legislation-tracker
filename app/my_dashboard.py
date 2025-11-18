@@ -61,15 +61,17 @@ if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills
 
 # Load bills data for the my dashboard
 @profile("DB - Fetch MY DASHBOARD table data")
+@st.cache_data(show_spinner="Loading your dashboard...", ttl=30) # Cache dashboard data and refresh every 30 seconds
 def load_my_dashboard_table():
     # Fetch the user's saved bills from the database
     db_bills = get_my_dashboard_bills(user_email)
 
+    # DON'T NEED TO FORMAT DATES FOR STREAMLIT NATIVE TABLES; THIS IS HANDLED IN COLUMN CONFIG WITH DATE COLUMN
     # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
     # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    db_bills['last_updated_on'] = pd.to_datetime(db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    #db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+    #db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    #db_bills['last_updated_on'] = pd.to_datetime(db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Minor data processing to match bills table
     # Wrangle assigned-topic string to a Python list for web app manipulation
@@ -81,21 +83,20 @@ def load_my_dashboard_table():
     #db_bills = db_bills.sort_values(by='bill_event', ascending=False)
     return db_bills
 
-with st.spinner("Loading your dashboard..."):
-    db_bills = load_my_dashboard_table()
+db_bills = load_my_dashboard_table()
 
 
 ############################ FILTERS #############################
 # Display filters and get filter values
 filter_values = display_bill_filters(db_bills, show_date_filters=True)
-selected_topics, selected_statuses, author_search, bill_number_search, date_from, date_to = filter_values
+selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
 
 # Apply filters
 filtered_bills = apply_bill_filters(
     db_bills, 
     selected_topics, 
     selected_statuses, 
-    author_search, 
+    selected_authors, 
     bill_number_search, 
     date_from, 
     date_to
