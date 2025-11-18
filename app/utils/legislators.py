@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-utils/bills.py
+utils/legislators.py
 Created on Jul 7, 2025
-@author: jessiclassy
+@author: jessiclassy, danyasherbini
 
 Function for displaying legislator details on the Legislators Page.
 
@@ -106,12 +106,15 @@ def staffer_directory_tab(df):
     with col2:
         st.markdown('')
     with col3:
-        st.download_button(
-            "Export Contacts to CSV",
-            df.to_csv(index=False),
-            "contacts.csv",
-            "text/csv"
-        )
+        st.markdown('')
+        
+        # Don't need this button with native streamlit table
+        #st.download_button(
+        #    "Export Contacts to CSV",
+        #    df.to_csv(index=False),
+        #    "contacts.csv",
+        #    "text/csv"
+        #)
 
 def issue_editor_tab(df, openstates_people_id, org_id, org_name, user_email):
     with st.form("bulk_edit_form"):
@@ -268,4 +271,146 @@ def display_legislator_info_text(selected_rows):
     else:
         st.markdown('#### ')
         st.markdown('')
+
+
+
+#################### FUNCTIONS FOR MAIN LEGISLATORS TABLE -- STREAMLIT TABLE + FILTERS ####################
+
+def initialize_filter_state():
+    """
+    Initialize session state for all filters
+    """
+    if 'name_filter' not in st.session_state:
+        st.session_state.name_filter = ""
+    if 'party_filter' not in st.session_state:
+        st.session_state.party_filter = None
+    if 'chamber_filter' not in st.session_state:
+        st.session_state.chamber_filter = None
+
+
+def clear_filters():
+    """
+    Callback function to clear all filter values
+    """
+    st.session_state.name_filter = ""
+    st.session_state.party_filter = None
+    st.session_state.chamber_filter = None
+
+
+def display_legislator_filters(df):
+    """
+    Display filter UI components for legisolators
     
+    Args:
+        df: DataFrame containing legislators data
+    
+    Returns:
+        tuple: (selected_name, selected_party, selected_chamber)
+    """
+ 
+    # Display filters    
+    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    
+    with filter_col1:
+        selected_name = st.text_input(
+            "Filter by Legislator:",
+            placeholder="Enter legislator name",
+            key="name_filter"
+        )
+    
+    with filter_col2:
+        # Get unique parties
+        unique_parties = df['party'].dropna().unique().tolist()
+        unique_parties.sort()
+        selected_party = st.selectbox(
+            "Filter by Party:",
+            options=unique_parties,
+            key="party_filter",
+            #format_func=lambda x: "All Parties" if x is None else x
+        )
+    
+    with filter_col3:
+        # Get unique chambers
+        unique_chambers = df['chamber'].dropna().unique().tolist()
+        unique_chambers.sort()
+        selected_chamber = st.selectbox(
+            "Filter by Chamber:",
+            options=unique_chambers,
+            key="chamber_filter",
+            #format_func=lambda x: "All Chambers" if x is None else x
+        )
+    
+    # Clear filters button
+    st.button("🔄 Clear All Filters", on_click=clear_filters)
+    
+    st.markdown("---")
+
+    return selected_name, selected_party, selected_chamber
+
+
+def apply_legislator_filters(df, selected_name, selected_party, selected_chamber):
+    """
+    Apply filters to legislators dataframe
+    
+    Args:
+        df: DataFrame to filter
+        selected_name: Name search string
+        selected_party: Selected party
+        selected_chamber: Selected chamber
+    
+    Returns:
+        DataFrame: Filtered legislators dataframe
+    """
+    filtered_legislators = df.copy()
+    
+    # Name filter (case-insensitive partial match)
+    if selected_name:
+        filtered_legislators = filtered_legislators[
+            filtered_legislators['name'].str.contains(selected_name, case=False, na=False)
+        ]
+    
+    # Party filter
+    if selected_party:
+        filtered_legislators = filtered_legislators[filtered_legislators['party'] == selected_party]
+    
+    # Chamber filter
+    if selected_chamber:
+        filtered_legislators = filtered_legislators[filtered_legislators['chamber'] == selected_chamber]
+    
+    return filtered_legislators
+
+
+def display_legislator_table(df):
+    """
+    Display legislators dataframe using Streamlit's dataframe component
+    """
+    # Create a copy of the df
+    display_df = df.copy()
+
+    column_config = {
+        "name": st.column_config.Column(
+            "Name",
+        ),
+
+        "party": st.column_config.Column(
+            "Party",
+        ),
+
+        "chamber": st.column_config.Column(
+            "Chamber",
+        ),
+
+    }
+
+    data = st.dataframe(
+        display_df,
+        #width="stretch",
+        #height="auto",
+        hide_index=True,
+        key="legislator_table",
+        selection_mode='single-row',
+        on_select="rerun",
+        column_config=column_config,
+        column_order=['name', 'party', 'chamber'],
+    )
+    return data
