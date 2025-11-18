@@ -58,15 +58,20 @@ if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboa
 
 # Load bills data for the org dashboard
 @profile("DB - Fetch ORG DASHBOARD table data")
+@st.cache_data(show_spinner="Loading your dashboard...", ttl=30) # Cache dashboard data and refresh every 30 seconds
 def load_org_dashboard_table():
     # Get data
     org_db_bills = get_org_dashboard_bills(org_id)
 
+    # Update session state with user's org's dashboard bills
+    st.session_state.org_dashboard_bills = org_db_bills
+
+    # DON'T NEED TO FORMAT DATES FOR STREAMLIT NATIVE TABLES; THIS IS HANDLED IN COLUMN CONFIG WITH DATE COLUMN
     # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
     # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    #org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+    #org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    #org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Minor data processing to match bills table
     # Wrangle assigned-topic string to a Python list for web app manipulation
@@ -80,20 +85,19 @@ def load_org_dashboard_table():
     
     return org_db_bills
 
-with st.spinner("Loading your dashboard..."):
-    org_db_bills = load_org_dashboard_table()
+org_db_bills = load_org_dashboard_table()
 
 ############################ FILTERS #############################
 # Display filters and get filter values
 filter_values = display_bill_filters(org_db_bills, show_date_filters=True)
-selected_topics, selected_statuses, author_search, bill_number_search, date_from, date_to = filter_values
+selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
 
 # Apply filters
 filtered_bills = apply_bill_filters(
     org_db_bills, 
     selected_topics, 
     selected_statuses, 
-    author_search, 
+    selected_authors, 
     bill_number_search, 
     date_from, 
     date_to
