@@ -272,6 +272,12 @@ def clear_all_my_dashboard_bills(user_email):
     conn.commit()
     cursor.close()
     conn.close()
+
+    # Clear the cache so data reloads
+    st.cache_data.clear()
+    
+    st.success('Your dashboard has been cleared!')
+
     st.rerun()
 
 ###############################################################################
