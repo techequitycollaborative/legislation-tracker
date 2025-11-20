@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, date
 import pytz
 import numpy as np
 from ics import Calendar, Event
-
+from .profiling import profile
 
 ####################################### LOAD DATA ###################################
 
@@ -26,6 +26,7 @@ def load_leg_events():
     return leg_events
 
 # Load events specific to individual bills
+@profile("Calendar - load bill events")
 @st.cache_data(show_spinner="Loading bill events...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 def load_bill_events():
     bills = query_table('public', 'bills_2025_2026') # Get bill info from processed_bills table

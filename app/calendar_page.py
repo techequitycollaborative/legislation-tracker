@@ -17,8 +17,10 @@ import streamlit as st
 from streamlit_calendar import calendar
 from db.query import get_my_dashboard_bills, get_org_dashboard_bills
 from utils.calendar_utils import load_leg_events, load_bill_events, filter_events, load_css, create_ics_file
+from utils.profiling import profile, track_rerun
 # Show the page title and description
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
+track_rerun("Calendar")
 st.title('📅 Calendar')
 st.session_state.curr_page = "Calendar"
 
