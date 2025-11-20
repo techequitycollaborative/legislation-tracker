@@ -16,13 +16,8 @@ import streamlit as st
 from db.query import Query, COMMITTEE_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv
-<<<<<<< HEAD
-from utils.committees import display_committee_info_text
-from utils.profiling import profile
-=======
 from utils.committees import display_committee_info_text, initialize_filter_state, display_committee_filters, apply_committee_filters, display_committee_table
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
->>>>>>> 317cead (Separated calendar utility functions into separate script)
 
 # Page title and description
 st.title('🗣 Committees')
