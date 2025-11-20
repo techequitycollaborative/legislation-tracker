@@ -68,7 +68,7 @@
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
     position: relative;
     overflow: hidden;
-    height: 380px;
+    height: 280px;
     display: flex;
     flex-direction: column;
 }

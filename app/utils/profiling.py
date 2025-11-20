@@ -81,7 +81,27 @@ def track_rerun_complete(page_name):
         
         st.caption(f"{color} Page took {duration:.2f}s to render")
 
-
+def track_event(label):
+    """
+    Track specific user interactions or events that may trigger reruns.
+    Useful for debugging row selection or callbacks.
+    """
+    if not PROFILING_ENABLED:
+        return
+    
+    if 'event_count' not in st.session_state:
+        st.session_state.event_count = {}
+    
+    if label not in st.session_state.event_count:
+        st.session_state.event_count[label] = 0
+    st.session_state.event_count[label] += 1
+    
+    count = st.session_state.event_count[label]
+    logger.info(f"🔹 EVENT: {label} (trigger #{count})")
+    
+    # Display in UI
+    st.caption(f"🔹 {label} - Trigger #{count}")
+    
 @contextmanager
 def timer(label):
     """Context manager for timing code blocks with optional stack trace logging"""

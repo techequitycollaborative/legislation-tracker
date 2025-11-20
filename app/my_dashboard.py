@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-My Dashboard
-Created on Dec 2, 2024
+My Dashboard: With Streamlit Dataframe
+Created on Nov 17, 2025
 @author: danyasherbini
 
-Page to add bills to user's private dashboard
+Private dashboard for the individual user, populated with bills from Bills page
 """
 
 import streamlit as st
+#st.write(st.__version__) --> for debugging conflicting streamlit versions
 import pandas as pd
-from utils.aggrid_styler import draw_bill_grid
-from utils.general import to_csv
-from db.query import Query
+from db.query import get_my_dashboard_bills, clear_all_my_dashboard_bills
 from utils.my_dashboard import display_dashboard_details
 from utils.bill_history import format_bill_history
-from utils.profiling import profile
+from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+
+track_rerun("My Dashboard")
 
 # Page title
 st.title('📌 My Dashboard')
@@ -37,9 +39,10 @@ if 'authenticated' not in st.session_state:
     st.error("User not authenticated. Please log in.")
     st.stop()  # Stop execution if the user is not authenticated
 
+# Initialize session state for filters
+initialize_filter_state()
+
 # Access user info
-#user_info = st.session_state['user_info']
-#user_email = st.session_state["user_info"].get("email")
 user_email = st.session_state['user_email']
 user_name = st.session_state['user_name']
 first_name = user_name.split()[0]  # Get the first name for a more personal greeting
@@ -68,119 +71,74 @@ with col2:
 if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
     st.session_state.dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
 
-@profile("my_dashboard.py - get_user_dashboard_data")
-def get_user_dashboard_data():
-    @st.cache_data
-    def user_dashboard_cache():
-        user_dashboard_q = f"""
-            SELECT 
-                b.openstates_bill_id,
-                b.bill_number,
-                b.bill_name,
-                b.status,
-                b.date_introduced,
-                b.leg_session,
-                b.author,
-                b.coauthors, 
-                b.chamber,
-                b.leginfo_link,
-                b.bill_text,
-                b.bill_history,
-                b.bill_event,
-                b.event_text,
-                b.assigned_topics,
-                b.last_updated_on
-            FROM public.bills_2025_2026 b
-            LEFT JOIN public.user_bill_dashboard ubd
-                ON ubd.openstates_bill_id = b.openstates_bill_id
-            WHERE ubd.user_email = '{user_email}';
-        """
-        db_bills = Query(
-            page_name="my_dashboard",
-            query=user_dashboard_q
-        ).fetch_records()
+# Load bills data for the my dashboard
+@profile("DB - Fetch MY DASHBOARD table data")
+@st.cache_data(show_spinner="Loading your dashboard...", ttl=30) # Cache dashboard data and refresh every 30 seconds
+def load_my_dashboard_table():
+    # Fetch the user's saved bills from the database
+    db_bills = get_my_dashboard_bills(user_email)
 
-        # Update session state with user's dashboard bills
-        #st.session_state.dashboard_bills = db_bills
+    # DON'T NEED TO FORMAT DATES FOR STREAMLIT NATIVE TABLES; THIS IS HANDLED IN COLUMN CONFIG WITH DATE COLUMN
+    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+    #db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+    #db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    #db_bills['last_updated_on'] = pd.to_datetime(db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-        # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-        # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-        db_bills['date_introduced'] = pd.to_datetime(db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-        db_bills['bill_event'] = pd.to_datetime(db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-        db_bills['last_updated_on'] = pd.to_datetime(db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    # Minor data processing to match bills table
+    # Wrangle assigned-topic string to a Python list for web app manipulation
+    db_bills['bill_topic'] = db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+    db_bills = db_bills.drop(columns=['assigned_topics'])
+    db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-        # Minor data processing to match bills table
-        # Wrangle assigned-topic string to a Python list for web app manipulation
-        db_bills['bill_topic'] = db_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
-        db_bills = db_bills.drop(columns=['assigned_topics'])
-        db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
+    # Default sorting: by upcoming bill_event
+    #db_bills = db_bills.sort_values(by='bill_event', ascending=False)
+    return db_bills
 
-        # Default sorting: by upcoming bill_event
-        db_bills = db_bills.sort_values(by='bill_event', ascending=False)
-        return db_bills
-    user_dashboard = user_dashboard_cache()
-    return user_dashboard
+db_bills = load_my_dashboard_table()
 
-db_bills = get_user_dashboard_data()
-st.session_state.dashboard_bills = db_bills
 
-# Mapping between user-friendly labels and internal theme values
-theme_options = {
-    'narrow': 'streamlit',
-    'wide': 'alpine'
-}
+############################ FILTERS #############################
+# Display filters and get filter values
+filter_values = display_bill_filters(db_bills, show_date_filters=True)
+selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
 
-# Initialize session state for theme if not set
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'streamlit'  # Default theme
+# Apply filters
+filtered_bills = apply_bill_filters(
+    db_bills, 
+    selected_topics, 
+    selected_statuses, 
+    selected_authors, 
+    bill_number_search, 
+    date_from, 
+    date_to
+)
 
-# Reverse mapping to get the label from the internal value
-label_from_theme = {v: k for k, v in theme_options.items()}
-
-# Create a two-column layout
-col1, col2, col3 = st.columns([1, 7, 2])
+# Update total bills count
+col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
-    selected_label = st.selectbox(
-        'Change grid theme:',
-        options=list(theme_options.keys()),
-        index=list(theme_options.keys()).index(label_from_theme[st.session_state.theme])
-    )
-    
-with col2:    
-    st.markdown("")
+    total_bills = len(filtered_bills)
+    st.markdown(f"#### Total bills: {total_bills:,}")
+    if len(filtered_bills) < len(db_bills):
+        st.caption(f"(filtered from {len(db_bills):,} total)")
 
-with col3:
-    st.download_button(
-            label='Download Data as CSV',
-            data=to_csv(db_bills),
-            file_name='my_bills.csv',
-            mime='text/csv',
-            use_container_width=True
-        )
-
-# Update session state if the user picks a new theme
-selected_theme = theme_options[selected_label]
-if selected_theme != st.session_state.theme:
-    st.session_state.theme = selected_theme
-
-# Use the persisted theme
-theme = st.session_state.theme
+############################ MAIN TABLE / DATAFRAME #############################
 
 if not db_bills.empty:
-    total_db_bills = len(db_bills)
-    st.markdown(f"#### {first_name}'s saved bills: {total_db_bills} total bills")
-    data = draw_bill_grid(db_bills, theme=theme)
+    with timer("My dashboard - draw streamlit df"):
+        data = display_bills_table(filtered_bills)
 
-    # Display bill details for dashboard bills
-    if 'selected_bills' not in st.session_state:
-        st.session_state.selected_bills = []
-        
-    selected_rows = data.selected_rows
-
-    if selected_rows is not None and len(selected_rows) != 0:
-            display_dashboard_details(selected_rows)
+    # Access selected rows
+    if data.selection.rows:
+        track_event("Row selected")
+        selected_index = data.selection.rows[0]  # Get first selected row index
+        selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
+        display_dashboard_details(selected_bill_data)
 
 elif db_bills.empty:
-    st.write('No bills selected yet.')
+    st.write('No bills added yet.')
+
+
+    
 
 

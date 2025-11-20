@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Org Dashboard: With Streamlit Dataframe
-Created on Nov 17, 2025
+Org Dashboard
+Created on March 28, 2025
 @author: danyasherbini
 
-Private dashboard for an organization, populated with bills from Bills page
+Page to add bills to an org's private dashboard
 """
 
 import streamlit as st
 import pandas as pd
+from utils.aggrid_styler import draw_bill_grid
+from utils.general import to_csv
 from db.query import get_org_dashboard_bills
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
-from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
-from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
-
+from utils.profiling import timer, profile, show_performance_metrics, track_rerun
 
 track_rerun("Org Dashboard")
 
@@ -32,7 +32,6 @@ user_email = st.session_state['user_email']
 
 # Page title
 st.title(f"🏢 {org_nickname}'s Dashboard")
-st.session_state.curr_page = f"{org_nickname}'s Dashboard"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to your organization.
@@ -56,22 +55,18 @@ st.markdown(" ")
 if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None:
     st.session_state.org_dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
 
-# Load bills data for the org dashboard
-@profile("DB - Fetch ORG DASHBOARD table data")
-@st.cache_data(show_spinner="Loading your dashboard...", ttl=30) # Cache dashboard data and refresh every 30 seconds
-def load_org_dashboard_table():
-    # Get data
+with timer("Dashboard - fetch and prepare bills data"):
+    # Fetch the user's org's saved bills from the database
     org_db_bills = get_org_dashboard_bills(org_id)
 
     # Update session state with user's org's dashboard bills
     st.session_state.org_dashboard_bills = org_db_bills
 
-    # DON'T NEED TO FORMAT DATES FOR STREAMLIT NATIVE TABLES; THIS IS HANDLED IN COLUMN CONFIG WITH DATE COLUMN
     # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
     # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    #org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    #org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    #org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+    org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Minor data processing to match bills table
     # Wrangle assigned-topic string to a Python list for web app manipulation
@@ -82,48 +77,64 @@ def load_org_dashboard_table():
 
     # Default sorting: by upcoming bill_event
     org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
-    
-    return org_db_bills
 
-org_db_bills = load_org_dashboard_table()
+# Mapping between user-friendly labels and internal theme values
+theme_options = {
+    'narrow': 'streamlit',
+    'wide': 'alpine'
+}
 
-############################ FILTERS #############################
-# Display filters and get filter values
-filter_values = display_bill_filters(org_db_bills, show_date_filters=True)
-selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
+# Initialize session state for theme if not set
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'streamlit'  # Default theme
 
-# Apply filters
-filtered_bills = apply_bill_filters(
-    org_db_bills, 
-    selected_topics, 
-    selected_statuses, 
-    selected_authors, 
-    bill_number_search, 
-    date_from, 
-    date_to
-)
+# Reverse mapping to get the label from the internal value
+label_from_theme = {v: k for k, v in theme_options.items()}
 
-# Update total bills count
-col1, col2, col3 = st.columns([2, 6, 2])
+# Create a two-column layout
+col1, col2, col3 = st.columns([1, 7, 2])
 with col1:
-    total_bills = len(filtered_bills)
-    st.markdown(f"#### Total bills: {total_bills:,}")
-    if len(filtered_bills) < len(org_db_bills):
-        st.caption(f"(filtered from {len(org_db_bills):,} total)")
+    selected_label = st.selectbox(
+        'Change grid theme:',
+        options=list(theme_options.keys()),
+        index=list(theme_options.keys()).index(label_from_theme[st.session_state.theme])
+    )
+    
+with col2:    
+    st.markdown("")
 
-############################ MAIN TABLE / DATAFRAME #############################
+with col3:
+    st.download_button(
+            label='Download Data as CSV',
+            data=to_csv(org_db_bills),
+            file_name='my_bills.csv',
+            mime='text/csv',
+            use_container_width=True
+        )
+    
+# Update session state if the user picks a new theme
+selected_theme = theme_options[selected_label]
+if selected_theme != st.session_state.theme:
+    st.session_state.theme = selected_theme
 
+# Use the persisted theme
+theme = st.session_state.theme
+
+# Draw the bill grid table
 if not org_db_bills.empty:
-    with timer("Org dashboard - draw streamlit df"):
-        data = display_bills_table(filtered_bills)
+    total_org_db_bills = len(org_db_bills)
+    st.markdown(f"#### {org_name}'s saved bills: {total_org_db_bills} total bills")
+    with timer("Dashboard - draw AgGrid"):
+        data = draw_bill_grid(org_db_bills, theme=theme)
 
-    # Access selected rows
-    if data.selection.rows:
-        track_event("Row selected")
-        selected_index = data.selection.rows[0]  # Get first selected row index
-        selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
-        display_org_dashboard_details(selected_bill_data)
+    # Display bill details for dashboard bills
+    if 'selected_bills' not in st.session_state:
+        st.session_state.selected_bills = []
+        
+    selected_rows = data.selected_rows
+
+    if selected_rows is not None and len(selected_rows) != 0:
+            display_org_dashboard_details(selected_rows)
 
 elif org_db_bills.empty:
-    st.write('No bills added yet.')
-
+    st.write('No bills selected yet.')
