@@ -9,6 +9,7 @@ def get_pool():
     if _pool is None:
         # Import streamlit lazily inside to avoid triggering runtime before set_page_config
         from streamlit.runtime.caching import cache_resource
+    @cache_resource
     def _make_pool():
         return pool.SimpleConnectionPool(minconn=1, maxconn=10, **config('postgres'))
     
