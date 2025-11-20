@@ -88,7 +88,9 @@ class Query:
 
         st.success(self.success_message)
         pg_pool.putconn(conn) 
+        #TODO: is this actually rerunning?
         st.rerun()
+        return
 
 ###############################################################################
 

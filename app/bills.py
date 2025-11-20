@@ -143,6 +143,7 @@ with col1:
 with timer("Bills - draw streamlit df"):
     data = display_bills_table(filtered_bills)
 
+#TODO: check how data.selection.rows is instantiated (1st trigger after rebuild always fails)
 # Access selected rows
 if data.selection.rows and len(data.selection.rows) > 0:
     track_event("Row selected")
