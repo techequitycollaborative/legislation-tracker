@@ -11,7 +11,7 @@ Private dashboard for the individual user, populated with bills from Bills page
 import streamlit as st
 #st.write(st.__version__) --> for debugging conflicting streamlit versions
 import pandas as pd
-from db.query import get_my_dashboard_bills, clear_all_my_dashboard_bills
+from db.query import Query, get_my_dashboard_bills, clear_all_my_dashboard_bills
 from utils.my_dashboard import display_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
