@@ -72,4 +72,4 @@ def app_config(section='app', filename = 'db/credentials.ini'):
     return config
 
 if __name__ == "__main__":
-    app_config()
+    print(app_config())
