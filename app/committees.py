@@ -74,6 +74,7 @@ def get_committee_data():
     committees = committee_cache()
     return committees
 
+# TODO: unify with session_state storage of data, not page variable
 committees = get_committee_data()
 
 ############################ SESSION STATE #############################

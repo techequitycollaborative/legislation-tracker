@@ -43,7 +43,7 @@ st.markdown(" ")
 st.markdown(" ")
 
 ############################ INITIALIZE SESSION STATE VARS #############################
-
+# TODO: check session_state for cached data before running DB query
 # Access user info
 user_email = st.session_state['user_email']
 org_id = st.session_state['org_id']

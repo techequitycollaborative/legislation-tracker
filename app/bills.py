@@ -113,12 +113,12 @@ with col3:
 
 ############################ FILTERS #############################
 # Display filters and get filter values
-filter_values = display_bill_filters(bills, show_date_filters=True)
+filter_values = display_bill_filters(st.session_state.bills_data, show_date_filters=True)
 selected_topics, selected_statuses, author_search, bill_number_search, date_from, date_to = filter_values
 
 # Apply filters
 filtered_bills = apply_bill_filters(
-    bills, 
+    st.session_state.bills_data, 
     selected_topics, 
     selected_statuses, 
     author_search, 
@@ -132,8 +132,8 @@ col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
     total_bills = len(filtered_bills)
     st.markdown(f"#### Total bills: {total_bills:,}")
-    if len(filtered_bills) < len(bills):
-        st.caption(f"(filtered from {len(bills):,} total)")
+    if len(filtered_bills) < len(st.session_state.bills_data):
+        st.caption(f"(filtered from {len(st.session_state.bills_data):,} total)")
 
 
 ############################ MAIN TABLE / DATAFRAME #############################

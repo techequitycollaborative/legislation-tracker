@@ -50,18 +50,7 @@ first_name = user_name.split()[0]  # Get the first name for a more personal gree
 col1, col2 = st.columns([4, 1])
 with col2:
     if st.button('Clear Dashboard', use_container_width=True, type='primary'):
-        clear_q = f"""
-            DELETE FROM public.user_bill_dashboard WHERE user_email='{user_email}'
-        """
-        clear_success_msg = "User dashboard cleared."
-
-        clear_query = Query(
-            page_name="my_dashboard",
-            query=clear_q,
-            success_msg=clear_success_msg
-        )
-
-        clear_query.update_records()  # Actually remove the bills from the DB
+        clear_all_my_dashboard_bills()
         st.session_state.selected_bills = []
         st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
         st.success('Dashboard cleared!') #TODO: figure out why success message gets cleared so quickly
@@ -94,17 +83,17 @@ def load_my_dashboard_table():
     #db_bills = db_bills.sort_values(by='bill_event', ascending=False)
     return db_bills
 
-db_bills = load_my_dashboard_table()
+st.session_state.dashboard_bills = load_my_dashboard_table()
 
 
 ############################ FILTERS #############################
 # Display filters and get filter values
-filter_values = display_bill_filters(db_bills, show_date_filters=True)
+filter_values = display_bill_filters(st.session_state.dashboard_bills, show_date_filters=True)
 selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
 
 # Apply filters
 filtered_bills = apply_bill_filters(
-    db_bills, 
+    st.session_state.dashboard_bills, 
     selected_topics, 
     selected_statuses, 
     selected_authors, 
@@ -118,12 +107,12 @@ col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
     total_bills = len(filtered_bills)
     st.markdown(f"#### Total bills: {total_bills:,}")
-    if len(filtered_bills) < len(db_bills):
-        st.caption(f"(filtered from {len(db_bills):,} total)")
+    if len(filtered_bills) < len(st.session_state.dashboard_bills):
+        st.caption(f"(filtered from {len(st.session_state.dashboard_bills):,} total)")
 
 ############################ MAIN TABLE / DATAFRAME #############################
 
-if not db_bills.empty:
+if not st.session_state.dashboard_bills.empty:
     with timer("My dashboard - draw streamlit df"):
         data = display_bills_table(filtered_bills)
 
@@ -134,7 +123,7 @@ if not db_bills.empty:
         selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
         display_dashboard_details(selected_bill_data)
 
-elif db_bills.empty:
+elif st.session_state.dashboard_bills.empty:
     st.write('No bills added yet.')
 
 

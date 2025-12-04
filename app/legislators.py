@@ -87,7 +87,7 @@ def get_legislator_data():
     legislators = legislator_cache()
     
     return legislators
-
+# TODO: unify with session_state storage of data, not page variable
 legislators = get_legislator_data()
 
 ############################ FILTERS #############################

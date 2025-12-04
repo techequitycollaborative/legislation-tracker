@@ -322,17 +322,15 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     st.rerun()
 
 @profile("query.py - clear_all_my_dashboard_bills")
-def clear_all_my_dashboard_bills(user_email):
+def clear_all_my_dashboard_bills():
     '''
     Clears ALL bills from the user's personal dashboard, deletes them from the database, and updates session state.
-    '''
-    user_email = st.session_state['user_email']
-    
+    '''    
     
     conn = pg_pool.getconn()
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM public.user_bill_dashboard WHERE user_email = %s", (user_email,))
+    cursor.execute("DELETE FROM public.user_bill_dashboard WHERE user_email = %s", (st.session_state['user_email'],))
     
     conn.commit()
     pg_pool.putconn(conn)

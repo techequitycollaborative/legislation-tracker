@@ -100,6 +100,7 @@ def load_ai_dashboard_table():
     
     return wg_bills
 
+# TODO: unify with session_state storage of data, not page variable
 wg_bills = load_ai_dashboard_table()
 
 
@@ -118,16 +119,19 @@ with metrics_col2:
     #recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= pd.Timestamp.now().strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
     
     # Get bills updated in the last 7 days
+    # TODO: move to loading function, or a metrics function
     recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= (pd.Timestamp.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
     
     st.metric("🕒 Bills Updated This Week", recent_bills_count)
 
 with metrics_col3:
+    # TODO: move to loading function, or a metrics function
     ai_members = get_ai_members()
     member_count = len(ai_members) if not ai_members.empty else 0
     st.metric("👥 Working Group Members", member_count)
 
 with metrics_col4:
+    # TODO: move to loading function, or a metrics function
     custom_details = pd.DataFrame(get_all_custom_bill_details())
     letters_count = 0
     if not custom_details.empty and 'letter_of_support' in custom_details.columns:
