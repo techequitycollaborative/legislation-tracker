@@ -86,10 +86,12 @@ class Query:
             cursor.execute(self.query)
             conn.commit()
 
-        st.success(self.success_message)
         pg_pool.putconn(conn) 
-        #TODO: is this actually rerunning?
+        # Clear the cache so data reloads
+        st.cache_data.clear()
         st.rerun()
+
+        st.success(self.success_message)
         return
 
 ###############################################################################
