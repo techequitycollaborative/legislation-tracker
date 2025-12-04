@@ -6,7 +6,7 @@ from functools import wraps
 from contextlib import contextmanager
 
 # Globals - turn off in production
-PROFILING_ENABLED = True # TODO: add this to credentials/config?
+PROFILING_ENABLED = True # TODO: add this to credentials.ini and config.py access
 MAX_TIMINGS = 50
 
 # Set up logging for console output
@@ -38,6 +38,8 @@ def track_rerun(page_name):
     if not PROFILING_ENABLED:
         return
     
+    # Set page_name to curr_page in session_state
+    st.session_state.curr_page = page_name
     # Mark when this rerun started
     rerun_start = time.time()
     

@@ -24,6 +24,7 @@ from utils.css_utils import load_css_with_fallback, DEFAULT_FALLBACK_CSS
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
 from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
 
+track_rerun("AI Working Group Dashboard")
 #################################### PAGE SETUP ####################################
 
 # Load custom CSS with fallback
@@ -38,7 +39,6 @@ st.markdown("""
     <h1>AI Working Group Dashboard</h1>
 </div>
 """, unsafe_allow_html=True)
-st.session_state.curr_page = "AI Working Group Dashboard"
 
 st.expander("ℹ️ About this page", expanded=False).markdown("""
 - Use this page to track bills as a working group.
@@ -100,6 +100,7 @@ def load_ai_dashboard_table():
     
     return wg_bills
 
+# TODO: unify with session_state storage of data, not page variable
 wg_bills = load_ai_dashboard_table()
 
 
@@ -118,16 +119,19 @@ with metrics_col2:
     #recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= pd.Timestamp.now().strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
     
     # Get bills updated in the last 7 days
+    # TODO: move to loading function, or a metrics function
     recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= (pd.Timestamp.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
     
     st.metric("🕒 Bills Updated This Week", recent_bills_count)
 
 with metrics_col3:
+    # TODO: move to loading function, or a metrics function
     ai_members = get_ai_members()
     member_count = len(ai_members) if not ai_members.empty else 0
     st.metric("👥 Working Group Members", member_count)
 
 with metrics_col4:
+    # TODO: move to loading function, or a metrics function
     custom_details = pd.DataFrame(get_all_custom_bill_details())
     letters_count = 0
     if not custom_details.empty and 'letter_of_support' in custom_details.columns:
@@ -312,10 +316,13 @@ with st.container(key='dashboard_bills_table_container'):
         with timer("AI working group dashboard - draw streamlit df"):
             data = display_bills_table(filtered_bills)
 
+        # Assign variable to selection property
+        selected = data.selection
+
         # Access selected rows
-        if data.selection.rows:
+        if selected != None and selected.rows:
             track_event("Row selected")
-            selected_index = data.selection.rows[0]  # Get first selected row index
+            selected_index = selected.rows[0]  # Get first selected row index
             selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
             display_working_group_bill_details(selected_bill_data)
 

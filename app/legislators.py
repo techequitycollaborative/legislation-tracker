@@ -44,7 +44,6 @@ initialize_filter_state()
 
 # Show the page title and description
 st.title('💼 Legislators')
-st.session_state.curr_page = "Legislators"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
 - This page shows legislator information for the current legislative session as collected from OpenStates and the [Capitol Codex](https://docs.google.com/spreadsheets/d/1gFeGy72R_-FSFrjXbKCAAvVsvNjyV7t_TUvFoB12vys/edit?gid=1422908451#gid=1422908451) Issues tabs. 
@@ -88,7 +87,7 @@ def get_legislator_data():
     legislators = legislator_cache()
     
     return legislators
-
+# TODO: unify with session_state storage of data, not page variable
 legislators = get_legislator_data()
 
 ############################ FILTERS #############################
@@ -124,9 +123,13 @@ with cols[0]:  # Left panel - Browse
 
 with cols[1]:  # Right panel - Detail View
     # Access selected rows
-    if data.selection.rows:
+    # Assign variable to selection property
+    selected = data.selection
+
+    # Access selected rows
+    if selected != None and selected.rows:
         track_event("Row selected")
-        selected_index = data.selection.rows[0]  # Get first selected row index
+        selected_index = selected.rows[0]  # Get first selected row index
         selected_legislator_data = filtered_legislators.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
         display_legislator_info_text(selected_legislator_data)
         

@@ -12,6 +12,9 @@ import streamlit as st
 import pandas as pd
 from db.query import get_all_custom_bill_details
 from utils.aggrid_styler import draw_advocacy_grid
+from utils.profiling import track_rerun
+
+track_rerun("Advocacy Hub")
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:
@@ -25,7 +28,6 @@ user_email = st.session_state['user_email']
 
 # Page title
 st.title("📣 Advocacy Hub")
-st.session_state.curr_page = "Advocacy Hub"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
 - This page displays custom advocacy information from organizations using the Legislation Tracker.

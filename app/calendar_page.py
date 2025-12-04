@@ -22,7 +22,6 @@ from utils.profiling import profile, track_rerun
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
 track_rerun("Calendar")
 st.title('📅 Calendar')
-st.session_state.curr_page = "Calendar"
 
 with st.expander("About this page", icon="ℹ️", expanded=False):
     st.markdown(
@@ -44,7 +43,7 @@ st.markdown(" ")
 st.markdown(" ")
 
 ############################ INITIALIZE SESSION STATE VARS #############################
-
+# TODO: check session_state for cached data before running DB query
 # Access user info
 user_email = st.session_state['user_email']
 org_id = st.session_state['org_id']

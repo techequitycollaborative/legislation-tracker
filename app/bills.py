@@ -19,7 +19,6 @@ from utils.table_display import initialize_filter_state, display_bill_filters, a
 
 # Page title and description
 st.title('📝 Bills')
-st.session_state.curr_page = "Bills"
 
 current_session = '2025-2026'
 
@@ -114,12 +113,12 @@ with col3:
 
 ############################ FILTERS #############################
 # Display filters and get filter values
-filter_values = display_bill_filters(bills, show_date_filters=True)
+filter_values = display_bill_filters(st.session_state.bills_data, show_date_filters=True)
 selected_topics, selected_statuses, author_search, bill_number_search, date_from, date_to = filter_values
 
 # Apply filters
 filtered_bills = apply_bill_filters(
-    bills, 
+    st.session_state.bills_data, 
     selected_topics, 
     selected_statuses, 
     author_search, 
@@ -133,8 +132,8 @@ col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
     total_bills = len(filtered_bills)
     st.markdown(f"#### Total bills: {total_bills:,}")
-    if len(filtered_bills) < len(bills):
-        st.caption(f"(filtered from {len(bills):,} total)")
+    if len(filtered_bills) < len(st.session_state.bills_data):
+        st.caption(f"(filtered from {len(st.session_state.bills_data):,} total)")
 
 
 ############################ MAIN TABLE / DATAFRAME #############################
@@ -143,10 +142,12 @@ with col1:
 with timer("Bills - draw streamlit df"):
     data = display_bills_table(filtered_bills)
 
-#TODO: check how data.selection.rows is instantiated (1st trigger after rebuild always fails)
+# Assign variable to selection propertiy
+selected = data.selection
+
 # Access selected rows
-if data.selection.rows and len(data.selection.rows) > 0:
+if selected != None and selected.rows:
     track_event("Row selected")
-    selected_index = data.selection.rows[0]  # Get first selected row index
+    selected_index = selected.rows[0]  # Get first selected row index
     selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
     display_bill_info_text(selected_bill_data)

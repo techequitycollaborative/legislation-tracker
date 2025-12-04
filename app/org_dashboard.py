@@ -18,7 +18,6 @@ from utils.table_display import initialize_filter_state, display_bill_filters, a
 
 
 track_rerun("Org Dashboard")
-st.session_state.curr_page = "Org Dashboard"
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:
@@ -33,7 +32,6 @@ user_email = st.session_state['user_email']
 
 # Page title
 st.title(f"🏢 {org_nickname}'s Dashboard")
-st.session_state.curr_page = f"{org_nickname}'s Dashboard"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to your organization.
@@ -86,16 +84,16 @@ def load_org_dashboard_table():
     
     return org_db_bills
 
-org_db_bills = load_org_dashboard_table()
+st.session_state.org_dashboard_bills = load_org_dashboard_table()
 
 ############################ FILTERS #############################
 # Display filters and get filter values
-filter_values = display_bill_filters(org_db_bills, show_date_filters=True)
+filter_values = display_bill_filters(st.session_state.org_dashboard_bills, show_date_filters=True)
 selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
 
 # Apply filters
 filtered_bills = apply_bill_filters(
-    org_db_bills, 
+    st.session_state.org_dashboard_bills, 
     selected_topics, 
     selected_statuses, 
     selected_authors, 
@@ -109,22 +107,25 @@ col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
     total_bills = len(filtered_bills)
     st.markdown(f"#### Total bills: {total_bills:,}")
-    if len(filtered_bills) < len(org_db_bills):
-        st.caption(f"(filtered from {len(org_db_bills):,} total)")
+    if len(filtered_bills) < len(st.session_state.org_dashboard_bills):
+        st.caption(f"(filtered from {len(st.session_state.org_dashboard_bills):,} total)")
 
 ############################ MAIN TABLE / DATAFRAME #############################
 
-if not org_db_bills.empty:
+if not st.session_state.org_dashboard_bills.empty:
     with timer("Org dashboard - draw streamlit df"):
         data = display_bills_table(filtered_bills)
 
+    # Assign variable to selection property
+    selected = data.selection
+
     # Access selected rows
-    if data.selection.rows:
+    if selected != None and selected.rows:
         track_event("Row selected")
-        selected_index = data.selection.rows[0]  # Get first selected row index
+        selected_index = selected.rows[0]  # Get first selected row index
         selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
         display_org_dashboard_details(selected_bill_data)
 
-elif org_db_bills.empty:
+elif st.session_state.org_dashboard_bills.empty:
     st.write('No bills added yet.')
 
