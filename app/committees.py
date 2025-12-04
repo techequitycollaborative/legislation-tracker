@@ -116,10 +116,13 @@ with col1:
 with timer("Committees - draw streamlit df"):
     data = display_committee_table(filtered_committees)
 
+# Assign variable to selection property
+selected = data.selection
+
 # Access selected rows
-if data.selection.rows:
+if selected != None and selected.rows:
     track_event("Row selected")
-    selected_index = data.selection.rows[0]  # Get first selected row index
+    selected_index = selected.rows[0]  # Get first selected row index
     selected_bill_data = filtered_committees.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
     display_committee_info_text(selected_bill_data)
 

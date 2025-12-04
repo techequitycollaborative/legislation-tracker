@@ -123,9 +123,13 @@ with cols[0]:  # Left panel - Browse
 
 with cols[1]:  # Right panel - Detail View
     # Access selected rows
-    if data.selection.rows:
+    # Assign variable to selection property
+    selected = data.selection
+
+    # Access selected rows
+    if selected != None and selected.rows:
         track_event("Row selected")
-        selected_index = data.selection.rows[0]  # Get first selected row index
+        selected_index = selected.rows[0]  # Get first selected row index
         selected_legislator_data = filtered_legislators.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
         display_legislator_info_text(selected_legislator_data)
         

@@ -142,10 +142,12 @@ with col1:
 with timer("Bills - draw streamlit df"):
     data = display_bills_table(filtered_bills)
 
-#TODO: check how data.selection.rows is instantiated (1st trigger after rebuild always fails)
+# Assign variable to selection propertiy
+selected = data.selection
+
 # Access selected rows
-if data.selection.rows and len(data.selection.rows) > 0:
+if selected != None and selected.rows:
     track_event("Row selected")
-    selected_index = data.selection.rows[0]  # Get first selected row index
+    selected_index = selected.rows[0]  # Get first selected row index
     selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
     display_bill_info_text(selected_bill_data)
