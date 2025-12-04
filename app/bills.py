@@ -142,7 +142,7 @@ with col1:
 with timer("Bills - draw streamlit df"):
     data = display_bills_table(filtered_bills)
 
-# Assign variable to selection propertiy
+# Assign variable to selection property
 selected = data.selection
 
 # Access selected rows
