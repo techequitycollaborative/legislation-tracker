@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2 import pool, OperationalError
-from db.config import config
+from db.config import db_config as config
 
 ############################# GLOBAL VARIABLES #################################
 _pool = None  # module-level singleton
