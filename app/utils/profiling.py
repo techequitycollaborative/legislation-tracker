@@ -4,10 +4,11 @@ import traceback
 import streamlit as st
 from functools import wraps
 from contextlib import contextmanager
-from db.config import config
+from db.config import app_config as config
+
 # Globals - turn off in production
 
-PROFILING_ENABLED = config('postgres')['profiling_enabled'] 
+PROFILING_ENABLED = config()['profiling_enabled']
 MAX_TIMINGS = 50
 
 # Set up logging for console output

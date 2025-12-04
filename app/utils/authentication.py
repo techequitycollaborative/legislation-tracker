@@ -13,7 +13,7 @@ import bcrypt
 import psycopg2
 import re
 import os
-from db.config import config
+from db.config import db_config as config
 from db.connect import get_pool
 from typing import Optional, Tuple, List
 from datetime import datetime, timedelta
