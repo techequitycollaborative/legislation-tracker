@@ -6,17 +6,18 @@ from functools import wraps
 from contextlib import contextmanager
 from db.config import app_config as config
 
-# Globals - turn off in production
-
-PROFILING_ENABLED = config()['profiling_enabled']
-MAX_TIMINGS = 50
-
 # Set up logging for console output
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - [%(name)s] - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Globals - turn off in production
+
+PROFILING_ENABLED = config()['profiling_enabled']
+MAX_TIMINGS = 50
+logger.info(f"Profiling Enabled: {PROFILING_ENABLED}")
 
 def init_profiling():
     """Initialize profiling session state. Call this once at app startup."""

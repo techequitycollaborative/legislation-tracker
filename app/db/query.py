@@ -13,7 +13,6 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 import psycopg2.extras
-from db.config import db_config as config
 from db.connect import get_pool
 import numpy as np
 import datetime
