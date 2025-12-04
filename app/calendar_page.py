@@ -22,7 +22,6 @@ from utils.profiling import profile, track_rerun
 # st.set_page_config(page_title='Legislation Tracker', layout='wide') # can add page_icon argument
 track_rerun("Calendar")
 st.title('📅 Calendar')
-st.session_state.curr_page = "Calendar"
 
 with st.expander("About this page", icon="ℹ️", expanded=False):
     st.markdown(

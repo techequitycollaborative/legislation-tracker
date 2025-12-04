@@ -19,7 +19,6 @@ from utils.table_display import initialize_filter_state, display_bill_filters, a
 
 # Page title and description
 st.title('📝 Bills')
-st.session_state.curr_page = "Bills"
 
 current_session = '2025-2026'
 

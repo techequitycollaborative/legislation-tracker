@@ -21,7 +21,6 @@ from utils.profiling import timer, profile, show_performance_metrics, track_reru
 
 # Page title and description
 st.title('🗣 Committees')
-st.session_state.curr_page = "Committees"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(""" 
 - This page shows California Assembly and Senate committee information (upcoming hearings, memberships, links). 

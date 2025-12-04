@@ -21,7 +21,6 @@ track_rerun("My Dashboard")
 
 # Page title
 st.title('📌 My Dashboard')
-st.session_state.curr_page = "My Dashboard"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to you.
@@ -65,7 +64,7 @@ with col2:
         clear_query.update_records()  # Actually remove the bills from the DB
         st.session_state.selected_bills = []
         st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
-        st.success('Dashboard cleared!')
+        st.success('Dashboard cleared!') #TODO: figure out why success message gets cleared so quickly
 
 # Initialize session state for dashboard bills
 if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:

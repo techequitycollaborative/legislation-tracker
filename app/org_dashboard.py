@@ -18,7 +18,6 @@ from utils.table_display import initialize_filter_state, display_bill_filters, a
 
 
 track_rerun("Org Dashboard")
-st.session_state.curr_page = "Org Dashboard"
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:
@@ -33,7 +32,6 @@ user_email = st.session_state['user_email']
 
 # Page title
 st.title(f"🏢 {org_nickname}'s Dashboard")
-st.session_state.curr_page = f"{org_nickname}'s Dashboard"
 
 st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 - Use this page to track bills relevant to your organization.

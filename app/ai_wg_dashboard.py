@@ -24,6 +24,7 @@ from utils.css_utils import load_css_with_fallback, DEFAULT_FALLBACK_CSS
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
 from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
 
+track_rerun("AI Working Group Dashboard")
 #################################### PAGE SETUP ####################################
 
 # Load custom CSS with fallback
@@ -38,7 +39,6 @@ st.markdown("""
     <h1>AI Working Group Dashboard</h1>
 </div>
 """, unsafe_allow_html=True)
-st.session_state.curr_page = "AI Working Group Dashboard"
 
 st.expander("ℹ️ About this page", expanded=False).markdown("""
 - Use this page to track bills as a working group.
