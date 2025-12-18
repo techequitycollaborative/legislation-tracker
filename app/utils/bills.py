@@ -11,7 +11,9 @@ import streamlit as st
 import pandas as pd
 from db.query import add_bill_to_dashboard, add_bill_to_org_dashboard, add_bill_to_working_group_dashboard, BILL_COLUMNS
 from .general import bill_topic_grid, clean_markdown
+from .profiling import profile, timer
 
+@profile("utils/bills.py - display_bill_info_text")
 def display_bill_info_text(selected_rows):
     '''
     Displays bill information as markdown text when a row is selected in
@@ -19,7 +21,7 @@ def display_bill_info_text(selected_rows):
     '''
     # Extract the values from the selected row
     selected_data_dict = dict(zip(selected_rows.columns, selected_rows.iloc[0]))  # Convert selected row to a dictionary
-    bill_values = [selected_data_dict.get(col, None) for col in BILL_COLUMNS] # Ensure values align with expected order of BILL_COLUMNS, which is necessary for proper db querying
+    # bill_values = [selected_data_dict.get(col, None) for col in BILL_COLUMNS] # Ensure values align with expected order of BILL_COLUMNS, which is necessary for proper db querying
 
     openstates_bill_id = selected_rows['openstates_bill_id'].iloc[0]
     bill_number = selected_rows['bill_number'].iloc[0]
@@ -40,7 +42,7 @@ def display_bill_info_text(selected_rows):
 
     # Format dates MM-DD-YYYY in the bill details
     date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') if date_introduced is not None else None
-    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') if bill_event is not None else None
+    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') if bill_event is not None and pd.notna(bill_event) else None
     last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
 
     # Get the org and user details from session state
@@ -65,7 +67,8 @@ def display_bill_info_text(selected_rows):
             # Add to ORG DASHBOARD button
             if st.button(f"Add to {org_nickname} Dashboard", use_container_width=True, type='primary'):
                 # Call the function to add the bill to the dashboard
-                add_bill_to_org_dashboard(openstates_bill_id, bill_number)
+                with timer("utils/bills.py - add_bill_to_org_dashboard"):
+                    add_bill_to_org_dashboard(openstates_bill_id, bill_number)
 
             # Add to MY DASHBOARD button
             if st.button('Add to My Dashboard', use_container_width=True,type='secondary'):

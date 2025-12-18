@@ -12,6 +12,9 @@ import streamlit as st
 import pandas as pd
 from db.query import get_all_custom_bill_details
 from utils.aggrid_styler import draw_advocacy_grid
+from utils.profiling import track_rerun
+
+track_rerun("Advocacy Hub")
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:

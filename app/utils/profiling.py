@@ -1,0 +1,209 @@
+import time
+import logging
+import traceback
+import streamlit as st
+from functools import wraps
+from contextlib import contextmanager
+from db.config import app_config as config
+
+# Set up logging for console output
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - [%(name)s] - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Globals - turn off in production
+
+PROFILING_ENABLED = config()['profiling_enabled']
+MAX_TIMINGS = 50
+logger.info(f"Profiling Enabled: {PROFILING_ENABLED}")
+
+def init_profiling():
+    """Initialize profiling session state. Call this once at app startup."""
+    if 'timings' not in st.session_state:
+        st.session_state.timings = []
+    if 'rerun_count' not in st.session_state:
+        st.session_state.rerun_count = {}
+    if 'event_count' not in st.session_state:
+        st.session_state.event_count = {}
+    if 'curr_page' not in st.session_state:
+        st.session_state.curr_page = "Main"
+    # if 'event_start_time' not in st.session_state:
+    #     st.session_state.event_start_time = {}
+
+
+def track_rerun(page_name):
+    """
+    Track page reruns and measure how long the rerun takes to complete.
+    Call this at the VERY TOP of each page function.
+    """
+    if not PROFILING_ENABLED:
+        return
+    
+    # Set page_name to curr_page in session_state
+    st.session_state.curr_page = page_name
+    # Mark when this rerun started
+    rerun_start = time.time()
+    
+    # Increment counter
+    if page_name not in st.session_state.rerun_count:
+        st.session_state.rerun_count[page_name] = 0
+    st.session_state.rerun_count[page_name] += 1
+    
+    count = st.session_state.rerun_count[page_name]
+    logger.info(f"🔄 PAGE RERUN: {page_name} (rerun #{count}) started")
+    
+    # Store when this rerun started
+    st.session_state[f'_rerun_start_{page_name}'] = rerun_start
+    
+    st.caption(f"🔵 {page_name} page - Rerun #{count}")
+
+
+def track_rerun_complete(page_name):
+    """
+    Call this at the VERY END of each page function to measure total rerun time.
+    """
+    if not PROFILING_ENABLED:
+        return
+    
+    rerun_end = time.time()
+    rerun_start = st.session_state.get(f'_rerun_start_{page_name}')
+    
+    if rerun_start:
+        duration = rerun_end - rerun_start
+        logger.info(f"✅ PAGE RERUN COMPLETE: {page_name} - {duration:.3f}s total")
+        
+        st.session_state.timings.append((f"🔄 {page_name} - Full rerun duration", duration, rerun_end))
+        
+        # Color code
+        if duration < 1.0:
+            color = "🟢"
+        elif duration < 3.0:
+            color = "🟡"
+        else:
+            color = "🔴"
+        
+        st.caption(f"{color} Page took {duration:.2f}s to render")
+
+def track_event(label):
+    """
+    Track specific user interactions or events that may trigger reruns.
+    Useful for debugging row selection or callbacks.
+    """
+    if not PROFILING_ENABLED:
+        return
+    
+    if 'event_count' not in st.session_state:
+        st.session_state.event_count = {}
+    
+    if label not in st.session_state.event_count:
+        st.session_state.event_count[label] = 0
+    st.session_state.event_count[label] += 1
+    
+    count = st.session_state.event_count[label]
+    logger.info(f"🔹 EVENT: {label} (trigger #{count})")
+    
+    # Display in UI
+    st.caption(f"🔹 {label} - Trigger #{count}")
+    
+@contextmanager
+def timer(label):
+    """Context manager for timing code blocks with optional stack trace logging"""
+    if not PROFILING_ENABLED:
+        yield
+        return
+
+    start = time.time()
+    logger.info(f"START: {label}")
+    
+    try:
+        yield
+    finally:
+        duration = time.time() - start
+        logger.info(f"END: {label} - {duration:.3f}s")
+        
+        st.session_state.timings.append((label, duration, time.time()))
+        
+        # Optional stack trace for debugging
+        stack_summary = traceback.format_stack(limit=3)
+        logger.debug(f"Stack for {label}:\n{''.join(stack_summary)}")
+
+
+def profile(label):
+    """Decorator for timing functions"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if not PROFILING_ENABLED:
+                return func(*args, **kwargs)
+            
+            start = time.time()
+            logger.info(f"START: {label}")
+            
+            try:
+                result = func(*args, **kwargs)
+                duration = time.time() - start
+                logger.info(f"END: {label} - {duration:.3f}s")
+                
+                if 'timings' not in st.session_state:
+                    st.session_state.timings = []
+                st.session_state.timings.append((label, duration, time.time()))
+                
+                return result
+            except Exception as e:
+                logger.error(f"ERROR: {label} - {str(e)}")
+                raise
+        return wrapper
+    return decorator
+
+def show_performance_metrics():
+    """Display performance metrics in a collapsible expander"""
+    if not PROFILING_ENABLED:
+        return
+    
+    if 'timings' in st.session_state and st.session_state.timings:
+        # Cap timings
+        if len(st.session_state.timings) > MAX_TIMINGS:
+            st.session_state.timings = st.session_state.timings[-MAX_TIMINGS:]
+
+        with st.expander("⏱️ Performance Metrics", expanded=False):
+            # Show rerun counts
+            if 'rerun_count' in st.session_state:
+                st.subheader("Page Reruns")
+                for page, count in st.session_state.rerun_count.items():
+                    st.text(f"🔄 {page}: {count} reruns")
+                st.divider()
+            
+            # Show event triggers
+            if 'event_count' in st.session_state and st.session_state.event_count:
+                st.subheader("Event Triggers")
+                for event, count in st.session_state.event_count.items():
+                    st.text(f"🔹 {event}: {count} triggers")
+                st.divider()
+            
+            # Show last 15 timing operations
+            st.subheader("Recent Timings")
+            recent = st.session_state.timings[-15:]
+            for label, duration, _ in recent:
+                # Color code by duration
+                if duration < 0.5:
+                    color = "🟢"
+                elif duration < 2:
+                    color = "🟡"
+                else:
+                    color = "🔴"
+                st.text(f"{color} {label}: {duration:.3f}s")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Clear metrics"):
+                    st.session_state.timings = []
+                    st.session_state.rerun_count = {}
+                    st.session_state.event_count = {}
+                    st.session_state.last_rerun_time = {}
+                    st.rerun()
+            with col2:
+                total_time = sum(d for _, d, _ in recent)
+                st.metric("Total Time", f"{total_time:.2f}s")
+    track_rerun_complete(st.session_state.curr_page)  # ← End timing

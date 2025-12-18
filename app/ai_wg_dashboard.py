@@ -21,7 +21,10 @@ from utils.bill_history import format_bill_history
 from utils.general import to_csv
 from utils.ai_working_group import display_working_group_bill_details
 from utils.css_utils import load_css_with_fallback, DEFAULT_FALLBACK_CSS
+from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
 
+track_rerun("AI Working Group Dashboard")
 #################################### PAGE SETUP ####################################
 
 # Load custom CSS with fallback
@@ -62,31 +65,43 @@ first_name = user_name.split()[0] # get first name from user name
 if 'working_group_bills' not in st.session_state or st.session_state['working_group_bills'] is None:
     st.session_state['working_group_bills'] = pd.DataFrame()
 
+# Initialize session state for filters
+initialize_filter_state()
 
 
 ############################# FETCH BILLS ###########################################
 
-# Fetch the user's saved bills from the database
-wg_bills = get_working_group_bills()
+# Load bills data for the dashboard
+@profile("DB - Fetch AI WG DASHBOARD table data")
+@st.cache_data(show_spinner="Loading your dashboard...", ttl=30) # Cache dashboard data and refresh every 30 seconds
+def load_ai_dashboard_table():
+    # Fetch the user's saved bills from the database
+    wg_bills = get_working_group_bills()
 
-# Process bills data if not empty
-if not wg_bills.empty:
-    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    wg_bills['date_introduced'] = pd.to_datetime(wg_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    wg_bills['bill_event'] = pd.to_datetime(wg_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    wg_bills['last_updated_on'] = pd.to_datetime(wg_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    # Process bills data if not empty
+    if not wg_bills.empty:
+        # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+        
+        # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+        wg_bills['date_introduced'] = pd.to_datetime(wg_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+        wg_bills['bill_event'] = pd.to_datetime(wg_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+        wg_bills['last_updated_on'] = pd.to_datetime(wg_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-    # Minor data processing to match bills table
-    # wg_bills = get_bill_topics_multiple(wg_bills, keyword_dict= keyword_to_topics, keyword_regex=global_keyword_regex)  # Get bill topics
-    # Wrangle assigned-topic string to a Python list for web app manipulation
-    wg_bills['bill_topic'] = wg_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
-    wg_bills = wg_bills.drop(columns=['assigned_topics'])
+        # Minor data processing to match bills table
+        # wg_bills = get_bill_topics_multiple(wg_bills, keyword_dict= keyword_to_topics, keyword_regex=global_keyword_regex)  # Get bill topics
+        # Wrangle assigned-topic string to a Python list for web app manipulation
+        wg_bills['bill_topic'] = wg_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+        wg_bills = wg_bills.drop(columns=['assigned_topics'])
 
-    wg_bills['bill_history'] = wg_bills['bill_history'].apply(format_bill_history) #Format bill history
+        wg_bills['bill_history'] = wg_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-    # Default sorting: by upcoming bill_event
-    wg_bills = wg_bills.sort_values(by='bill_event', ascending=False)
+        # Default sorting: by upcoming bill_event
+        wg_bills = wg_bills.sort_values(by='bill_event', ascending=False)
+    
+    return wg_bills
+
+# TODO: unify with session_state storage of data, not page variable
+wg_bills = load_ai_dashboard_table()
 
 
 ############################## HEADER SECTION ##############################
@@ -104,16 +119,19 @@ with metrics_col2:
     #recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= pd.Timestamp.now().strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
     
     # Get bills updated in the last 7 days
+    # TODO: move to loading function, or a metrics function
     recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= (pd.Timestamp.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
     
     st.metric("🕒 Bills Updated This Week", recent_bills_count)
 
 with metrics_col3:
+    # TODO: move to loading function, or a metrics function
     ai_members = get_ai_members()
     member_count = len(ai_members) if not ai_members.empty else 0
     st.metric("👥 Working Group Members", member_count)
 
 with metrics_col4:
+    # TODO: move to loading function, or a metrics function
     custom_details = pd.DataFrame(get_all_custom_bill_details())
     letters_count = 0
     if not custom_details.empty and 'letter_of_support' in custom_details.columns:
@@ -145,11 +163,11 @@ with tab1:
                     _, bill = bills_list[i + j]
                     with cols[j]:
                         # Build the upcoming event bullet point if data exists
-                        if (pd.notna(bill['bill_event']) and bill['bill_event'] and 
-                            pd.notna(bill['event_text']) and bill['event_text']):
-                            upcoming_event = f"<strong>Upcoming Event:</strong> <br>{bill['event_text']} - {bill['bill_event']}"
-                        else: 
-                            upcoming_event = "<strong>Upcoming Event:</strong> None"
+                        #if (pd.notna(bill['bill_event']) and bill['bill_event'] and 
+                        #    pd.notna(bill['event_text']) and bill['event_text']):
+                        #    upcoming_event = f"<strong>Upcoming Event:</strong> <br>{bill['event_text']} - {bill['bill_event']}"
+                        #else: 
+                        #    upcoming_event = "<strong>Upcoming Event:</strong> None"
                         
                         # Create the complete HTML for the card
                         card_html = f"""
@@ -159,7 +177,6 @@ with tab1:
                             <ul>
                                 <li><strong>Last Updated:</strong> {bill['last_updated_on']}</li>
                                 <li><strong>Status:</strong> {bill['status']}</li>
-                                <li>{upcoming_event}</li>
                             </ul>
                         </div>
                         """
@@ -260,6 +277,7 @@ with tab3:
             disabled=True  # Table is not editable
         )
 
+
 ############################## Bill Selection & Details ##############################
 # Add space
 st.markdown(" ")
@@ -267,40 +285,49 @@ st.markdown(" ")
 st.markdown('<h3 class="section-header">Bill Tracking</h3>', unsafe_allow_html=True)
 st.markdown("Select a bill to view more details.")
 
-if not wg_bills.empty:
-    total_wg_bills = len(wg_bills)
+############################ FILTERS #############################
+# Display filters and get filter values
+filter_values = display_bill_filters(wg_bills, show_date_filters=True)
+selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
 
-    with st.container(key="download_wg_container"):
-        # Download data as CSV button
-        col1, col2 = st.columns([4, 1])
-        
-        with col1: 
-            st.markdown(" ")
-        
-        with col2:    
-            st.download_button(
-                label="Download Saved Bills",
-                data=to_csv(wg_bills),
-                file_name='working_group_bills.csv',
-                use_container_width=True,
-                mime='text/csv',
-            )
+# Apply filters
+filtered_bills = apply_bill_filters(
+    wg_bills, 
+    selected_topics, 
+    selected_statuses, 
+    selected_authors, 
+    bill_number_search, 
+    date_from, 
+    date_to
+)
 
-    with st.container(key='dashboard_bills_table_container'):
-        # Display bill table
-        data = draw_bill_grid(wg_bills)
+# Update total bills count
+col1, col2, col3 = st.columns([2, 6, 2])
+with col1:
+    total_bills = len(filtered_bills)
+    st.markdown(f"#### Total bills: {total_bills:,}")
+    if len(filtered_bills) < len(wg_bills):
+        st.caption(f"(filtered from {len(wg_bills):,} total)")
 
-        # Display bill details for dashboard bills
-        if 'selected_bills' not in st.session_state:
-            st.session_state.selected_bills = []
-            
-        selected_rows = data.selected_rows
+###############################################################
 
-        if selected_rows is not None and len(selected_rows) != 0:
-                display_working_group_bill_details(selected_rows)
+with st.container(key='dashboard_bills_table_container'):
+    if not wg_bills.empty:
+        with timer("AI working group dashboard - draw streamlit df"):
+            data = display_bills_table(filtered_bills)
 
-elif wg_bills.empty:
-    st.write('No bills selected yet.')
+        # Assign variable to selection property
+        selected = data.selection
+
+        # Access selected rows
+        if selected != None and selected.rows:
+            track_event("Row selected")
+            selected_index = selected.rows[0]  # Get first selected row index
+            selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
+            display_working_group_bill_details(selected_bill_data)
+
+    elif wg_bills.empty:
+        st.write('No bills added yet.')
 
 
 

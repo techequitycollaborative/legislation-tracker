@@ -15,7 +15,7 @@ Date: Jan 15, 2025
 import os
 from configparser import ConfigParser
 
-def config(section, filename = 'db/credentials.ini'):
+def db_config(section, filename = 'db/credentials.ini'):
     '''
     Params: section string (i.e. 'postgres')
     Returns: database credentials as string values, to be used as inputs to query function in query.py
@@ -50,3 +50,26 @@ def config(section, filename = 'db/credentials.ini'):
             raise Exception(f"Could not read {filename} file")
 
     return db_config
+
+def app_config(section='app', filename = 'db/credentials.ini'):
+    # Check if a variable is set in the environment first
+    setting = os.getenv('PROFILING_ENABLED', default=None)
+    if setting != None:
+        config = {
+            'profiling_enabled': setting == 'true'
+        }
+    else:
+        parser = ConfigParser()
+        if parser.read(filename):
+            if parser.has_section(section):
+                config = {
+                    'profiling_enabled': parser.getboolean(section, 'profiling')
+                }
+            else:
+                raise Exception(f"Section {section} not found in the {filename} file")
+        else:
+            raise Exception(f"Could not read {filename} file")
+    return config
+
+if __name__ == "__main__":
+    print(app_config())

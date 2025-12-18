@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Bills Page: Topic as Tag
-Created on Jan 27, 2025
+Bills Page: With Streamlit Dataframe
+Created on Nov 5, 2025
 @author: danyasherbini
 
-Bills page with:
-    - Bill table with column for 'topic' that is filterable based on keyword
-    - Bill details with text
 """
 
 import streamlit as st
+#st.write(st.__version__) --> for debugging conflicting streamlit versions
 import pandas as pd
-from db.query import get_data
-from utils import aggrid_styler
+from db.query import Query, BILL_COLUMNS
 from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
-from itertools import chain # For flattening bill topic list in bill topic expander
+from utils.profiling import timer, profile, track_rerun, track_event
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
 
 # Page title and description
 st.title('📝 Bills')
@@ -36,11 +34,21 @@ st.markdown(" ")
 st.markdown(" ")
 
 ############################ LOAD AND PROCESS BILLS DATA #############################
+track_rerun("Bills")
 
-@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 11.5)
+@profile("DB - Fetch bills table data")
+@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 def load_bills_table():
     # Get data
-    bills = get_data()
+    bills_query = """
+        SELECT * FROM public.bills_2025_2026
+    """
+
+    bills = Query(
+        page_name="bills",
+        query=bills_query,
+        df_columns=BILL_COLUMNS
+    ).fetch_records()
 
     # Minor data processing
     # Convert to datetime (without formatting yet)
@@ -50,11 +58,12 @@ def load_bills_table():
     # Sort bills table by most recent date_introduced
     bills = bills.sort_values(by='last_updated_on', ascending=False)
 
+    # DON'T NEED TO FORMAT DATES FOR STREAMLIT NATIVE TABLES; THIS IS HANDLED IN COLUMN CONFIG WITH DATE COLUMN
     # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
     # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    bills['last_updated_on'] = pd.to_datetime(bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    #bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+    #bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    #bills['last_updated_on'] = pd.to_datetime(bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Wrangle assigned-topic string to a Python list for web app manipulation
     bills['bill_topic'] = bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
@@ -67,58 +76,22 @@ def load_bills_table():
 # Load bills data
 bills = load_bills_table()
 
+# Store bills data in session state for access on bill details page
+st.session_state.bills_data = bills
+
+############################ ADDITIONAL PAGE ELEMENTS #############################
+
 # Initialize session state for selected bills
 if 'selected_bills' not in st.session_state:
     st.session_state.selected_bills = []
 
-# Mapping between user-friendly labels and internal theme values
-theme_options = {
-    'narrow': 'streamlit',
-    'wide': 'alpine'
-}
-
-# Initialize session state for theme if not set
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'streamlit'  # Default theme
-
-# Reverse mapping to get the label from the internal value
-label_from_theme = {v: k for k, v in theme_options.items()}
-
-# Create a two-column layout
-col1, col2, col3 = st.columns([2, 6, 2])
-with col1:
-    selected_label = st.selectbox(
-        'Change grid theme:',
-        options=list(theme_options.keys()),
-        index=list(theme_options.keys()).index(label_from_theme[st.session_state.theme])
-    )
-
-with col2:    
-    st.markdown("")
-
-with col3:
-    st.download_button(
-        label='Download Bills',
-        data=to_csv(bills),
-        file_name='bills.csv',
-        mime='text/csv',
-        use_container_width=True
-    )
-
-# Update session state if the user picks a new theme
-selected_theme = theme_options[selected_label]
-if selected_theme != st.session_state.theme:
-    st.session_state.theme = selected_theme
-
-# Use the persisted theme
-theme = st.session_state.theme
+# Initialize session state for filters
+initialize_filter_state()
 
 # Display list of bill topics above the table
 col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
-    # Display count of total bills above the table
-    total_bills = len(bills)
-    st.markdown(f"#### Total bills: {total_bills:,}")
+    st.markdown("")
 
 with col2:
     st.markdown("")
@@ -128,26 +101,53 @@ with col3:
     unique_topics = list(topic_config.keys())
     unique_topics.append("Other")
 
-    # Display bill topics via dialog pop-up
-    @st.dialog("Bill Topics")
-    def show_topic_dialog():
+    # Display bill topics as a popover (newer Streamlit feature, replaced dialog popup decorator)
+    with st.popover("*More about bill topics*", width="stretch", type="secondary"):
         st.markdown(
-            " | ".join([f"`{topic}`" for topic in unique_topics])
-        )
+                " | ".join([f"`{topic}`" for topic in unique_topics])
+            )
 
         st.markdown(
             "*Bill topics are generated by TechEquity using a combination of keyword matching and similarity analysis. This list is not meant to be exhaustive and topics may not always be comprehensive or 100% accurate.*"
         )
-    # Trigger the dialog with a button
-    st.button("*View List of Bill Topics*", on_click=show_topic_dialog, use_container_width=True)
 
-# Display the aggrid table
-data = aggrid_styler.draw_bill_grid(bills, theme=theme)
-    
-selected_rows = data.selected_rows
+############################ FILTERS #############################
+# Display filters and get filter values
+filter_values = display_bill_filters(st.session_state.bills_data, show_date_filters=True)
+selected_topics, selected_statuses, author_search, bill_number_search, date_from, date_to = filter_values
 
-if selected_rows is not None and len(selected_rows) != 0:
-        display_bill_info_text(selected_rows)
+# Apply filters
+filtered_bills = apply_bill_filters(
+    st.session_state.bills_data, 
+    selected_topics, 
+    selected_statuses, 
+    author_search, 
+    bill_number_search, 
+    date_from, 
+    date_to
+)
+
+# Update total bills count
+col1, col2, col3 = st.columns([2, 6, 2])
+with col1:
+    total_bills = len(filtered_bills)
+    st.markdown(f"#### Total bills: {total_bills:,}")
+    if len(filtered_bills) < len(st.session_state.bills_data):
+        st.caption(f"(filtered from {len(st.session_state.bills_data):,} total)")
 
 
+############################ MAIN TABLE / DATAFRAME #############################
 
+# Display the table
+with timer("Bills - draw streamlit df"):
+    data = display_bills_table(filtered_bills)
+
+# Assign variable to selection property
+selected = data.selection
+
+# Access selected rows
+if selected != None and selected.rows:
+    track_event("Row selected")
+    selected_index = selected.rows[0]  # Get first selected row index
+    selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
+    display_bill_info_text(selected_bill_data)

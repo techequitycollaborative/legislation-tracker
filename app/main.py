@@ -10,7 +10,9 @@ This is the main script of the Legislation Tracker. To run the app locally, run:
 import streamlit as st
 import datetime
 from utils.authentication import login_page, signup_page, logout, get_organization_by_id, is_user_in_working_group
+from utils.profiling import init_profiling, timer, show_performance_metrics
 
+init_profiling()
 
 # Page configuration
 st.set_page_config(
@@ -69,7 +71,8 @@ if 'authenticated' not in st.session_state:
     if st.session_state.get('show_signup', False):
         signup_page()
     else:
-        login_page()
+        with timer("main.py - login_page"):
+            login_page()
 
 else:
     # Get org and user info
@@ -132,3 +135,5 @@ else:
     #st.sidebar.markdown("<br>" * 16, unsafe_allow_html=True)
     if st.sidebar.button('Log out', key='logout'):
         logout()
+    
+    show_performance_metrics()

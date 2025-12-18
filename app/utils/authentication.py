@@ -13,9 +13,11 @@ import bcrypt
 import psycopg2
 import re
 import os
-from db.config import config
+from db.config import db_config as config
+from db.connect import get_pool
 from typing import Optional, Tuple, List
 from datetime import datetime, timedelta
+from utils.profiling import profile, show_performance_metrics, track_rerun
 
 '''
 # Cookies functions for keeping users logged in -- TURNED OFF BC THESE ARE STILL IN DEVELOPMENT!!
@@ -107,7 +109,8 @@ def clear_login_cookies():
         del st.session_state["backup_user_email"]
 
 '''
-
+############################# GLOBALS ####################################
+pg_pool = get_pool()
 ############################# AUTH FUNCTIONS #############################
         
 # Improved security and validation functions
@@ -184,8 +187,7 @@ def get_db_connection():
         tuple: Database connection and cursor
     """
     try:
-        db_config = config('postgres')
-        conn = psycopg2.connect(**db_config)
+        conn = pg_pool.getconn()
         return conn, conn.cursor()
     except (Exception, psycopg2.Error) as error:
         st.error(f"Error connecting to database: {error}")
@@ -213,8 +215,7 @@ def get_user(email: str) -> Optional[Tuple]:
         st.error(f"Database error: {e}")
         return None
     finally:
-        if conn:
-            conn.close()
+        pg_pool.putconn(conn)
 
 def is_approved_user(email: str) -> bool:
     """
@@ -238,8 +239,7 @@ def is_approved_user(email: str) -> bool:
         st.error(f"Database error: {e}")
         return False
     finally:
-        if conn:
-            conn.close()
+        pg_pool.putconn(conn)
 
 def get_all_organizations() -> List[Tuple]:
     """
@@ -260,8 +260,7 @@ def get_all_organizations() -> List[Tuple]:
         st.error(f"Database error: {e}")
         return []
     finally:
-        if conn:
-            conn.close()
+        pg_pool.putconn(conn)
 
 def create_user(name: str, email: str, password: str, org_id: int) -> Optional[int]:
     """
@@ -295,8 +294,7 @@ def create_user(name: str, email: str, password: str, org_id: int) -> Optional[i
         conn.rollback()
         return None
     finally:
-        if conn:
-            conn.close()
+        pg_pool.putconn(conn)
 
 def get_organization_by_id(org_id: int) -> Optional[Tuple]:
     """
@@ -320,8 +318,7 @@ def get_organization_by_id(org_id: int) -> Optional[Tuple]:
         st.error(f"Database error: {e}")
         return None
     finally:
-        if conn:
-            conn.close()
+        pg_pool.putconn(conn)
 
 
 ############################# AI WORKING GROUP VALIDATION #############################
@@ -350,7 +347,7 @@ def is_user_in_working_group(user_email):
         return False  # Avoid returning None unless there's a specific reason
 
     finally:
-        conn.close()
+        pg_pool.putconn(conn)
 
 ############################# SIGN UP AND LOGIN PAGE #############################
 
@@ -428,10 +425,12 @@ def signup_page():
         st.session_state['show_signup'] = False
         st.rerun()
 
+@profile("utils/authentication.py - login_page")
 def login_page():
     """
     Render the login page with improved error handling.
     """
+    track_rerun("Login")
     # Show success message if coming from signup
     if st.session_state.get('signup_success'):
         st.success("Account created successfully! Please log in.")
@@ -486,6 +485,8 @@ def login_page():
     if st.button("Create an Account"):
         st.session_state['show_signup'] = True
         st.rerun()
+    
+    show_performance_metrics()
 
 def logout():
     """
