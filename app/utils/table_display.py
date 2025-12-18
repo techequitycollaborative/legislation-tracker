@@ -33,7 +33,7 @@ def clear_filters():
     """
     st.session_state.topic_filter = []
     st.session_state.status_filter = []
-    st.session_state.author_filter = ""
+    st.session_state.author_filter = []
     st.session_state.bill_number_filter = ""
     st.session_state.date_from_filter = None
     st.session_state.date_to_filter = None
