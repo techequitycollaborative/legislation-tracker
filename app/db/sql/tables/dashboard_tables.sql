@@ -2,7 +2,7 @@
 -- Create dashboard tables
 
 -- Table: user_bill_dashboard -- this table stores bills that users add to their individual dashboards
-CREATE TABLE IF NOT EXISTS user_bill_dashboard (
+CREATE TABLE IF NOT EXISTS app.user_bill_dashboard (
     user_bill_dashboard_id SERIAL PRIMARY KEY,
     user_email TEXT,
     added_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS user_bill_dashboard (
 
 
 -- Table: org_bill_dashboard -- this table stores bills that users add to their ORG dashboards
-CREATE TABLE IF NOT EXISTS org_bill_dashboard (
+CREATE TABLE IF NOT EXISTS app.org_bill_dashboard (
     org_bill_dashboard_id SERIAL PRIMARY KEY,
     user_email TEXT,
     added_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS org_bill_dashboard (
 );
 
 -- Table: bill_custom_details -- this table stores custom details for bills (which is rendered on the org dashboard)
-CREATE TABLE IF NOT EXISTS bill_custom_details (
+CREATE TABLE IF NOT EXISTS app.bill_custom_details (
     bill_custom_details_id SERIAL PRIMARY KEY,
     bill_number TEXT,
     org_position TEXT, 
