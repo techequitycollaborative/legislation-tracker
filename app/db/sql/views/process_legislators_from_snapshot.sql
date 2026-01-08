@@ -14,11 +14,11 @@
 
 
 -- Output: 
------ schema: public
------ view name: processed_legislators_from_snapshot_{leg_session}
+----- schema: app
+----- view name: legislators
 
-DROP VIEW IF EXISTS processed_legislators_from_snapshot_2025_2026;
-CREATE OR REPLACE VIEW processed_legislators_from_snapshot_2025_2026 AS
+DROP VIEW IF EXISTS app.legislators;
+CREATE OR REPLACE VIEW app.legislators AS
 
 -- Copy data from snapshot.people and clean up
 WITH temp_people AS (
