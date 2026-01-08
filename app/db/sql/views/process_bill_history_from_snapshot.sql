@@ -7,11 +7,11 @@
 ----- snapshot.bill_action
 
 -- Output: 
------ schema: public
------ view name: Processed_Bill_Action_[leg_session]
+----- schema: app
+----- view name: bill_history
 
-DROP VIEW IF EXISTS public.processed_bill_action_2025_2026;
-CREATE OR REPLACE VIEW public.processed_bill_action_2025_2026 AS
+DROP VIEW IF EXISTS app.bill_history;
+CREATE OR REPLACE VIEW app.bill_history AS
 
 -- Get columns from bill action table
 WITH temp_action AS (

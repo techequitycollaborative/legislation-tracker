@@ -7,16 +7,17 @@
 
 -- Inputs: 
 ----- snapshot.bill: for most bill info
------ public.processed_bill_action_2025_2026: for filtered/processed bill history/bill action
+----- app.bill_history: for filtered/processed bill history/bill action
 ----- snapshot.bill_sponsor: for author, coauthors
------ ca_dev.bill_schedule_new: for upcoming bill events for the current legislative session (senate & assembly)
+----- snapshot.bill_schedule: for upcoming bill events for the current legislative session (senate & assembly)
+----- snapshot.bill_topics: for bill topic column
 
 -- Output: 
------ schema: public
------ view name: bills_{leg_session}
+----- schema: app
+----- view name: bills
 
-DROP VIEW IF EXISTS bills_2025_2026;
-CREATE OR REPLACE VIEW bills_2025_2026 AS
+DROP VIEW IF EXISTS app.bills;
+CREATE OR REPLACE VIEW app.bills AS
 
 -- Copy data from snapshot.bill and clean up
 WITH temp_bills AS (
@@ -45,14 +46,18 @@ WITH temp_bills AS (
         AND bill.bill_num NOT LIKE 'SR%'
         AND bill.bill_num NOT LIKE 'SJR%' 
         AND bill.bill_num NOT LIKE 'AJR%' 
+		AND last_action_date >= '2025-12-01' -- Filtering by bills that were updated on or after 2025-12-01
+
+		
+		
 ),
 
--- Get the latest status for each bill from public.processed_bill_action_2025_2026
+-- Get the latest status for each bill from app.bill_history
 latest_status AS (
     SELECT DISTINCT ON (openstates_bill_id) 
         openstates_bill_id, 
         description AS status
-    FROM public.processed_bill_action_2025_2026
+    FROM app.bill_history
     ORDER BY openstates_bill_id, action_date DESC
 ),
 
@@ -61,7 +66,7 @@ full_history AS (
     SELECT 
         openstates_bill_id,
         STRING_AGG(action_date || ' >> ' || description, ', ' ORDER BY action_date) AS bill_history
-    FROM public.processed_bill_action_2025_2026
+    FROM app.bill_history
     GROUP BY openstates_bill_id
 ),
 
@@ -110,5 +115,5 @@ FROM temp_bills b
 LEFT JOIN latest_status s ON b.openstates_bill_id = s.openstates_bill_id
 LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
 LEFT JOIN bill_authors a ON b.openstates_bill_id = a.openstates_bill_id
-LEFT JOIN ca_dev.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id -- Add bill events from bill schedule table
+LEFT JOIN snapshot.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id -- Add bill events from bill schedule table
 LEFT JOIN bill_topics t ON b.openstates_bill_id = t.openstates_bill_id;
