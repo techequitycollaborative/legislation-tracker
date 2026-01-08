@@ -3,7 +3,7 @@ from yaml import safe_load
 from datetime import datetime, timezone
 import sys
 sys.path.insert(0, '..')
-from config import config
+from config import db_config as config
 import psycopg2
 
 # Load model

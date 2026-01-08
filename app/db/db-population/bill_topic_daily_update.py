@@ -3,7 +3,7 @@ import numpy as np
 from yaml import safe_load
 import sys
 sys.path.insert(0, '..')
-from config import config
+from config import db_config as config
 from update_topic_embeddings import main as topic_update
 import psycopg2
 from nltk.corpus import stopwords

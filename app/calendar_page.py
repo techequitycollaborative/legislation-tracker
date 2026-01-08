@@ -43,31 +43,18 @@ st.markdown(" ")
 st.markdown(" ")
 
 ############################ INITIALIZE SESSION STATE VARS #############################
-# TODO: check session_state for cached data before running DB query
 # Access user info
 user_email = st.session_state['user_email']
 org_id = st.session_state['org_id']
 org_name = st.session_state['org_name']
 
 # Initialize session state for dashboard bills
-if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
-    st.session_state.selected_bills = pd.DataFrame()  # Initialize as empty DataFrame
-
-# Fetch the user's saved bills from the database
-db_bills = get_my_dashboard_bills(user_email)
-
-# Update session state with user's dashboard bills
-st.session_state.dashboard_bills = db_bills
+if 'dashboard_bills' not in st.session_state or not len(st.session_state.dashboard_bills):
+    st.session_state.selected_bills = get_my_dashboard_bills(user_email)
 
 # Initialize session state for org dashboard bills
 if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None:
-    st.session_state.org_dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
-
-# Fetch the user's org's saved bills from the database
-org_db_bills = get_org_dashboard_bills(org_id)
-
-# Update session state with user's org's dashboard bills
-st.session_state.org_dashboard_bills = org_db_bills
+    st.session_state.org_dashboard_bills = get_org_dashboard_bills(org_id)
 
 # Initialize state for clicked event
 if "clicked_event" not in st.session_state:
@@ -131,7 +118,7 @@ unique_bills = sorted(bill_events['bill_number'].unique())
 
 with st.sidebar.container():
     # Add bill filter with search functionality
-    st.sidebar.markdown("### Filter by Bill")
+    st.sidebar.markdown("### Filter for Bills in")
 
     # Initialize variables to handle both filtering scenarios
     selected_types = []
@@ -139,7 +126,7 @@ with st.sidebar.container():
     selected_bills_for_calendar = []
 
     # Option to show only bills from ORG Dashboard
-    show_org_dashboard_bills = st.sidebar.checkbox(f"Only show events for bills from {org_name}'s Dashboard")
+    show_org_dashboard_bills = st.sidebar.checkbox(f"{org_name}'s Dashboard")
 
     # Determine eligibility for dashboard bill checkbox
     if show_org_dashboard_bills:
@@ -158,7 +145,7 @@ with st.sidebar.container():
             bill_filter_active = True
 
     # Option to select from MY dashboard bills
-    show_dashboard_bills = st.sidebar.checkbox("Only show events for bills from My Dashboard")
+    show_dashboard_bills = st.sidebar.checkbox("My Dashboard")
 
     # Determine eligibility for dashboard bill checkbox
     if show_dashboard_bills:
