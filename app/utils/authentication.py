@@ -333,7 +333,7 @@ def is_user_in_working_group(user_email):
 
     try:
         c.execute("""
-            SELECT ai_working_group FROM public.approved_users WHERE email = %s;
+            SELECT ai_working_group FROM auth.approved_users WHERE email = %s;
         """, (user_email,))
         result = c.fetchone()
 

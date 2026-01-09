@@ -69,7 +69,7 @@ def get_legislator_data():
     def legislator_cache():
         # Get data
         legislator_query = """
-            SELECT * FROM public.processed_legislators_from_snapshot_2025_2026
+            SELECT * FROM app.legislators
         """
             
         legislator = Query(

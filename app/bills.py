@@ -41,7 +41,7 @@ track_rerun("Bills")
 def load_bills_table():
     # Get data
     bills_query = """
-        SELECT * FROM public.bills_2025_2026
+        SELECT * FROM app.bills
     """
 
     bills = Query(
