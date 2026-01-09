@@ -46,7 +46,7 @@ def load_leg_events():
 @st.cache_data(show_spinner="Loading bill events...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 def load_bill_events():
     if 'bills_data' not in st.session_state:
-        bills = query_table('public', 'bills_2025_2026') # Get bill info from processed_bills table
+        bills = query_table('app', 'bills') # Get bill info from processed_bills table
     else:
         bills = st.session_state.bills_data.copy() # Make a copy to preserve original bills table
     events = query_table('snapshot', 'bill_schedule') # Get bill events from bill_schedule table
