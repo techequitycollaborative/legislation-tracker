@@ -233,7 +233,7 @@ def get_my_dashboard_bills(user_email):
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM app.bills b
+            FROM app.bills_mv b
             LEFT JOIN app.user_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
             WHERE ubd.user_email = %s;
@@ -377,7 +377,7 @@ def get_org_dashboard_bills(org_id):
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM app.bills b
+            FROM app.bills_mv b
             LEFT JOIN app.org_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
             WHERE ubd.org_id = %s;
@@ -836,7 +836,7 @@ def get_working_group_bills():
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM app.bills b
+            FROM app.bills_mv b
             INNER JOIN app.working_group_dashboard wgd
                 ON wgd.openstates_bill_id = b.openstates_bill_id;
 
