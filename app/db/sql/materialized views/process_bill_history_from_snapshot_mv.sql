@@ -61,3 +61,5 @@ SELECT *
 FROM filtered_action
 ORDER BY openstates_bill_id, action_order;
 
+-- UNIQUE index to use CONCURRENTLY (refresh view without interruption)
+CREATE UNIQUE INDEX idx_bill_history_mv_pk ON app.bills_mv(openstates_bill_id);
