@@ -141,7 +141,7 @@ def query_table(schema, table):
 #     # Cache the function that retrieves the data
 #     def get_bills():
 #         # Query the database for bills
-#         bills = query_table('public', 'bills_2025_2026') # this is pulling a view, not a table
+#         bills = query_table('app', 'bills_2025_2026') # this is pulling a view, not a table
 #         return bills
     
 #     # Call the cached function to get the data
@@ -202,8 +202,8 @@ LEGISLATOR_COLUMNS = [
     "last_updated_on"
 ]
 
-#@st.cache_data(ttl=120)  #  Cache for 2 mins -- Needs to be turned off for rerun to work for remove bill from dashboard button
 @profile("query.py - get_my_dashboard_bills")
+@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_my_dashboard_bills(user_email):
     '''
     Fetches bills from the user's dashboard in the database and returns them as a DataFrame.
@@ -233,8 +233,8 @@ def get_my_dashboard_bills(user_email):
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM public.bills_2025_2026 b
-            LEFT JOIN public.user_bill_dashboard ubd
+            FROM app.bills_mv b
+            LEFT JOIN app.user_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
             WHERE ubd.user_email = %s;
         """
@@ -263,7 +263,7 @@ def add_bill_to_dashboard(openstates_bill_id, bill_number):
     
     # Check if bill already exists for this user
     cursor.execute("""
-        SELECT COUNT(*) FROM public.user_bill_dashboard 
+        SELECT COUNT(*) FROM app.user_bill_dashboard 
         WHERE openstates_bill_id = %s AND user_email = %s;
     """, (openstates_bill_id, user_email))
     
@@ -272,7 +272,7 @@ def add_bill_to_dashboard(openstates_bill_id, bill_number):
     if count == 0:
         # Insert new tracked bill
         cursor.execute("""
-            INSERT INTO public.user_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
+            INSERT INTO app.user_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
             VALUES (%s, %s, %s, %s);
         """, (user_email, org_id, openstates_bill_id, bill_number))
 
@@ -306,7 +306,7 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     cursor = conn.cursor()
     
     cursor.execute("""
-        DELETE FROM public.user_bill_dashboard 
+        DELETE FROM app.user_bill_dashboard 
         WHERE openstates_bill_id = %s AND user_email = %s;
     """, (openstates_bill_id, user_email))
     
@@ -329,7 +329,7 @@ def clear_all_my_dashboard_bills():
     conn = pg_pool.getconn()
     cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM public.user_bill_dashboard WHERE user_email = %s", (st.session_state['user_email'],))
+    cursor.execute("DELETE FROM app.user_bill_dashboard WHERE user_email = %s", (st.session_state['user_email'],))
     
     conn.commit()
     pg_pool.putconn(conn)
@@ -345,6 +345,7 @@ def clear_all_my_dashboard_bills():
 
 # ORG DASHBOARD FUNCTIONS
 @profile("query.py - get_org_dashboard_bills")
+@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_org_dashboard_bills(org_id):
     '''
     Fetches bills from the org dashboard in the database and returns them as a DataFrame.
@@ -376,8 +377,8 @@ def get_org_dashboard_bills(org_id):
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM public.bills_2025_2026 b
-            LEFT JOIN public.org_bill_dashboard ubd
+            FROM app.bills_mv b
+            LEFT JOIN app.org_bill_dashboard ubd
                 ON ubd.openstates_bill_id = b.openstates_bill_id
             WHERE ubd.org_id = %s;
         """
@@ -407,7 +408,7 @@ def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
     
     # Check if bill already exists for this org
     cursor.execute("""
-        SELECT COUNT(*) FROM public.org_bill_dashboard 
+        SELECT COUNT(*) FROM app.org_bill_dashboard 
         WHERE openstates_bill_id = %s AND org_id = %s;
     """, (openstates_bill_id, org_id))
     
@@ -416,7 +417,7 @@ def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
     if count == 0:
         # Insert new tracked bill
         cursor.execute("""
-            INSERT INTO public.org_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
+            INSERT INTO app.org_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
             VALUES (%s, %s, %s, %s);
         """, (user_email, org_id, openstates_bill_id, bill_number))
 
@@ -451,7 +452,7 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
     cursor = conn.cursor()
     
     cursor.execute("""
-        DELETE FROM public.org_bill_dashboard 
+        DELETE FROM app.org_bill_dashboard 
         WHERE openstates_bill_id = %s AND org_id = %s;
     """, (openstates_bill_id, org_id))
     
@@ -467,6 +468,7 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
 
 ###############################################################################
 @profile("query.py - get_custom_bill_details_with_timestamp")
+@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     '''
     Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page, 
@@ -482,7 +484,7 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
     cursor.execute("""
-                    SELECT * FROM public.bill_custom_details 
+                    SELECT * FROM app.bill_custom_details 
                     WHERE openstates_bill_id = %s AND last_updated_org_id = %s
                     """, (openstates_bill_id, org_id))
     result = cursor.fetchone()
@@ -509,6 +511,7 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
         return None
 
 @profile("query.py - get_custom_contact_details_with_timestamp")
+@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_custom_contact_details_with_timestamp(openstates_people_id):
     '''
     Fetches custom contact details for a specific openstates_people_id from the contact_custom_details table in postgres
@@ -522,7 +525,7 @@ def get_custom_contact_details_with_timestamp(openstates_people_id):
     # Create a cursor that returns rows as dictionaries
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    cursor.execute("SELECT * FROM public.contact_custom_details WHERE openstates_people_id = '{}'".format(openstates_people_id))
+    cursor.execute("SELECT * FROM app.contact_custom_details WHERE openstates_people_id = '{}'".format(openstates_people_id))
     result = cursor.fetchall() # There can be more than one custom contact detail
     conn.close()
     
@@ -555,7 +558,7 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
     
     # Check if a record already exists for this bill
     cursor.execute("""
-                    SELECT * FROM public.bill_custom_details 
+                    SELECT * FROM app.bill_custom_details 
                     WHERE openstates_bill_id = %s AND last_updated_org_id = %s
                 """, (openstates_bill_id, org_id))
     exists = cursor.fetchone()
@@ -564,7 +567,7 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
         if exists:
             # Update existing record
             cursor.execute("""
-                UPDATE public.bill_custom_details
+                UPDATE app.bill_custom_details
                 SET bill_number = %s,
                     org_position = %s,
                     priority_tier = %s,
@@ -586,7 +589,7 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
         else:
             # Insert new record
                 cursor.execute("""
-                    INSERT INTO public.bill_custom_details
+                    INSERT INTO app.bill_custom_details
                         (bill_number, org_position, priority_tier, community_sponsor, coalition, 
                         letter_of_support, openstates_bill_id, assigned_to, action_taken, 
                         last_updated_by, last_updated_org_id, last_updated_org_name, 
@@ -661,7 +664,7 @@ def save_custom_contact_details_with_timestamp(
         
         # Apply updates to prod table
         cursor.execute("""
-        INSERT INTO public.contact_custom_details 
+        INSERT INTO app.contact_custom_details 
         (people_contact_id, openstates_people_id, custom_staffer_contact, custom_staffer_email, last_updated_by, last_updated_org_id, last_updated_org_name, last_updated_on)
         SELECT *
         FROM temp_updates
@@ -690,6 +693,7 @@ def save_custom_contact_details_with_timestamp(
 ##################################################################################
 # Advocacy details functions
 @profile("query.py - get_all_custom_bill_details")
+@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_all_custom_bill_details():
     """
     Fetches all custom bill details for a specific bill from all organizations.
@@ -700,7 +704,7 @@ def get_all_custom_bill_details():
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     cursor.execute("""
-        SELECT * FROM public.bill_custom_details
+        SELECT * FROM app.bill_custom_details
         ORDER BY bill_number ASC
     """, )
     
@@ -711,6 +715,7 @@ def get_all_custom_bill_details():
     return [dict(row) for row in results]
 
 @profile("query.py - get_all_custom_bill_details_for_bill")
+@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_all_custom_bill_details_for_bill(openstates_bill_id):
     """
     Fetch all custom advocacy details for a single bill across all organizations.
@@ -721,7 +726,7 @@ def get_all_custom_bill_details_for_bill(openstates_bill_id):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     query = """
-        SELECT * FROM public.bill_custom_details
+        SELECT * FROM app.bill_custom_details
         WHERE openstates_bill_id = %s
         ORDER BY last_updated_org_name ASC
     """
@@ -751,7 +756,7 @@ def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
 
         # Check if bill already exists for this org/user
         cursor.execute("""
-            SELECT COUNT(*) FROM public.working_group_dashboard
+            SELECT COUNT(*) FROM app.working_group_dashboard
             WHERE openstates_bill_id = %s AND added_by_org = %s AND added_by_user = %s;
         """, (openstates_bill_id, org_name, user_email))
 
@@ -759,7 +764,7 @@ def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
 
         if count == 0:
             cursor.execute("""
-                INSERT INTO public.working_group_dashboard 
+                INSERT INTO app.working_group_dashboard 
                 (openstates_bill_id, bill_number, added_by_org, added_by_user)
                 VALUES (%s, %s, %s, %s);
             """, (openstates_bill_id, bill_number, org_name, user_email))
@@ -788,7 +793,7 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     cursor = conn.cursor()
     
     cursor.execute("""
-        DELETE FROM public.working_group_dashboard 
+        DELETE FROM app.working_group_dashboard 
         WHERE openstates_bill_id = %s;
     """, (openstates_bill_id,))
     
@@ -803,6 +808,7 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     st.rerun()
 
 @profile("query.py - get_working_group_bills")
+@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 def get_working_group_bills():
     '''
     Fetches bills from the working_group_dashboard table in the PostgreSQL database.
@@ -830,8 +836,8 @@ def get_working_group_bills():
                 b.event_text,
                 b.assigned_topics,
                 b.last_updated_on
-            FROM public.bills_2025_2026 b
-            INNER JOIN public.working_group_dashboard wgd
+            FROM app.bills_mv b
+            INNER JOIN app.working_group_dashboard wgd
                 ON wgd.openstates_bill_id = b.openstates_bill_id;
 
         """
@@ -847,6 +853,7 @@ def get_working_group_bills():
         return pd.DataFrame(columns=BILL_COLUMNS)
 
 @profile("query.py - get_discussion_comments")
+@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache comment data and refresh every 6 hours
 def get_discussion_comments(bill_number: str) -> pd.DataFrame:
     '''
     Fetches discussion comments for a specific bill from the working_group_discussions table in the PostgreSQL database.
@@ -857,7 +864,7 @@ def get_discussion_comments(bill_number: str) -> pd.DataFrame:
 
     query = """
         SELECT user_email, comment, timestamp
-        FROM public.working_group_discussions
+        FROM app.working_group_discussions
         WHERE bill_number = %s
         ORDER BY timestamp DESC;
     """
@@ -882,7 +889,7 @@ def save_comment(bill_number: str, user_email: str, comment: str):
     print("Connected to the PostgreSQL database.")
 
     query = """
-        INSERT INTO public.working_group_discussions (bill_number, user_email, comment, timestamp)
+        INSERT INTO app.working_group_discussions (bill_number, user_email, comment, timestamp)
         VALUES (%s, %s, %s, %s);
     """
 
@@ -894,6 +901,7 @@ def save_comment(bill_number: str, user_email: str, comment: str):
     print("Comment inserted and database connection closed.")
 
 @profile("query.py - get_ai_members")
+@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache name data and refresh every 6 hours
 def get_ai_members():
     '''
     Get list of names of AI Working Group members from the database.
@@ -905,7 +913,7 @@ def get_ai_members():
 
         query = f"""
             SELECT name, email, org_name
-            FROM public.approved_users
+            FROM auth.approved_users
             WHERE ai_working_group = 'yes';
         """
 

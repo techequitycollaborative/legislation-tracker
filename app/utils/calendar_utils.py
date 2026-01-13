@@ -16,6 +16,22 @@ import pytz
 import numpy as np
 from ics import Calendar, Event
 from .profiling import profile
+import re
+
+##################################### HELPER FUNCTIONS #############################
+# Control for events that don't have an actual time (e.g. "Upon adjournment")
+relative_time_keywords = [
+    'upon',
+    'adjournment',
+    'after',
+    'before',
+    'session'
+]
+RT_KEYWORDS = re.compile(r'|'.join(r'\b' + word + r'\b' for word in relative_time_keywords))
+
+deadline_event_keywords = ['Calendar', 'File', 'Concurrence', 'Reading']  # Define your list of search words
+
+DE_KEYWORDS = re.compile(r'|'.join(r'\b' + word + r'\b' for word in deadline_event_keywords))
 
 ####################################### LOAD DATA ###################################
 
@@ -29,8 +45,11 @@ def load_leg_events():
 @profile("Calendar - load bill events")
 @st.cache_data(show_spinner="Loading bill events...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 def load_bill_events():
-    bills = query_table('public', 'bills_2025_2026') # Get bill info from processed_bills table
-    events = query_table('ca_dev', 'bill_schedule') # Get bill events from bill_schedule table
+    if 'bills_data' not in st.session_state:
+        bills = query_table('app', 'bills_mv') # Get bill info from processed_bills table
+    else:
+        bills = st.session_state.bills_data.copy() # Make a copy to preserve original bills table
+    events = query_table('snapshot', 'bill_schedule') # Get bill events from bill_schedule table
 
     # Subset columns we want from each table
     bills = bills[['openstates_bill_id', 'bill_number', 'bill_name', 'status', 'date_introduced']]
@@ -44,77 +63,47 @@ def load_bill_events():
     bill_events = bill_events.dropna(subset=['event_date']) 
     
     # Format event_date as date string without time for display purposes
-    bill_events['event_date'] = pd.to_datetime(bill_events['event_date']).dt.strftime('%Y-%m-%d') # event date as just a date (no timestamp)
+    bill_events['event_date'] = pd.to_datetime(bill_events['event_date'])
 
-    # Add column for allDay events and categorize based on values in event_time column
-    def all_day(x):
-
-        # Control for events that don't have an actual time (e.g. "Upon adjournment")
-        def contains_keywords(text):
-            text = str(text).lower()
-            keywords = ['upon', 'adjournment', 'after', 'before', 'session']
-            return any(keyword in text for keyword in keywords)
-        
-        # Define all day event as any event that has no time or has a time that contains certain keywords
-        def is_empty(x):
-            if pd.isna(x) or x == '' or x == 'N/A':
-                return True
-            else:
-                return False
-        
-        # Check if the event_time is empty or contains keywords
-        if is_empty(x) or contains_keywords(x):
-            return True
-        else:
-            return False
-
-    bill_events['allDay'] = [all_day(x) for x in bill_events['event_time']]
-
-    # Add empty column for resourceId
-    bill_events['resourceId'] = ''
+    # Set allDay column
+    bill_events['allDay'] = (
+        bill_events['event_time'].isna() | # NaN case
+        (bill_events['event_time'] == '') | # empty string case
+        (bill_events['event_time'] == 'N/A') | # placeholder case
+        bill_events['event_time'].astype(str).str.lower().str.contains(
+            RT_KEYWORDS, na=False # known relative-time keywords
+            )
+    )
 
     # Add letter of support deadline column -- make all letter of support deadlines 7 days before the event date for now
-    bill_events['letter_deadline'] = [(pd.to_datetime(x) - timedelta(days=7)) if pd.notna(x) else None for x in bill_events['event_date']]
-    bill_events['letter_deadline'] = bill_events['letter_deadline'].dt.strftime('%Y-%m-%d') # Format as date string without time
+    bill_events['letter_deadline'] = bill_events['event_date'] - pd.Timedelta(days=7)
 
     # Set letter_deadline to None if event_text contains certain keywords (these events are not committee events and thus don't have letter deadlines)
-    search_words = ['Calendar', 'File', 'Concurrence', 'Reading']  # Define your list of search words
-    pattern = '|'.join(r'\b' + word + r'\b' for word in search_words)
-    bill_events['letter_deadline'] = np.where(bill_events['event_text'].str.contains(pattern, na=False), None, bill_events['letter_deadline'])
+    bill_events.loc[
+        bill_events['event_text'].str.contains(DE_KEYWORDS, na=False),
+        'letter_deadline'
+    ] = pd.NaT
+    
+    # Format dates as strings AFTER all datetime operations
+    bill_events['event_date'] = bill_events['event_date'].dt.strftime('%Y-%m-%d')
+    bill_events['letter_deadline'] = bill_events['letter_deadline'].dt.strftime('%Y-%m-%d')
 
+    # Map original DB event status values as needed
+    conditions = [
+        (bill_events['event_status'] == 'active') & (bill_events['revised'] == True),
+        (bill_events['event_status'] == 'moved') & (bill_events['revised'] == False),
+        (bill_events['event_status'] == 'active') & (bill_events['revised'] == False)
+    ]
+
+    choices = ['event-revised', 'event-moved', 'event-normal']
+
+    bill_events['event_status'] = np.select(conditions, choices, default='event-normal')
     return bill_events
 
 
 ######################### ADD FILTERS / SIDE BAR ###################################
 
-# Define event classes based on type
-event_classes = {
-    "Legislative": "legislative",
-    "Senate": "senate",
-    "Assembly": "assembly",
-    "Letter Deadline": "letter-deadline",
-}
-
-# Also define event flags based on event status and revised status
-def get_event_flags(status, revised):
-    '''
-    Gets the event status and revised status and returns a class name for the event in order to produce visual flags in the calendar.
-    '''
-    # Category 1: Revised events
-    if status == 'active' and revised == True:
-        return 'event-revised'
-    
-    # Category 2: Moved events
-    elif status == 'moved' and revised == False:
-        return 'event-moved'
-    
-    # Category 3: Normal events
-    elif status == 'active' and revised == False:
-        return 'event-normal'
-    else:
-        return 'event-normal'
-    
-# Identify moved events -- THIS NEEDS DEVELOPMENT!
+# TODO: incorporate event movement logic again (this is not being called anywhere)
 def get_moved_events(bill_events):
     events_copy = bill_events.copy()
 
@@ -129,20 +118,18 @@ def get_moved_events(bill_events):
     moved_to_active_events = dupe_groups[dupe_groups['event_status'] == 'active']
 
     # Check assumption that events appear exactly twice, i.e. that events are not moved more than once
-    assert all(dupe_groups['unique_event_id'].value_counts() == 2), "Some IDs don't appear exactly twice!"
+    dg_check = len(dupe_groups)
+
+    dupe_groups = dupe_groups['unique_event_id'].value_counts() == 2
+
+    if dg_check != len(dupe_groups):
+        st.warning("Removed abnormal event data for your session; please contact administrators.")
+    # assert all(dupe_groups['unique_event_id'].value_counts() == 2), "Some IDs don't appear exactly twice!"
 
     # Return only the 'active' event in the pair (i.e., the event it was moved to)
     moved_to_active_events = dupe_groups[dupe_groups['event_status'] == 'active']
 
     return moved_to_active_events
-    
-# Define letter of support class
-def get_letter_deadline_class(letter_deadline):
-    if letter_deadline != 'N/A':
-        return 'letter-deadline'
-    else:
-        return ''
-
 
 ################# DATE TIME FORMATTING ###############
 
@@ -204,12 +191,12 @@ def build_title(row):
     # Build the rest of the title
     parts = []
 
-    if row.get('bill_number') and row.get('event_text'):
-        parts.append(f"{row['bill_number']} - {row['event_text']}")
-    elif row.get('bill_number'):
-        parts.append(row['bill_number'])
+    if row.get('billNumber') and row.get('eventText'):
+        parts.append(f"{row['billNumber']} - {row['eventText']}")
+    elif row.get('billNumber'):
+        parts.append(row['billNumber'])
     elif row.get('event_text'):
-        parts.append(row['event_text'])
+        parts.append(row['eventText'])
 
     if row.get('event_location'):
         parts.append(row['event_location'])
@@ -227,17 +214,29 @@ def build_title(row):
     # Combine emoji prefix (if any) with rest of title
     title_body = ' | '.join(parts)
     if emoji_prefix:
-        return f"{emoji_prefix} {title_body}"
+        row["title"] = f"{emoji_prefix} {title_body}"
     else:
-        return title_body
-    
+        row["title"] = title_body
+    return row
 
-def safe(val):
+def safe(val, is_id=False, is_date=False):
     ''' Helper function to safely convert values to string or return None if NaN.'''
     if pd.isna(val):
+        if is_id:
+            return "N/A"
         return None
+    if is_date:
+        return str(val)
     return val
 
+def create_event_start_end(row):
+    if row['allDay']:
+        row['start'] = row['event_date']
+        row['end'] = row['event_date']
+    else:
+        row['start'] = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['eventTime'])))
+        row['end'] = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['eventTime']), add_hours=1))
+    return row
 
 def filter_events(bill_events, leg_events, selected_types, selected_bills_for_calendar, bill_filter_active):
     '''
@@ -247,11 +246,37 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
     calendar_events = []
     initial_date = str(datetime.now())  # Default to current date if no events are selected
     
+    # Map bill_data column names to camel case for downstream streamlit-calendar usage
+    bill_events = bill_events.rename(
+        columns = {
+            'bill_number': 'billNumber',
+            'bill_name': 'billName',
+            'event_text': 'eventText',
+            'event_time': 'eventTime'
+        }
+    )
+
+    # For events with a specific time, parse the event_time string to time object (combined date and time)
+    bill_events = bill_events.apply(create_event_start_end, axis=1)
+
+    # Special case for safe values: openstates bill ID
+    bill_events['openstates_bill_id'] = bill_events['openstates_bill_id'].apply(
+        lambda x: safe(x, is_id=True)
+    )
+
+    # Special case for safe values: date introduced
+    bill_events['date_introduced'] = bill_events['date_introduced'].apply(
+        lambda x: safe(x, is_date=True)
+    )
+
+    # Now check every cell to get safe values with map
+    bill_events = bill_events.map(safe)
+
     # If filtering by bills (either dashboard bills or individually selected bills)
     if bill_filter_active:
         
         # Filter the bill_events DataFrame to only include selected bills
-        filtered_bill_events = bill_events[bill_events['bill_number'].isin(selected_bills_for_calendar)]
+        filtered_bill_events = bill_events[bill_events['billNumber'].isin(selected_bills_for_calendar)]
 
         # If user only selects one bill, then set initial date to that bill's event date in order to jump to the event date on the calendar
         if len(selected_bills_for_calendar) == 1 and len(filtered_bill_events) == 1:
@@ -271,175 +296,105 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
                 # Pick the soonest event overall, even if inactive or in the past
                 soonest_event = filtered_bill_events.loc[pd.to_datetime(filtered_bill_events['event_date']).idxmin()]
                 initial_date = str(pd.to_datetime(soonest_event['event_date']))
-        
+
         # Add each filtered bill event to the calendar event list 
-        for _, row in filtered_bill_events.iterrows():
+        # Build title
+            filtered_bill_events = filtered_bill_events.apply(build_title, axis=1)
 
-            # For events with a specific time, parse the event_time string to time object (combined date and time)
-            start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-            end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
+            # Assign event details
+            filtered_bill_events["type"] = ""
+            filtered_bill_events["event_class"] = ""
+            filtered_bill_events['type'] = np.where(
+                filtered_bill_events['chamber_id'] == 1,
+                'Assembly',
+                'Senate'
+            )
 
-            event_status = get_event_flags(row['event_status'], row['revised'])
-            event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-            
-            # Convert to JSON
-            calendar_events.append({
-                # Add key info to title -- this will be text displayed on the calendar event blocks
-                'title': build_title(row),
-                'start': start_time if not row['allDay'] else row['event_date'], 
-                'end': end_time if not row['allDay'] else row['event_date'],  
-                #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                'type': 'Assembly' if row['chamber_id'] == 1 else 'Senate',
-                'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-                'billNumber': safe(row['bill_number']),
-                'billName': safe(row['bill_name']),
-                'eventText': safe(row['event_text']),
-                'eventTime': safe(row['event_time']),
-                'status': safe(row['status']),
-                'date_introduced': str(safe(row['date_introduced'])),
-                'letter_deadline': safe(row['letter_deadline']),
-                'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
-            })
+            filtered_bill_events['event_class'] = np.where(
+                filtered_bill_events['chamber_id'] == 1,
+                'assembly',
+                'senate'
+            )
+            filtered_bill_events['className'] = filtered_bill_events['event_class'] + ' ' + filtered_bill_events['event_status']
+
+            # Convert to list of dictonaries and add to calendar events
+            calendar_events.extend(filtered_bill_events.to_dict(orient='records'))
 
         # Add letter of support deadline events for all bill events
-        for _, row in filtered_bill_events.iterrows():
-
-            # If the letter deadline is not None, create a letter deadline event
-            if row['letter_deadline'] is not None:
-
-                # Get letter deadline class -- for css color coding
-                #letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-                
-                # Convert to JSON
-                calendar_events.append({
-                    # Add key info to title -- this will be text displayed on the calendar event blocks
-                    'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                    'start': row['letter_deadline'], 
-                    'end': row['letter_deadline'],
-                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                    'type': 'Letter Deadline',
-                    'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': safe(row['bill_number']),
-                    'billName': safe(row['bill_name']),
-                    'eventText': safe(row['event_text']),
-                    'eventTime': safe(row['event_time']),
-                    'status': safe(row['status']),
-                    'date_introduced': str(safe(row['date_introduced'])),
-                    'letter_deadline': safe(row['letter_deadline']),
-                    'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
-                })
+        letter_events = filtered_bill_events[filtered_bill_events['letter_deadline'].notnull()].copy()
+        
+        # Letter event SPECIFIC columns
+        letter_events['title'] = '✉️ LETTER OF SUPPORT DUE! ' + \
+                        letter_events['billNumber'].fillna('') + ' - ' + \
+                        letter_events['eventText'].fillna('')
+        letter_events['start'] = letter_events['letter_deadline']
+        letter_events['end'] = letter_events['letter_deadline']
+        letter_events['type'] = 'Letter Deadline'
+        letter_events['className'] = 'letter-deadline'
+        # Convert to list of dictonaries and add to calendar events
+        calendar_events.extend(letter_events.to_dict(orient='records'))
 
     # If filtering by event type, not bill
     elif not bill_filter_active and selected_types:
 
         # Add legislative events if selected
         if "Legislative" in selected_types:
-          for _, row in leg_events.iterrows():
-
-            calendar_events.append({
-                'title': row.get('title', 'Legislative Event'), # Default title if missing
-                'start': row['start'], # this is the name of the column in the leg events csv file
-                'end': row['end'],  # this is the namer of the column in the leg events csv file
-                #'allDay': bool(row['allDay']), # All legislative events are all-day, which is already hardcoded in the csv file
-                'type': 'Legislative',
-                'className': f"{event_classes.get('Legislative', '')} event-normal", # Assign class -- corresponds to color coding from css file            
-                'billNumber': 'N/A',
-                'billName': 'N/A',
-                'eventText': 'N/A',
-                'eventTime': 'N/A',
-                'status': 'N/A', #this is bill status, not event status
-                'date_introduced': 'N/A',
-                'letter_deadline': 'N/A',
-                'openstates_bill_id': 'N/A',
-            })
+            # Default title if missing
+            leg_events[leg_events["title"].isna()]["title"] = "Legislative Event"
+            leg_events["type"] = "Legislative"
+            leg_events["billNumber"] = "N/A"
+            leg_events["billName"] = "N/A"
+            leg_events["eventText"] = "N/A"
+            leg_events["eventTime"] = "N/A"
+            leg_events["status"] = "N/A"
+            leg_events["date_introduced"] = "N/A"
+            leg_events["letter_deadline"] = "N/A"
+            leg_events["openstates_bill_id"] = "N/A"
+            leg_events["className"] = "legislative event-normal"
+            calendar_events.extend(leg_events.to_dict(orient='records'))
         
         # Add letter of support deadline events if selected
         if "Letter Deadline" in selected_types:
-            letter_events = bill_events[bill_events['letter_deadline'].notnull()]
+            # Only bills with letter deadlines need letter events
+            letter_events = bill_events[bill_events['letter_deadline'].notnull()].copy()
             
-            for _, row in letter_events.iterrows():
+            # Letter event SPECIFIC columns
+            letter_events['title'] = '✉️ LETTER OF SUPPORT DUE! ' + \
+                          letter_events['billNumber'].fillna('') + ' - ' + \
+                          letter_events['eventText'].fillna('')
+            letter_events['start'] = letter_events['letter_deadline']
+            letter_events['end'] = letter_events['letter_deadline']
+            letter_events['type'] = 'Letter Deadline'
+            letter_events['className'] = 'letter-deadline'
 
-                    # Get letter deadline class -- for css color coding
-                    #letter_deadline_class = get_letter_deadline_class(row['letter_deadline'])
-                    
-                    # Convert to JSON
-                    calendar_events.append({
-                        # Add key info to title -- this will be text displayed on the calendar event blocks
-                        'title': f"✉️ LETTER OF SUPPORT DUE! {row['bill_number']} - {row['event_text']}",
-                        'start': row['letter_deadline'],
-                        'end': row['letter_deadline'],
-                        #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                        'type': 'Letter Deadline',
-                        'className': "letter-deadline",  # Assign class -- corresponds to color coding from css file
-                        'billNumber': safe(row['bill_number']),
-                        'billName': safe(row['bill_name']),
-                        'eventText': safe(row['event_text']),
-                        'eventTime': safe(row['event_time']),
-                        'status': safe(row['status']),
-                        'date_introduced': str(safe(row['date_introduced'])),
-                        'letter_deadline': safe(row['letter_deadline']),
-                        'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
-
-                    })
+            # Convert to list of dictonaries and add to calendar events
+            calendar_events.extend(letter_events.to_dict(orient='records'))
 
         # Add Assembly bill events if selected
         if "Assembly" in selected_types:
-            assembly_events = bill_events[bill_events['chamber_id'] == 1]
-            for _, row in assembly_events.iterrows():
+            assembly_events = bill_events[bill_events['chamber_id'] == 1].copy()
+            
+            # Build title
+            assembly_events = assembly_events.apply(build_title, axis=1)
 
-                # For events with a specific time, parse the event_time string to time object (combined date and time)
-                start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
+            # Assign event details
+            assembly_events["event_class"] = "assembly" # All events are already filtered
+            assembly_events['className'] = assembly_events['event_class'] + ' ' + assembly_events['event_status']
 
-                event_status = get_event_flags(row['event_status'], row['revised'])
-                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-                            
-                calendar_events.append({
-                    'title': build_title(row),                 
-                    'start': start_time if not row['allDay'] else row['event_date'], 
-                    'end': end_time if not row['allDay'] else row['event_date'],  
-                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                    'type': 'Assembly',
-                    'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': safe(row['bill_number']),
-                    'billName': safe(row['bill_name']),
-                    'eventText': safe(row['event_text']),
-                    'eventTime': safe(row['event_time']),
-                    'status': safe(row['status']),
-                    'date_introduced': str(safe(row['date_introduced'])),
-                    'letter_deadline': safe(row['letter_deadline']),
-                    'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
-                })
+            calendar_events.extend(assembly_events.to_dict(orient='records'))
 
         # Add Senate bill events if selected
         if "Senate" in selected_types:
-            senate_events = bill_events[bill_events['chamber_id'] == 2]
-            for _, row in senate_events.iterrows():
+            senate_events = bill_events[bill_events['chamber_id'] != 1].copy()
 
-                # For events with a specific time, parse the event_time string to time object (combined date and time)
-                start_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time'])))
-                end_time = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['event_time']), add_hours=1))
+            # Build title
+            senate_events = senate_events.apply(build_title, axis=1)
+            # Assign event details
+            senate_events["event_class"] = "senate" # All events are already filtered
+            senate_events['className'] = senate_events['event_class'] + ' ' + senate_events['event_status']
 
-                event_status = get_event_flags(row['event_status'], row['revised'])
-                event_class = 'assembly' if row['chamber_id'] == 1 else 'senate'
-                
-                calendar_events.append({
-                    'title': build_title(row),                           
-                    'start': start_time if not row['allDay'] else row['event_date'], 
-                    'end': end_time if not row['allDay'] else row['event_date'],  
-                    #'allDay': bool(row['allDay']), #  Turned off bc events now have specific times
-                    'type': 'Senate',
-                    'className': f"{event_class} {event_status}",  # Assign class -- corresponds to color coding from css file
-                    'billNumber': safe(row['bill_number']),
-                    'billName': safe(row['bill_name']),
-                    'eventText': safe(row['event_text']),
-                    'eventTime': safe(row['event_time']),
-                    'status': safe(row['status']),
-                    'date_introduced': str(safe(row['date_introduced'])),
-                    'letter_deadline': safe(row['letter_deadline']),
-                    'openstates_bill_id': safe(row.get('openstates_bill_id', 'N/A')),
-
-                })
+            # Convert to list of dictonaries and add to calendar events
+            calendar_events.extend(senate_events.to_dict(orient='records'))
     
     return calendar_events, initial_date
 
@@ -479,7 +434,8 @@ def create_ics_file(events):
                 event.end = pd.to_datetime(start_date).to_pydatetime()
                 event.make_all_day()
             except Exception as e:
-                print(f"Start date is 'N/A', null, or None -- skipping: {e}")
+                print(event_data)
+                # print(f"Start date is 'N/A', null, or None -- skipping: {e}")
                 continue
 
             # Handle letter deadline events
@@ -493,6 +449,7 @@ def create_ics_file(events):
                     event.name = f"✉️ LETTER OF SUPPORT DUE - {event_data['billNumber']} - {event_data['eventText']}"
                 except Exception as e:
                     # If start = N/A then skip
+                    # print(event_data)
                     print(f"Start date is 'N/A', null, or None -- assuming this is not a valid letter of support and skipping: {e}")
                     continue
 
