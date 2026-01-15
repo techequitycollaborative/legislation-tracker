@@ -56,10 +56,12 @@ filtered_action AS (
     WHERE action_date >= '2024-12-02'
 )
 
--- Get final view
-SELECT * 
+-- Get final view and a unique row index
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY openstates_bill_id, action_order, action_date) AS row_id,
+    *
 FROM filtered_action
 ORDER BY openstates_bill_id, action_order;
 
--- UNIQUE index to use CONCURRENTLY (refresh view without interruption)
-CREATE UNIQUE INDEX idx_bill_history_mv_pk ON app.bills_mv(openstates_bill_id);
+-- Then create the unique index on row_id:
+CREATE UNIQUE INDEX idx_bill_history_mv_pk ON app.bill_history_mv(row_id);
