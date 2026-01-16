@@ -438,7 +438,7 @@ def login_page():
         st.session_state.pop('signup_success', None)
     
     # Add a temporary warning message to let user know the app is under maintenance / not working right now
-    st.warning("⚠️ The CA Legislation Tracker is currently undergoing maintenance, and should be up and running later in the legislative cycle. We appreciate your patience!")
+    st.warning("⚠️ The CA Legislation Tracker is currently undergoing maintenance, and some features may not work as intended. We will be sharing more information with users once maintenance is complete. We appreciate your patience!")
 
     # Page header
     st.markdown("<h3 style='text-align: center;'>Login to the CA Legislation Tracker</h3>", unsafe_allow_html=True)
