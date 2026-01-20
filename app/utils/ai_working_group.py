@@ -39,7 +39,8 @@ def display_working_group_bill_details(selected_rows):
 
     # Format dates MM-DD-YYYY in the bill details
     date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') if date_introduced is not None else None
-    bill_event = pd.to_datetime(bill_event).strftime('%m-%d-%Y') if bill_event is not None else None
+    bill_event_dt = pd.to_datetime(bill_event, errors='coerce')
+    bill_event = bill_event_dt.strftime('%m-%d-%Y') if pd.notna(bill_event_dt) else None
     last_updated = pd.to_datetime(last_updated).strftime('%m-%d-%Y') if last_updated is not None else 'Unknown'
 
     # Access org and user info from session state
