@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS auth.logged_users (
     email TEXT,
     password_hash TEXT,
     org_id INTEGER NOT NULL,
-    FOREIGN KEY (org_id) REFERENCES approved_organizations(id)
+    FOREIGN KEY (org_id) REFERENCES approved_organizations(id),
+	-- Add created at and last login columns, which are updated via authentication.py functions
+	created_at TIMESTAMPTZ,
+	last_login TIMESTAMPTZ;
 );
+
 
