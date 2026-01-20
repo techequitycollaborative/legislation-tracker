@@ -281,8 +281,13 @@ def create_user(name: str, email: str, password: str, org_id: int) -> Optional[i
     
     try:
         password_hash = hash_password(password)
-        c.execute("INSERT INTO logged_users (name, email, password_hash, org_id) VALUES (%s, %s, %s, %s) RETURNING id", 
-                  (name, email, password_hash, org_id))
+        # Set both created_at and last_login to NOW() when creating a new user
+        c.execute("""
+            INSERT INTO auth.logged_users 
+            (name, email, password_hash, org_id, created_at, last_login) 
+            VALUES (%s, %s, %s, %s, NOW(), NOW()) 
+            RETURNING id
+        """, (name, email, password_hash, org_id))
         conn.commit()
         return c.fetchone()[0]
     except psycopg2.IntegrityError:
@@ -317,6 +322,36 @@ def get_organization_by_id(org_id: int) -> Optional[Tuple]:
     except psycopg2.Error as e:
         st.error(f"Database error: {e}")
         return None
+    finally:
+        pg_pool.putconn(conn)
+
+
+def update_last_login(user_id: int) -> bool:
+    """
+    Update the last_login timestamp for a user.
+    
+    Args:
+        user_id (int): User's ID
+    
+    Returns:
+        bool: True if update was successful, False otherwise
+    """
+    conn, c = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        c.execute("""
+            UPDATE auth.logged_users 
+            SET last_login = NOW() 
+            WHERE id = %s
+        """, (user_id,))
+        conn.commit()
+        return True
+    except psycopg2.Error as e:
+        st.error(f"Database error updating last login: {e}")
+        conn.rollback()
+        return False
     finally:
         pg_pool.putconn(conn)
 
@@ -425,6 +460,7 @@ def signup_page():
         st.session_state['show_signup'] = False
         st.rerun()
 
+
 @profile("utils/authentication.py - login_page")
 def login_page():
     """
@@ -467,6 +503,9 @@ def login_page():
         user = get_user(email)
         
         if user and check_password(password, user[3]):
+            # Update last_login timestamp
+            update_last_login(user[0])  # Pass user_id
+            
             # Successful login
             st.session_state['authenticated'] = True
             st.session_state['user_id'] = user[0]
@@ -491,6 +530,7 @@ def login_page():
         st.rerun()
     
     show_performance_metrics()
+
 
 def logout():
     """
