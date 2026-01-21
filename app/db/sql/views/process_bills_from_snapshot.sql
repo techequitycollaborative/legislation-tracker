@@ -58,7 +58,7 @@ latest_status AS (
         openstates_bill_id, 
         description AS status
     FROM app.bill_history
-    ORDER BY openstates_bill_id, action_date DESC
+    ORDER BY openstates_bill_id, action_order DESC
 ),
 
 -- Aggregate full bill history
