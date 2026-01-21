@@ -2,7 +2,7 @@
 
 .main-header {
     background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem;
+    padding: 1rem;
     border-radius: 10px;
     margin-bottom: 2rem;
     color: white;
@@ -253,6 +253,19 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
+/* Popover button styling */
+/* Target all secondary variant buttons */
+/* button[kind="secondary"] {
+    background-color: #667eea !important;
+    color: white !important;
+    border: 1px solid #667eea !important;
+}
+
+button[kind="secondary"]:hover {
+    background-color: #5a67d8 !important;
+    color: white !important;
+} */
+
 /* Responsive design */
 @media (max-width: 768px) {
     .main-header {
@@ -270,7 +283,7 @@
 }
 
 /* Custom scrollbar for better UX */
-::-webkit-scrollbar {
+/* ::-webkit-scrollbar {
     width: 8px;
 }
 
@@ -286,4 +299,4 @@
 
 ::-webkit-scrollbar-thumb:hover {
     background: #5a67d8;
-}
+} */
