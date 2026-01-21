@@ -88,19 +88,12 @@ st.session_state.org_dashboard_bills = load_org_dashboard_table()
 
 ############################ FILTERS #############################
 # Display filters and get filter values
-filter_values = display_bill_filters(st.session_state.org_dashboard_bills, show_date_filters=True)
-selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
-
-# Apply filters
-filtered_bills = apply_bill_filters(
-    st.session_state.org_dashboard_bills, 
-    selected_topics, 
-    selected_statuses, 
-    selected_authors, 
-    bill_number_search, 
-    date_from, 
-    date_to
+filters = display_bill_filters(
+    st.session_state.org_dashboard_bills,
+    show_date_filters=False,
+    show_keyword_search=False
 )
+filtered_bills = apply_bill_filters(st.session_state.org_dashboard_bills, filter_dict=filters)
 
 # Update total bills count
 col1, col2, col3 = st.columns([2, 6, 2])

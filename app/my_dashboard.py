@@ -46,15 +46,6 @@ user_email = st.session_state['user_email']
 user_name = st.session_state['user_name']
 first_name = user_name.split()[0]  # Get the first name for a more personal greeting
 
-# Clear dashboard button
-col1, col2 = st.columns([4, 1])
-with col2:
-    if st.button('Clear Dashboard', use_container_width=True, type='primary'):
-        clear_all_my_dashboard_bills()
-        st.session_state.selected_bills = []
-        st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
-        st.success('Dashboard cleared!') #TODO: figure out why success message gets cleared so quickly
-
 # Initialize session state for dashboard bills
 if 'dashboard_bills' not in st.session_state or st.session_state.dashboard_bills is None:
     st.session_state.dashboard_bills = pd.DataFrame()  # Initialize as empty DataFrame
@@ -88,20 +79,15 @@ st.session_state.dashboard_bills = load_my_dashboard_table()
 
 ############################ FILTERS #############################
 # Display filters and get filter values
-filter_values = display_bill_filters(st.session_state.dashboard_bills, show_date_filters=True)
-selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
-
-# Apply filters
-filtered_bills = apply_bill_filters(
-    st.session_state.dashboard_bills, 
-    selected_topics, 
-    selected_statuses, 
-    selected_authors, 
-    bill_number_search, 
-    date_from, 
-    date_to
+filters = display_bill_filters(
+    st.session_state.dashboard_bills,
+    show_date_filters=False,
+    show_keyword_search=False
 )
+filtered_bills = apply_bill_filters(st.session_state.dashboard_bills, filter_dict=filters)
 
+
+############################ BILLS COUNT + CLEAR DASHBOARD BUTTON #############################
 # Update total bills count
 col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
@@ -109,6 +95,20 @@ with col1:
     st.markdown(f"#### Total bills: {total_bills:,}")
     if len(filtered_bills) < len(st.session_state.dashboard_bills):
         st.caption(f"(filtered from {len(st.session_state.dashboard_bills):,} total)")
+
+with col2:
+    st.markdown("")  # Empty middle column for spacing
+
+# Clear dashboard button
+with col3:
+    if st.button('Clear Dashboard', use_container_width=True, type='primary', help="Remove all bills from your dashboard. This action cannot be undone."):
+        clear_all_my_dashboard_bills()
+        st.session_state.selected_bills = []
+        st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
+        st.success('Dashboard cleared!') #TODO: figure out why success message gets cleared so quickly
+
+# Add additional space between button and table
+st.markdown(" ")
 
 ############################ MAIN TABLE / DATAFRAME #############################
 
