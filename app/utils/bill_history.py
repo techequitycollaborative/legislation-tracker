@@ -18,14 +18,14 @@ def format_bill_history(bill_history):
     if not bill_history:
         return ""
 
-    # Split entries using ", " (assuming this is how they are separated)
-    entries = bill_history.split(", ")
+    # Split entries using a more specific pattern that looks for ", " followed by a date
+    entries = re.split(r',\s*(?=\d{4}-\d{2}-\d{2}\s*>>)', bill_history)
 
     # Process entries into tuples (date, event)
     formatted_entries = []
     for entry in entries:
         # Ensure the format is `YYYY-MM-DD >> Event`
-        match = re.match(r"^(\d{4}-\d{2}-\d{2})\s*>>\s*(.+)", entry)
+        match = re.match(r"^(\d{4}-\d{2}-\d{2})\s*>>\s*(.+)", entry.strip())
         if match:
             date, event = match.groups()
             formatted_entries.append((date, event))
@@ -38,6 +38,8 @@ def format_bill_history(bill_history):
 
 
 ##########################################################################################################################################
+
+## DEPRECATED FUNCTIONS
 
 def format_bill_history_dashboard(bill_history):
     '''
