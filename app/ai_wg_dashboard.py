@@ -40,6 +40,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 st.expander("ℹ️ About this page", expanded=False).markdown("""
 - Use this page to track bills as a working group.
 - To add a bill to this dashboard, select a bill on the 📝 Bills page and then click the "Add to AI Working Group Dashboard" button.
@@ -61,13 +62,12 @@ user_email = st.session_state['user_email']
 user_name = st.session_state['user_name']
 first_name = user_name.split()[0] # get first name from user name
 
-# Initialize session state for dashboard bills
-if 'working_group_bills' not in st.session_state or st.session_state['working_group_bills'] is None:
-    st.session_state['working_group_bills'] = pd.DataFrame()
-
 # Initialize session state for filters
 initialize_filter_state()
 
+# Initialize session state for dashboard bills
+if 'wg_bills' not in st.session_state or st.session_state.wg_bills is None:
+    st.session_state.wg_bills = pd.DataFrame() # Initialize as empty DataFrame
 
 ############################# FETCH BILLS ###########################################
 
@@ -101,8 +101,7 @@ def load_ai_dashboard_table():
     return wg_bills
 
 # TODO: unify with session_state storage of data, not page variable
-wg_bills = load_ai_dashboard_table()
-
+st.session_state.wg_bills = load_ai_dashboard_table()
 
 ############################## HEADER SECTION ##############################
 
@@ -111,7 +110,7 @@ st.markdown('<h3 class="section-header">Overview</h3>', unsafe_allow_html=True)
 metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
 
 with metrics_col1:
-    total_bills = len(wg_bills) if not wg_bills.empty else 0
+    total_bills = len(st.session_state.wg_bills) if not st.session_state.wg_bills.empty else 0
     st.metric("📊 Total Bills", total_bills)
 
 with metrics_col2:
@@ -120,7 +119,7 @@ with metrics_col2:
     
     # Get bills updated in the last 7 days
     # TODO: move to loading function, or a metrics function
-    recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= (pd.Timestamp.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
+    recent_bills_count = len(st.session_state.wg_bills[st.session_state.wg_bills['last_updated_on'] >= (pd.Timestamp.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')]) if not st.session_state.wg_bills.empty else 0
     
     st.metric("🕒 Bills Updated This Week", recent_bills_count)
 
@@ -152,8 +151,9 @@ tab1, tab2, tab3 = st.tabs(["🕒 Recently Updated Bills", "📄 Letters", "👥
 ############################## Recently Updated Bills ##############################
 with tab1:
     st.markdown(" ")
-    if not wg_bills.empty:
-        recent_bills = wg_bills.sort_values(by='last_updated_on', ascending=False).head(8)
+    if not st.session_state.wg_bills.empty:
+        recent_bills = st.session_state.wg_bills.sort_values(by='last_updated_on', ascending=False).head(8)
+        
         # Display recent bills -- rows of 4 columns each
         bills_list = list(recent_bills.iterrows())
         for i in range(0, len(bills_list), 4):
@@ -162,33 +162,13 @@ with tab1:
                 if i + j < len(bills_list):
                     _, bill = bills_list[i + j]
                     with cols[j]:
-                        # Build the upcoming event bullet point if data exists
-                        #if (pd.notna(bill['bill_event']) and bill['bill_event'] and 
-                        #    pd.notna(bill['event_text']) and bill['event_text']):
-                        #    upcoming_event = f"<strong>Upcoming Event:</strong> <br>{bill['event_text']} - {bill['bill_event']}"
-                        #else: 
-                        #    upcoming_event = "<strong>Upcoming Event:</strong> None"
-                        
-                        # Create the complete HTML for the card
-                        card_html = f"""
-                        <div class="bill-card">
-                            <h4>{bill['bill_number']}</h4>
-                            <p>{bill['bill_name']}</p>
-                            <ul>
-                                <li><strong>Last Updated:</strong> {bill['last_updated_on']}</li>
-                                <li><strong>Status:</strong> {bill['status']}</li>
-                            </ul>
-                        </div>
-                        """
-                        
-                        st.markdown(card_html, unsafe_allow_html=True)
-                    
+                        with st.popover(bill['bill_number'], use_container_width=True):
+                            st.subheader(bill['bill_number'])
+                            st.write(bill['bill_name'])
+                            st.write(f"**Last Updated:** {bill['last_updated_on']}")
+                            st.write(f"**Status:** {bill['status']}")
     else:
-        st.markdown("""
-        <div class="info-card">
-            <p>No bills have been added to the working group yet.</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("No bills have been added to the working group yet.")
 
 ############################## Letters of Support ##############################
 
@@ -287,32 +267,25 @@ st.markdown("Select a bill to view more details.")
 
 ############################ FILTERS #############################
 # Display filters and get filter values
-filter_values = display_bill_filters(wg_bills, show_date_filters=True)
-selected_topics, selected_statuses, selected_authors, bill_number_search, date_from, date_to = filter_values
-
-# Apply filters
-filtered_bills = apply_bill_filters(
-    wg_bills, 
-    selected_topics, 
-    selected_statuses, 
-    selected_authors, 
-    bill_number_search, 
-    date_from, 
-    date_to
+filters = display_bill_filters(
+    st.session_state.wg_bills,
+    show_date_filters=False,
+    show_keyword_search=False
 )
+filtered_bills = apply_bill_filters(st.session_state.wg_bills, filter_dict=filters)
 
 # Update total bills count
 col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
     total_bills = len(filtered_bills)
     st.markdown(f"#### Total bills: {total_bills:,}")
-    if len(filtered_bills) < len(wg_bills):
-        st.caption(f"(filtered from {len(wg_bills):,} total)")
+    if len(filtered_bills) < len(st.session_state.wg_bills):
+        st.caption(f"(filtered from {len(st.session_state.wg_bills):,} total)")
 
 ###############################################################
 
 with st.container(key='dashboard_bills_table_container'):
-    if not wg_bills.empty:
+    if not st.session_state.wg_bills.empty:
         with timer("AI working group dashboard - draw streamlit df"):
             data = display_bills_table(filtered_bills)
 
@@ -326,7 +299,7 @@ with st.container(key='dashboard_bills_table_container'):
             selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
             display_working_group_bill_details(selected_bill_data)
 
-    elif wg_bills.empty:
+    elif st.session_state.wg_bills.empty:
         st.write('No bills added yet.')
 
 
