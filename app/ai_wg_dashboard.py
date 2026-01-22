@@ -66,7 +66,7 @@ first_name = user_name.split()[0] # get first name from user name
 initialize_filter_state()
 
 # Initialize session state for dashboard bills
-if 'wg_bills' not in st.session_state or st.session_state.wg_bills is None:
+if 'working_group_bills' not in st.session_state or st.session_state.wg_bills is None:
     st.session_state.wg_bills = pd.DataFrame() # Initialize as empty DataFrame
 
 ############################# FETCH BILLS ###########################################
@@ -78,29 +78,29 @@ def load_ai_dashboard_table():
     # Fetch the user's saved bills from the database
     wg_bills = get_working_group_bills()
 
-    # Process bills data if not empty
-    if not wg_bills.empty:
-        # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-        
-        # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-        wg_bills['date_introduced'] = pd.to_datetime(wg_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-        wg_bills['bill_event'] = pd.to_datetime(wg_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-        wg_bills['last_updated_on'] = pd.to_datetime(wg_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
+    # Update session state with user's org's dashboard bills
+    st.session_state.wg_bills = wg_bills
 
-        # Minor data processing to match bills table
-        # wg_bills = get_bill_topics_multiple(wg_bills, keyword_dict= keyword_to_topics, keyword_regex=global_keyword_regex)  # Get bill topics
-        # Wrangle assigned-topic string to a Python list for web app manipulation
-        wg_bills['bill_topic'] = wg_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
-        wg_bills = wg_bills.drop(columns=['assigned_topics'])
+    # Process bills data
 
-        wg_bills['bill_history'] = wg_bills['bill_history'].apply(format_bill_history) #Format bill history
+    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
+    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
+    wg_bills['date_introduced'] = pd.to_datetime(wg_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
+    wg_bills['bill_event'] = pd.to_datetime(wg_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
+    wg_bills['last_updated_on'] = pd.to_datetime(wg_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
-        # Default sorting: by upcoming bill_event
-        wg_bills = wg_bills.sort_values(by='bill_event', ascending=False)
+    # Minor data processing to match bills table
+    # Wrangle assigned-topic string to a Python list for web app manipulation
+    wg_bills['bill_topic'] = wg_bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
+    wg_bills = wg_bills.drop(columns=['assigned_topics'])
+
+    wg_bills['bill_history'] = wg_bills['bill_history'].apply(format_bill_history) #Format bill history
+
+    # Default sorting: by upcoming bill_event
+    wg_bills = wg_bills.sort_values(by='bill_event', ascending=False)
     
     return wg_bills
 
-# TODO: unify with session_state storage of data, not page variable
 st.session_state.wg_bills = load_ai_dashboard_table()
 
 ############################## HEADER SECTION ##############################
