@@ -808,7 +808,7 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     st.rerun()
 
 @profile("query.py - get_working_group_bills")
-@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
+@st.cache_data(show_spinner="Loading bills data...",ttl=120)  #  Cache for 2 mins 
 def get_working_group_bills():
     '''
     Fetches bills from the working_group_dashboard table in the PostgreSQL database.
