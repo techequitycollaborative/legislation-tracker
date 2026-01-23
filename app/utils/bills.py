@@ -65,18 +65,18 @@ def display_bill_info_text(selected_rows):
             st.markdown(f'### {bill_number}')
         with col2:
             # Add to ORG DASHBOARD button
-            if st.button(f"Add to {org_nickname} Dashboard", use_container_width=True, type='primary'):
+            if st.button(f"Add to {org_nickname} Dashboard", width='stretch', type='primary'):
                 # Call the function to add the bill to the dashboard
                 with timer("utils/bills.py - add_bill_to_org_dashboard"):
                     add_bill_to_org_dashboard(openstates_bill_id, bill_number)
 
             # Add to MY DASHBOARD button
-            if st.button('Add to My Dashboard', use_container_width=True,type='secondary'):
+            if st.button('Add to My Dashboard', width='stretch',type='secondary'):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_dashboard(openstates_bill_id, bill_number)
 
             if st.session_state.get('working_group', False):
-                if st.button('Add to AI Working Group Dashboard', use_container_width=True,type='secondary'):
+                if st.button('Add to AI Working Group Dashboard', width='stretch',type='secondary'):
                     # Call the function to add the bill to the dashboard
                     add_bill_to_working_group_dashboard(openstates_bill_id, bill_number)
     

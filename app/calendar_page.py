@@ -216,7 +216,7 @@ with col2:
         data=ics_content,
         file_name="events.ics",
         mime="text/calendar",
-        use_container_width=True
+        width='stretch'
     )
 
 ################################## BUILD CALENDAR ###################################

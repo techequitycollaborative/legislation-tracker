@@ -45,7 +45,7 @@ def display_bill_info_expander(selected_rows):
             with col1:
                 st.markdown('### Bill Details')
             with col2:
-                if st.button('Add to Dashboard', use_container_width=True,):
+                if st.button('Add to Dashboard', width='stretch',):
                     # Call the function to add the bill to the dashboard
                     add_bill_to_dashboard(number, name, author, coauthors, status, date, chamber, link, text, history)
         
@@ -145,7 +145,7 @@ def display_bill_info_dialog(selected_rows):
         with col1:
             st.write("")
         with col2:
-            if st.button('Add to Dashboard', use_container_width=True,):
+            if st.button('Add to Dashboard', width='stretch',):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_dashboard(number, name, author, coauthors, status, date, chamber, link, text, history)
     

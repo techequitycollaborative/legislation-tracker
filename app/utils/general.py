@@ -78,11 +78,11 @@ def clean_markdown(text):
     result = text.replace("\\n", "\n")
 
     # Escape Markdown special characters
-    result = result.replace("$", "\$")
-    result = result.replace("%", "\%")
-    result = result.replace("+", "\+")
-    result = result.replace("-", "\-")
-    result = result.replace("!", "\!")  
+    result = result.replace("$", r"\$")
+    result = result.replace("%", r"\%")
+    result = result.replace("+", r"\+")
+    result = result.replace("-", r"\-")
+    result = result.replace("!", r"\!")  
 
     return result
 ###############################################################################

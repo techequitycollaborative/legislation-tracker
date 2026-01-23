@@ -96,7 +96,7 @@ if selected_categories:
             data=to_csv(combined_df),
             file_name='selected_bills.csv',
             mime='text/csv',
-            use_container_width=True
+            width='stretch'
         )
 
     # Display the aggrid table

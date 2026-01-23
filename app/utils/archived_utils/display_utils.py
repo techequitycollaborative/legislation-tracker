@@ -63,12 +63,12 @@ def display_bill_info_text(selected_rows):
             st.markdown(f'### {bill_number}')
         with col2:
             # Add to ORG DASHBOARD button
-            if st.button(f"Add to {org_name} Dashboard", use_container_width=True, type='primary'):
+            if st.button(f"Add to {org_name} Dashboard", width='stretch', type='primary'):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_org_dashboard(openstates_bill_id, bill_number)
 
             # Add to MY DASHBOARD button
-            if st.button('Add to My Dashboard', use_container_width=True,type='secondary'):
+            if st.button('Add to My Dashboard', width='stretch',type='secondary'):
                 # Call the function to add the bill to the dashboard
                 add_bill_to_dashboard(openstates_bill_id, bill_number)
     
@@ -252,7 +252,7 @@ def display_dashboard_details(selected_rows):
             st.markdown(f'### {bill_number}')
         with col2:
             # If button is clicked: 
-            if st.button('Remove from My Dashboard', use_container_width=True, type='primary'):
+            if st.button('Remove from My Dashboard', width='stretch', type='primary'):
                 # Call the function to remove the bill from the dashboard
                 remove_bill_from_dashboard(openstates_bill_id, bill_number)
                 
@@ -481,7 +481,7 @@ def display_org_dashboard_details(selected_rows):
             st.markdown(f'### {bill_number}')
         with col2:
             # If button is clicked: 
-            if st.button(f"Remove from {org_name} Dashboard", use_container_width=True, type='primary'):
+            if st.button(f"Remove from {org_name} Dashboard", width='stretch', type='primary'):
                 # Call the function to remove the bill from the dashboard
                 remove_bill_from_org_dashboard(openstates_bill_id, bill_number)
                 
@@ -894,7 +894,7 @@ def staffer_directory_tab(df):
             "people_contact_id": None,
             "staffer_type": None
         },
-        use_container_width=True,
+        width='stretch',
         height=600,
         hide_index=True
     )
@@ -927,7 +927,7 @@ def issue_editor_tab(df, openstates_people_id, org_id, org_name, user_email):
                 "staffer_contact": "Codex Contact",
                 "auto_email": "Auto-generated email"
             },
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             height=600
         )

@@ -101,7 +101,7 @@ if records:
             # Display table
             st.data_editor(
                 df_display,
-                use_container_width=True,
+                width='stretch',
                 column_config={
                     "last_updated_on": st.column_config.DateColumn("Last Updated", format="MM-DD-YYYY", help="Date when these details were last updated by the organization"),
                     "last_updated_org_name": st.column_config.Column("Organization", help="Organizations with access to the Legislation Tracker"),

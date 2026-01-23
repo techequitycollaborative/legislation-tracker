@@ -46,7 +46,7 @@ first_name = user_name.split()[0]  # Get the first name for a more personal gree
 # Clear dashboard button
 col1, col2 = st.columns([4, 1])
 with col2:
-    if st.button('Clear Dashboard', use_container_width=True, type='primary'):
+    if st.button('Clear Dashboard', width='stretch', type='primary'):
         clear_all_my_dashboard_bills(user_email)  # Actually remove the bills from the DB
         st.session_state.selected_bills = []
         st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame
@@ -108,7 +108,7 @@ with col3:
             data=to_csv(db_bills),
             file_name='my_bills.csv',
             mime='text/csv',
-            use_container_width=True
+            width='stretch'
         )
 
 # Update session state if the user picks a new theme
