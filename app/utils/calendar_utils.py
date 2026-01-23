@@ -481,4 +481,5 @@ def create_ics_file(events):
 
         cal.events.add(event)  # Add the event to the calendar
     
-    return str(cal)  # Return the .ics content as a string
+    # return str(cal)  # Return the .ics content as a string
+    return cal.serialize()
