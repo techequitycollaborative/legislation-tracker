@@ -78,7 +78,7 @@ with tab1:
             data=to_csv(bills),
             file_name='output.csv',
             mime='text/csv',
-            use_container_width=True
+            width='stretch'
         )
 
     # Make the aggrid dataframe

@@ -61,7 +61,7 @@ def display_org_dashboard_details(selected_rows):
             st.markdown(f'### {bill_number}')
         with col2:
             # If button is clicked: 
-            if st.button(f"Remove from {org_name} Dashboard", use_container_width=True, type='primary'):
+            if st.button(f"Remove from {org_name} Dashboard", width='stretch', type='primary'):
                 # Call the function to remove the bill from the dashboard
                 with timer("utils/org_dashboard.py - remove_bill_from_org_dashboard"):
                     remove_bill_from_org_dashboard(openstates_bill_id, bill_number)

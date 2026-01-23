@@ -101,7 +101,7 @@ with col2:
 
 # Clear dashboard button
 with col3:
-    if st.button('Clear Dashboard', use_container_width=True, type='primary', help="Remove all bills from your dashboard. This action cannot be undone."):
+    if st.button('Clear Dashboard', width='stretch', type='primary', help="Remove all bills from your dashboard. This action cannot be undone."):
         clear_all_my_dashboard_bills()
         st.session_state.selected_bills = []
         st.session_state.dashboard_bills = pd.DataFrame()  # Clear in-memory DataFrame

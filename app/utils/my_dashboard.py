@@ -62,7 +62,7 @@ def display_dashboard_details(selected_rows):
             st.markdown(f'### {bill_number}')
         with col2:
             # If button is clicked: 
-            if st.button('Remove from My Dashboard', use_container_width=True, type='primary'):
+            if st.button('Remove from My Dashboard', width='stretch', type='primary'):
                 # Call the function to remove the bill from the dashboard
                 remove_bill_from_dashboard(openstates_bill_id, bill_number)
                 

@@ -47,7 +47,7 @@ st.markdown(" ")
 # Clear dashboard button -- DISABLED FOR NOW BC IT MIGHT GET MESSY HAVING THIS OPTION WITH MANY USERS SHARING ONE ORG DASHBOARD. but if we want to add it, the clear button on the my dashboard works.
 #col1, col2 = st.columns([4, 1])
 #with col2:
-#    if st.button('Clear Dashboard', use_container_width=True, type='primary'):
+#    if st.button('Clear Dashboard', width='stretch', type='primary'):
 #        st.session_state.selected_bills = []  # Clear session state
 #        st.success('Dashboard cleared!')
 
