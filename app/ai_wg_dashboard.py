@@ -162,7 +162,7 @@ with tab1:
                 if i + j < len(bills_list):
                     _, bill = bills_list[i + j]
                     with cols[j]:
-                        with st.popover(bill['bill_number'], use_container_width=True):
+                        with st.popover(bill['bill_number'], width='stretch'):
                             st.subheader(bill['bill_number'])
                             st.write(bill['bill_name'])
                             st.write(f"**Last Updated:** {bill['last_updated_on']}")
@@ -247,7 +247,7 @@ with tab3:
         filtered_members = filter_ai_members(ai_members)
         st.data_editor(
             filtered_members,
-            use_container_width=True,
+            width='stretch',
             column_config={
                 "name": st.column_config.Column("Name"),
                 "email": st.column_config.Column("Email"),

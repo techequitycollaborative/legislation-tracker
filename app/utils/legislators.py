@@ -95,7 +95,7 @@ def staffer_directory_tab(df):
             "people_contact_id": None,
             "staffer_type": None
         },
-        use_container_width=True,
+        width='stretch',
         height=600,
         hide_index=True
     )
@@ -131,7 +131,7 @@ def issue_editor_tab(df, openstates_people_id, org_id, org_name, user_email):
                 "staffer_contact": "Codex Contact",
                 "auto_email": "Auto-generated email"
             },
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             height=600
         )
