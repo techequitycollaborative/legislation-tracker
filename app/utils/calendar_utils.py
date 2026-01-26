@@ -57,7 +57,7 @@ def load_bill_events():
                            'event_location', 'event_room', 'revised', 'event_status']]
     
 
-    bill_events = pd.merge(bills, events, how='outer', on='openstates_bill_id') # Merge the two tables on openstates_bill_id
+    bill_events = pd.merge(bills, events, how='inner', on='openstates_bill_id') # Merge the two tables on openstates_bill_id
     
     # Drop rows with empty event_date, if any
     bill_events = bill_events.dropna(subset=['event_date']) 
