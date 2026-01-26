@@ -474,7 +474,7 @@ def login_page():
         st.session_state.pop('signup_success', None)
     
     # Add a temporary warning message to let user know the app is under maintenance / not working right now
-    st.warning("⚠️ The CA Legislation Tracker is currently undergoing maintenance, and some features may not work as intended. We will be sharing more information with users once maintenance is complete. We appreciate your patience!")
+    #st.warning("⚠️ The CA Legislation Tracker is currently undergoing maintenance, and some features may not work as intended. We will be sharing more information with users once maintenance is complete. We appreciate your patience!")
 
     # Page header
     st.markdown("<h3 style='text-align: center;'>Login to the CA Legislation Tracker</h3>", unsafe_allow_html=True)
@@ -528,6 +528,12 @@ def login_page():
     if st.button("Create an Account"):
         st.session_state['show_signup'] = True
         st.rerun()
+
+    # Add some text at the bottom of the page
+    st.markdown("---")
+    st.markdown("""The CA Legislation Tracker is continually being developed in order to roll out new features 
+                and improve the experience for users. If you encounter any issues logging in or using the tool,
+                please contact us for assistance at danya@techequity.us.""")
     
     show_performance_metrics()
 
