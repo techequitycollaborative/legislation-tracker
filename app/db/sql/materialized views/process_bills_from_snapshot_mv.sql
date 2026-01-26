@@ -119,3 +119,5 @@ LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
 LEFT JOIN bill_authors a ON b.openstates_bill_id = a.openstates_bill_id
 LEFT JOIN snapshot.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id -- Add bill events from bill schedule table
 LEFT JOIN bill_topics t ON b.openstates_bill_id = t.openstates_bill_id;
+
+CREATE UNIQUE INDEX idx_bills_mv_pk ON app.bills_mv(openstates_bill_id);
