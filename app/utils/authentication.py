@@ -356,6 +356,43 @@ def update_last_login(user_id: int) -> bool:
         pg_pool.putconn(conn)
 
 
+def log_user_login(user_id: int, name: str, email: str, org_id: int) -> bool:
+    """
+    Log a user login event to the auth.logins table.
+    
+    Args:
+        user_id (int): User's ID
+        name (str): User's name
+        email (str): User's email
+        org_id (int): Organization ID
+    
+    Returns:
+        bool: True if logging was successful, False otherwise
+    """
+    conn, c = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        # Get organization name for the log
+        org = get_organization_by_id(org_id)
+        org_name = org[1] if org else None
+        
+        c.execute("""
+            INSERT INTO auth.logins 
+            (login_date, login_time, user_id, name, email, org, org_id) 
+            VALUES (CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s)
+        """, (user_id, name, email, org_name, org_id))
+        conn.commit()
+        return True
+    except psycopg2.Error as e:
+        st.error(f"Database error logging login: {e}")
+        conn.rollback()
+        return False
+    finally:
+        pg_pool.putconn(conn)
+
+
 ############################# AI WORKING GROUP VALIDATION #############################
 
 def is_user_in_working_group(user_email):
@@ -505,6 +542,9 @@ def login_page():
         if user and check_password(password, user[3]):
             # Update last_login timestamp
             update_last_login(user[0])  # Pass user_id
+
+            # Log the login event
+            log_user_login(user[0], user[1], user[2], user[4])
             
             # Successful login
             st.session_state['authenticated'] = True

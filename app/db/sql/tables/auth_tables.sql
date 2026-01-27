@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS auth.approved_users (
 );
 
 
--- Table: organizations
+-- Table: approved_organizations
 CREATE TABLE IF NOT EXISTS auth.approved_organizations (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
@@ -31,10 +31,22 @@ CREATE TABLE IF NOT EXISTS auth.logged_users (
     email TEXT,
     password_hash TEXT,
     org_id INTEGER NOT NULL,
-    FOREIGN KEY (org_id) REFERENCES approved_organizations(id),
+    FOREIGN KEY (org_id) REFERENCES auth.approved_organizations(id),
 	-- Add created at and last login columns, which are updated via authentication.py functions
 	created_at TIMESTAMPTZ,
 	last_login TIMESTAMPTZ;
 );
 
-
+-- Table: logins
+CREATE TABLE IF NOT EXISTS auth.logins (
+    login_id SERIAL PRIMARY KEY,
+    login_date DATE NOT NULL,
+    login_time TIME NOT NULL,
+    user_id INTEGER,
+	name TEXT,
+    email TEXT,
+    org TEXT,
+    org_id INTEGER,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (org_id) REFERENCES auth.approved_organizations(id)
+);
