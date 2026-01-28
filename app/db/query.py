@@ -536,83 +536,114 @@ def get_custom_contact_details_with_timestamp(openstates_people_id):
 
 ##################################################################################
 @profile("query.py - save_custom_bill_details_with_timestamp")
-def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_tier, community_sponsor, 
-                    coalition, letter_of_support, openstates_bill_id, assigned_to, action_taken, user_email, org_id, org_name):
+def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_tier, 
+                    community_sponsor, coalition, openstates_bill_id, 
+                    assigned_to, action_taken, user_email, org_id, org_name):
     '''
-    Saves or updates custom bill details for a specific openstates_bill_id and a specific org_id in the bill_custom_details table.
-    Records who made the changes (user_email, org_id, org_name) and when (timestamp).
+    Saves or updates custom bill details and logs all field changes to history.
     '''
-    # Load the database configuration
-    
-    
-    # Get current timestamp
     import datetime
     today = datetime.date.today()
     current_timestamp = datetime.datetime.now()
     
-    # Establish connection to the PostgreSQL server
     conn = pg_pool.getconn()
-    
-    # Create a cursor
     cursor = conn.cursor()
     
-    # Check if a record already exists for this bill
+    # Fetch existing record to compare changes
     cursor.execute("""
-                    SELECT * FROM app.bill_custom_details 
-                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
-                """, (openstates_bill_id, org_id))
-    exists = cursor.fetchone()
+        SELECT org_position, priority_tier, community_sponsor, coalition, 
+               assigned_to, action_taken
+        FROM app.bill_custom_details 
+        WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+    """, (openstates_bill_id, org_id))
+    existing = cursor.fetchone()
+    
+    # Define field mappings for comparison
+    new_values = {
+        'org_position': org_position,
+        'priority_tier': priority_tier,
+        'community_sponsor': community_sponsor,
+        'coalition': coalition,
+        'assigned_to': assigned_to,
+        'action_taken': action_taken
+    }
     
     try:
-        if exists:
-            # Update existing record
+        # Log changes if record exists
+        if existing:
+            old_values = {
+                'org_position': existing[0],
+                'priority_tier': existing[1],
+                'community_sponsor': existing[2],
+                'coalition': existing[3],
+                'assigned_to': existing[4],      # Fixed: was existing[5]
+                'action_taken': existing[5]      # Fixed: was existing[6]
+            }
+            
+            # Log each changed field
+            for field_name, new_value in new_values.items():
+                old_value = old_values[field_name]
+                if old_value != new_value:
+                    cursor.execute("""
+                        INSERT INTO app.bill_custom_details_history
+                        (openstates_bill_id, bill_number, org_id, org_name, 
+                         field_name, old_value, new_value, changed_by, 
+                         changed_on, changed_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (openstates_bill_id, bill_number, org_id, org_name,
+                          field_name, old_value, new_value, user_email,
+                          today, current_timestamp))
+        else:
+            # Log initial creation for all non-null fields
+            for field_name, new_value in new_values.items():
+                if new_value:  # Only log fields that have values
+                    cursor.execute("""
+                        INSERT INTO app.bill_custom_details_history
+                        (openstates_bill_id, bill_number, org_id, org_name, 
+                         field_name, old_value, new_value, changed_by, 
+                         changed_on, changed_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (openstates_bill_id, bill_number, org_id, org_name,
+                          field_name, None, new_value, user_email,
+                          today, current_timestamp))
+        
+        # Now update/insert the main record
+        if existing:
             cursor.execute("""
                 UPDATE app.bill_custom_details
-                SET bill_number = %s,
-                    org_position = %s,
-                    priority_tier = %s,
-                    community_sponsor = %s,
-                    coalition = %s,
-                    letter_of_support = %s,
-                    assigned_to = %s,
-                    action_taken = %s,
-                    last_updated_by = %s,
-                    last_updated_org_id = %s,
-                    last_updated_org_name = %s,
-                    last_updated_on = %s,
-                    last_updated_at = %s
+                SET bill_number = %s, org_position = %s, priority_tier = %s,
+                    community_sponsor = %s, coalition = %s,
+                    assigned_to = %s, action_taken = %s, last_updated_by = %s,
+                    last_updated_org_id = %s, last_updated_org_name = %s,
+                    last_updated_on = %s, last_updated_at = %s
                 WHERE openstates_bill_id = %s AND last_updated_org_id = %s
-            """,
-            (bill_number, org_position, priority_tier, community_sponsor, coalition, letter_of_support, 
-            assigned_to, action_taken, user_email, org_id, org_name, today, current_timestamp, openstates_bill_id, org_id)
-            )
+            """, (bill_number, org_position, priority_tier, community_sponsor, 
+                  coalition, assigned_to, action_taken, 
+                  user_email, org_id, org_name, today, current_timestamp, 
+                  openstates_bill_id, org_id))
         else:
-            # Insert new record
-                cursor.execute("""
-                    INSERT INTO app.bill_custom_details
-                        (bill_number, org_position, priority_tier, community_sponsor, coalition, 
-                        letter_of_support, openstates_bill_id, assigned_to, action_taken, 
-                        last_updated_by, last_updated_org_id, last_updated_org_name, 
-                        last_updated_on, last_updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (bill_number, org_position, priority_tier, community_sponsor, coalition, 
-                letter_of_support, openstates_bill_id, assigned_to, action_taken, 
-                user_email, org_id, org_name, today, current_timestamp))
+            cursor.execute("""
+                INSERT INTO app.bill_custom_details
+                (bill_number, org_position, priority_tier, community_sponsor, 
+                 coalition, openstates_bill_id, assigned_to, 
+                 action_taken, last_updated_by, last_updated_org_id, 
+                 last_updated_org_name, last_updated_on, last_updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (bill_number, org_position, priority_tier, community_sponsor, 
+                  coalition, openstates_bill_id, assigned_to, 
+                  action_taken, user_email, org_id, org_name, today, current_timestamp))
         
-        # Commit the transaction
         conn.commit()
-        print(f"Custom details for bill {bill_number} saved successfully by {user_email} from {org_name}.")
+        print(f"Custom details for bill {bill_number} saved with change history.")
+        
         return True
         
     except Exception as e:
-        # Roll back the transaction in case of error
         conn.rollback()
-        print(f"Error saving custom details for bill {bill_number}: {str(e)}")
+        print(f"Error saving custom details: {str(e)}")
         raise e
         
     finally:
-        # Always close the connection
         pg_pool.putconn(conn)
 
 ##################################################################################
@@ -687,7 +718,167 @@ def save_custom_contact_details_with_timestamp(
         
     finally:
         # Always close the connection
-        conn.close()
+        pg_pool.putconn(conn)
+
+
+#################################################################################
+# Functions for letters of support and activity feed
+@profile("query.py - add_letter_to_history")
+def add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name, 
+                         letter_name, letter_url, user_email):
+    '''
+    Adds a new letter to the letter history table.
+    '''
+    import datetime
+    today = datetime.date.today()
+    current_timestamp = datetime.datetime.now()
+    
+    conn = pg_pool.getconn()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO app.bill_letter_history
+                (openstates_bill_id, bill_number, org_id, org_name, letter_name, letter_url, 
+                 created_by, created_on, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (openstates_bill_id, bill_number, org_id, org_name, letter_name, letter_url, 
+         user_email, today, current_timestamp))
+        
+        conn.commit()
+        print(f"Letter added to history for bill {bill_number}")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error adding letter to history: {str(e)}")
+        raise e
+        
+    finally:
+        pg_pool.putconn(conn)
+
+    st.rerun()
+    return True
+        
+
+
+@profile("query.py - get_letter_history")
+def get_letter_history(openstates_bill_id, org_id):
+    '''
+    Retrieves all letters for a specific bill and organization, ordered by date.
+    '''
+    conn = pg_pool.getconn()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT letter_name, letter_url, created_by, created_on, created_at
+            FROM app.bill_letter_history
+            WHERE openstates_bill_id = %s AND org_id = %s
+            ORDER BY created_at DESC
+        """, (openstates_bill_id, org_id))
+        
+        results = cursor.fetchall()
+        
+        # Convert to list of dictionaries
+        letter_history = []
+        for row in results:
+            letter_history.append({
+                'letter_name': row[0],
+                'letter_url': row[1],
+                'created_by': row[2],
+                'created_on': row[3],
+                'created_at': row[4]
+            })
+        
+        return letter_history
+        
+    finally:
+        pg_pool.putconn(conn)
+
+
+@profile("query.py - get_most_recent_letter")
+def get_most_recent_letter(openstates_bill_id, org_id):
+    '''
+    Retrieves the most recent letter for a specific bill and organization.
+    Returns None if no letter exists.
+    '''
+    conn = pg_pool.getconn()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT letter_name, letter_url, created_by, created_on, created_at
+            FROM app.bill_letter_history
+            WHERE openstates_bill_id = %s AND org_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """, (openstates_bill_id, org_id))
+        
+        row = cursor.fetchone()
+        
+        if row:
+            return {
+                'letter_name': row[0],
+                'letter_url': row[1],
+                'created_by': row[2],
+                'created_on': row[3],
+                'created_at': row[4]
+            }
+        
+        return None
+        
+    finally:
+        pg_pool.putconn(conn)
+
+
+@profile("query.py - get_bill_activity_history")
+@st.cache_data(ttl=5) 
+def get_bill_activity_history(openstates_bill_id, org_id):
+    '''
+    Retrieves complete activity history for a bill including field changes
+    and letters.
+    '''
+    conn = pg_pool.getconn()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT 'field_change' as activity_type, field_name, 
+                   old_value, new_value, changed_by as user, 
+                   changed_on as date, changed_at as timestamp
+            FROM app.bill_custom_details_history
+            WHERE openstates_bill_id = %s AND org_id = %s
+            
+            UNION ALL
+            
+            SELECT 'letter' as activity_type, letter_name as field_name,
+                   letter_url as old_value, NULL as new_value,
+                   created_by as user, created_on as date, created_at as timestamp
+            FROM app.bill_letter_history
+            WHERE openstates_bill_id = %s AND org_id = %s
+            
+            ORDER BY timestamp DESC
+        """, (openstates_bill_id, org_id, openstates_bill_id, org_id))
+        
+        results = cursor.fetchall()
+        
+        activity_history = []
+        for row in results:
+            activity_history.append({
+                'activity_type': row[0],
+                'field_name': row[1],
+                'old_value': row[2],
+                'new_value': row[3],
+                'user': row[4],
+                'date': row[5],
+                'timestamp': row[6]
+            })
+        
+        return activity_history
+        
+    finally:
+        pg_pool.putconn(conn)
 
         
 ##################################################################################
