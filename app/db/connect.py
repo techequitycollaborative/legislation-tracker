@@ -19,7 +19,7 @@ def get_pool():
     # Create a connection pool and cache the resource
     @cache_resource
     def _make_pool():
-        return pool.SimpleConnectionPool(minconn=5, maxconn=50, **config('postgres'))
+        return pool.SimpleConnectionPool(minconn=1, maxconn=5, **config('postgres'))
     
     # Call the cached connection pool
     pg_pool = _make_pool()
