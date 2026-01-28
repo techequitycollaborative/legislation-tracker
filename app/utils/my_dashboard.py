@@ -10,7 +10,7 @@ Utility function for displaying bill details on the MY DASHBOARD page.
 """
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details_with_timestamp, remove_bill_from_dashboard
+from db.query import get_custom_bill_details_with_timestamp, remove_bill_from_dashboard, get_most_recent_letter
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer
 
@@ -77,83 +77,99 @@ def display_dashboard_details(selected_rows):
     st.markdown('#### Main Bill Details')
     st.markdown(f"_Main bill data is sourced from LegInfo. Data is updated 2x per day. LegInfo data for this bill was last updated on: {last_updated}_")
 
-    # Container for bill number and chamber
-    with st.container(key='main_details_container_dashboard'):
-        # Display columns with spacers
-        col1, col2, col3, col4, col5 = st.columns([6, 1, 4, 1, 4])
-        with col1:
-            st.markdown('##### Bill Name')
-            st.markdown(bill_name)
+    # Expander for main bill details section
+    with st.expander('Click to view main bill details'):
+        # Container for bill number and chamber
+        with st.container(key='main_details_container_dashboard'):
+            # Display columns with spacers
+            col1, col2, col3, col4, col5 = st.columns([6, 1, 4, 1, 4])
+            with col1:
+                st.markdown('##### Bill Name')
+                st.markdown(bill_name)
 
-            st.markdown('')
+                st.markdown('')
 
-            st.markdown('##### Chamber')
-            st.markdown(chamber)
+                st.markdown('##### Chamber')
+                st.markdown(chamber)
+                
+                st.markdown('')
+
+                st.markdown('##### Status')
+                st.markdown(status)
+
+                st.markdown('')
+
+                if bill_event is not None:
+                    st.markdown('##### Bill Event Date')
+                    st.markdown(bill_event)
+                else:
+                    st.markdown('#### ')
+                    st.markdown('')
             
-            st.markdown('')
-
-            st.markdown('##### Status')
-            st.markdown(status)
-
-            st.markdown('')
-
-            if bill_event is not None:
-                st.markdown('##### Bill Event Date')
-                st.markdown(bill_event)
-            else:
-                st.markdown('#### ')
-                st.markdown('')
-        
-        with col2:
-            st.markdown('')
-        
-        with col3:
-            st.markdown('##### Author')
-            st.markdown(author)
-
-            st.markdown('')
-
-            st.markdown('##### Legislative Session')
-            st.markdown(leg_session)            
-
-            st.markdown('')
-
-            st.markdown('##### Date Introduced')
-            st.markdown(date_introduced)
-
-            st.markdown('')
-
-            if event_text is not None:
-                st.markdown('##### Bill Event Type/Location')
-                st.markdown('_Committee hearing, floor session, etc._')
-                st.markdown(event_text)
-            else:
-                st.markdown('#### ')
-                st.markdown('')
-        
-        with col4:
-            st.markdown('')
-        
-        with col5:
-            if coauthors is not None:
-                st.markdown('##### Co-author(s)')
-                st.markdown(coauthors)
-            else:
-                st.markdown('#### ')
+            with col2:
                 st.markdown('')
             
-            st.markdown('')
+            with col3:
+                st.markdown('##### Author')
+                st.markdown(author)
 
-            st.markdown('##### Bill Topic')
-            bill_topic_grid(bill_topic)
+                st.markdown('')
 
-            st.markdown('')
+                st.markdown('##### Legislative Session')
+                st.markdown(leg_session)            
 
-            st.markdown('##### Link to Bill')
-            st.link_button('leginfo.ca.gov', str(leginfo_link))
+                st.markdown('')
+
+                st.markdown('##### Date Introduced')
+                st.markdown(date_introduced)
+
+                st.markdown('')
+
+                if event_text is not None:
+                    st.markdown('##### Bill Event Type/Location')
+                    st.markdown('_Committee hearing, floor session, etc._')
+                    st.markdown(event_text)
+                else:
+                    st.markdown('#### ')
+                    st.markdown('')
+            
+            with col4:
+                st.markdown('')
+            
+            with col5:
+                if coauthors is not None:
+                    st.markdown('##### Co-author(s)')
+                    st.markdown(coauthors)
+                else:
+                    st.markdown('#### ')
+                    st.markdown('')
+                
+                st.markdown('')
+
+                st.markdown('##### Bill Topic')
+                bill_topic_grid(bill_topic)
+
+                st.markdown('')
+
+                st.markdown('##### Link to Bill')
+                st.link_button('leginfo.ca.gov', str(leginfo_link))
+            
+            # Expander for bill text
+            with st.container(key='bill_text_text'):
+                st.markdown('#### Bill Excerpt')
+                expander = st.expander('Click to view bill excerpt')
+                expander.write(bill_text)
+
+            # Add empty rows of space    
+            st.write("")
+
+            # Expander for bill history
+            with st.container(key='bill_history_text'):
+                st.markdown('#### Bill History')
+                expander = st.expander('Click to view bill history')
+                expander.markdown(bill_history)
 
     # Add empty rows of space    
-    st.write("")
     st.write("")
 
     # Retrieve saved custom details
@@ -163,81 +179,70 @@ def display_dashboard_details(selected_rows):
     st.markdown('#### Custom Advocacy Details')
     st.markdown(f'This section contains information entered by members of your organization. <span title="These fields are only editable from your Organization Dashboard." style="cursor: help;">💬</span>', unsafe_allow_html=True)
     
-    with st.container(key='custom_fields_container', border=True):
-        with st.container():
-            col1, col2, col3, col4 = st.columns([2, 2, 2, 2])
-            with col1:
-                st.markdown('##### Org Position')
-                st.text(custom_details.get('org_position', '') if custom_details else '')
+    # Wrap in expander
+    with st.expander('Click to view custom advocacy details'):
+        with st.container(key='custom_fields_container', border=True):
+            with st.container():
+                col1, col2, col3, col4 = st.columns([2, 2, 2, 2])
+                with col1:
+                    st.markdown('##### Org Position')
+                    st.text(custom_details.get('org_position', '') if custom_details else '')
+                    
+                with col2:
+                    st.markdown('##### Priority Tier')
+                    st.text(custom_details.get('priority_tier', '') if custom_details else '')
+                    
+                with col3:
+                    st.markdown('##### Community Sponsor')
+                    st.text(custom_details.get('community_sponsor', '') if custom_details else '')      
                 
-            with col2:
-                st.markdown('##### Priority Tier')
-                st.text(custom_details.get('priority_tier', '') if custom_details else '')
-                
-            with col3:
-                st.markdown('##### Community Sponsor')
-                st.text(custom_details.get('community_sponsor', '') if custom_details else '')      
+                with col4:
+                    st.markdown('##### Coalition')
+                    st.text(custom_details.get('coalition', '') if custom_details else '')
+
+                # Add empty rows of space    
+                st.write("")
+                st.write("")
             
-            with col4:
-                st.markdown('##### Coalition')
-                st.text(custom_details.get('coalition', '') if custom_details else '')
+            # Second row with 4 columns
+            with st.container():
+                col5, col6, col7, col8 = st.columns([2, 2, 2, 2])
+                with col5:
+                    st.markdown('##### Assigned To')
+                    st.text(custom_details.get('assigned_to', '') if custom_details else '')
+                    
+                with col6:
+                    st.markdown('##### Action Taken')
+                    st.text(custom_details.get('action_taken', '') if custom_details else '')
 
-            # Add empty rows of space    
+                with col7:
+                    st.markdown('##### Letter (most recent)')
+                    letter_of_support = get_most_recent_letter(openstates_bill_id, org_id)
+                    if letter_of_support:
+                        st.link_button('Open Link', str(letter_of_support))
+                    
+                with col8:
+                        st.markdown('')
+                        st.markdown('')
+                        st.markdown('')
+
+            # Add message below the form displaying who last saved the custom details
             st.write("")
-            st.write("")
-        
-        # Second row with 4 columns
-        with st.container():
-            col5, col6, col7, col8 = st.columns([2, 2, 2, 2])
-            with col5:
-                st.markdown('##### Action Taken')
-                st.text(custom_details.get('action_taken', '') if custom_details else '')
+            with st.container():
+                if custom_details:
+                    # Get the user who saved the details, but remove .com/.us slug from email so it doesn't hyperlink the text
+                    saved_by = custom_details.get('last_updated_by', 'Unknown User')
+                    who = saved_by.split('.')[0]
 
-            with col6:
-                st.markdown('##### Assigned To')
-                st.text(custom_details.get('assigned_to', '') if custom_details else '')
+                    # Get date
+                    when = custom_details.get('last_updated_on', 'Unknown Date')
+                    when = when.strftime('%m-%d-%Y') # Format date to MM-DD-YYYY
 
-            with col7:
-                st.markdown('##### Letter')
-                letter_of_support = custom_details.get('letter_of_support', '') if custom_details else ''
-                if letter_of_support:
-                    st.link_button('Open Link', str(letter_of_support))
-                
-            with col8:
-                    st.markdown('')
-                    st.markdown('')
-                    st.markdown('')
-
-        # Add message below the form displaying who last saved the custom details
-        st.write("")
-        with st.container():
-            if custom_details:
-                # Get the user who saved the details, but remove .com/.us slug from email so it doesn't hyperlink the text
-                saved_by = custom_details.get('last_updated_by', 'Unknown User')
-                who = saved_by.split('.')[0]
-
-                # Get date
-                when = custom_details.get('last_updated_on', 'Unknown Date')
-                when = when.strftime('%m-%d-%Y') # Format date to MM-DD-YYYY
-
-                # Display message
-                st.markdown(f"*Custom details last saved by {who} on {when}.*")
-                
+                    # Display message
+                    st.markdown(f"*Custom details last saved by {who} on {when}.*")
+                    
     # Add empty rows of space    
     st.write("")
     st.write("")
 
-    # Expander for bill text
-    with st.container(key='bill_text_text'):
-        st.markdown('#### Bill Excerpt')
-        expander = st.expander('Click to view bill excerpt')
-        expander.write(bill_text)
-
-    # Add empty rows of space    
-    st.write("")
-
-    # Expander for bill history
-    with st.container(key='bill_history_text'):
-        st.markdown('#### Bill History')
-        expander = st.expander('Click to view bill history')
-        expander.markdown(bill_history)
+    
