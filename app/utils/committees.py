@@ -91,7 +91,10 @@ def display_committee_info_text(selected_rows):
         
         with col5:
             st.markdown('##### Link to Homepage')
-            st.link_button(f'{chamber.lower()}.ca.gov', str(webpage_link))
+            if webpage_link:
+                st.link_button(f'{chamber.lower()}.ca.gov', str(webpage_link))
+            else:
+                st.info('No webpage link available.')
 
 
 #################### FUNCTIONS FOR MAIN COMMITTEES TABLE -- STREAMLIT TABLE + FILTERS ####################
