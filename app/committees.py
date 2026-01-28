@@ -42,7 +42,7 @@ def get_committee_data():
     def committee_cache():
         # Get data
         committee_query = """
-            SELECT * FROM public.processed_committee_2025_2026
+            SELECT * FROM app.committees_mv
         """
             
         committee = Query(
