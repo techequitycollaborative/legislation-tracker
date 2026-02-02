@@ -29,6 +29,10 @@ def initialize_filter_state():
         st.session_state.bill_name_filter = ""
     if 'keyword_filter' not in st.session_state:
         st.session_state.keyword_filter = ""    
+    if 'org_position_filter' not in st.session_state:
+        st.session_state.org_position_filter = []
+    if 'assigned_to_filter' not in st.session_state:
+        st.session_state.assigned_to_filter = []     
     
 
 
@@ -44,6 +48,8 @@ def clear_filters():
     st.session_state.date_to_filter = None
     st.session_state.bill_name_filter = ""
     st.session_state.keyword_filter = ""
+    st.session_state.org_position_filter = []
+    st.session_state.assigned_to_filter = []
 
 
 def display_bill_filters(bills_df, 
@@ -53,7 +59,9 @@ def display_bill_filters(bills_df,
                         show_topic=True,
                         show_author=True,
                         show_date_filters=True,
-                        show_keyword_search=True):
+                        show_keyword_search=True,
+                        show_org_position=False,
+                        show_assigned_to=False):
     """
     Display filter UI components for bills
     
@@ -66,6 +74,8 @@ def display_bill_filters(bills_df,
         show_author: Whether to show author filter (default: True)
         show_date_filters: Whether to show date range filters (default: True)
         show_keyword_search: Whether to show keyword search (default: True)
+        show_org_position: Whether to show org position filter (default: False)
+        show_assigned_to: Whether to show assigned to filter (default: False)
     
     Returns:
         dict: Dictionary containing all filter values with keys matching filter names
@@ -80,6 +90,8 @@ def display_bill_filters(bills_df,
     date_from = None
     date_to = None
     keyword_search = ""
+    selected_org_positions = []
+    selected_assigned_to = []
     
     # Collect all filters in order
     all_filters = []
@@ -99,6 +111,10 @@ def display_bill_filters(bills_df,
         all_filters.append('author')
     if show_keyword_search:
         all_filters.append('keyword')
+    if show_org_position:
+        all_filters.append('org_position')
+    if show_assigned_to:
+        all_filters.append('assigned_to')
     
     # Calculate number of rows needed (3 filters per row)
     filters_per_row = 3
@@ -113,7 +129,9 @@ def display_bill_filters(bills_df,
             'bill_name_search': bill_name_search,
             'date_from': date_from,
             'date_to': date_to,
-            'keyword_search': keyword_search
+            'keyword_search': keyword_search,
+            'selected_org_positions': selected_org_positions,
+            'selected_assigned_to': selected_assigned_to,
         }
     
     # Display filters in rows of 3
@@ -183,6 +201,26 @@ def display_bill_filters(bills_df,
                         placeholder="ex: artificial intelligence",
                         key="keyword_filter"
                     )
+                elif filter_type == 'org_position':
+                    # Get unique list of org positions
+                    unique_positions = bills_df['org_position'].dropna().unique().tolist()
+
+                    selected_org_positions = st.multiselect(
+                        "Org Position:",
+                        options=unique_positions,
+                        key="org_position_filter",
+                        help="Only existing values appear in this dropdown. Dropdown options update based on new data entered in Custom Advocacy Details."
+                    )
+                elif filter_type == 'assigned_to':
+                    # Get unique list of assigned to
+                    unique_assigned_to = bills_df['assigned_to'].dropna().unique().tolist()
+
+                    selected_assigned_to = st.multiselect(
+                        "Assigned To:",
+                        options=unique_assigned_to,
+                        key="assigned_to_filter",
+                        help="Only existing values appear in this dropdown. Dropdown options update based on new data entered in Custom Advocacy Details."
+                    )
         
         filter_idx += filters_per_row
     
@@ -200,7 +238,9 @@ def display_bill_filters(bills_df,
         'bill_name_search': bill_name_search,
         'date_from': date_from,
         'date_to': date_to,
-        'keyword_search': keyword_search
+        'keyword_search': keyword_search,
+        'selected_org_positions': selected_org_positions,
+        'selected_assigned_to': selected_assigned_to,
     }
 
 
@@ -213,6 +253,8 @@ def apply_bill_filters(bills_df,
                        date_from=None, 
                        date_to=None, 
                        keyword_search=None,
+                       selected_org_positions=None,
+                       selected_assigned_to=None,
                        filter_dict=None):
     """
     Apply filters to bills dataframe
@@ -227,6 +269,8 @@ def apply_bill_filters(bills_df,
         date_from: Start date for introduced date range
         date_to: End date for introduced date range
         keyword_search: General keyword search string
+        selected_org_positions: List of selected org positions
+        selected_assigned_to: List of selected assigned to
         filter_dict: Optional dictionary containing all filters (returned from display_bill_filters)
                     If provided, individual parameters are ignored
     
@@ -245,6 +289,8 @@ def apply_bill_filters(bills_df,
         date_from = filter_dict.get('date_from')
         date_to = filter_dict.get('date_to')
         keyword_search = filter_dict.get('keyword_search')
+        selected_org_positions = filter_dict.get('selected_org_positions')
+        selected_assigned_to = filter_dict.get('selected_assigned_to')
     
     # Topic filter
     if selected_topics:
@@ -295,6 +341,14 @@ def apply_bill_filters(bills_df,
             axis=1
         )
         filtered_bills = filtered_bills[mask]
+    
+    # Org position filter
+    if selected_org_positions and 'org_position' in filtered_bills.columns: # Make sure org_position column exists
+        filtered_bills = filtered_bills[filtered_bills['org_position'].isin(selected_org_positions)]
+
+    # Assigned to filter
+    if selected_assigned_to and 'assigned_to' in filtered_bills.columns: # Make sure assigned_to column exists
+        filtered_bills = filtered_bills[filtered_bills['assigned_to'].isin(selected_assigned_to)]
     
     return filtered_bills
 
@@ -392,6 +446,29 @@ def display_bills_table(df):
 
     }
 
+    # Config for custom advocacy details columns, if they exist (ONLY FOR ORG DASHBOARD)
+    if 'org_position' in display_df.columns:
+        column_config["org_position"] = st.column_config.Column(
+            "Org Position",
+            help="Your organization's position on this bill.",
+        )
+    
+    if 'assigned_to' in display_df.columns:
+        column_config["assigned_to"] = st.column_config.Column(
+            "Assigned To",
+            help="Team member assigned to track this bill.",
+        )
+
+    # Build column order dynamically
+    column_order = ['bill_number', 'author', 'bill_name', 'date_introduced', 'status', 'last_updated_on', 'bill_topic']
+    
+    # Add custom advocacy details columns to the order if they exist
+    if 'org_position' in display_df.columns:
+        column_order.append('org_position')
+    
+    if 'assigned_to' in display_df.columns:
+        column_order.append('assigned_to')
+
     data = st.dataframe(
         display_df,
         #width="stretch",
@@ -401,6 +478,6 @@ def display_bills_table(df):
         selection_mode='single-row',
         on_select="rerun",
         column_config=column_config,
-        column_order=['bill_number', 'bill_name', 'date_introduced', 'status', 'last_updated_on', 'author', 'bill_topic', 'view_details'],
+        column_order=column_order,
     )
     return data

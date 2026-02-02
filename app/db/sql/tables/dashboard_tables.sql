@@ -40,3 +40,13 @@ CREATE TABLE IF NOT EXISTS app.bill_custom_details (
     last_updated_on DATE,
     last_updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Indexes on underlying tables for better view performance
+CREATE INDEX IF NOT EXISTS idx_org_bill_dashboard_org_id 
+    ON app.org_bill_dashboard(org_id);
+
+CREATE INDEX IF NOT EXISTS idx_org_bill_dashboard_bill_id 
+    ON app.org_bill_dashboard(openstates_bill_id);
+
+CREATE INDEX IF NOT EXISTS idx_bill_custom_details_bill_id
+    ON app.bill_custom_details(openstates_bill_id);
