@@ -91,7 +91,9 @@ st.session_state.org_dashboard_bills = load_org_dashboard_table()
 filters = display_bill_filters(
     st.session_state.org_dashboard_bills,
     show_date_filters=False,
-    show_keyword_search=False
+    show_keyword_search=False,
+    show_org_position=True,
+    show_assigned_to=True
 )
 filtered_bills = apply_bill_filters(st.session_state.org_dashboard_bills, filter_dict=filters)
 
