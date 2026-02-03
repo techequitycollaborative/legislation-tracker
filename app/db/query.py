@@ -201,6 +201,32 @@ LEGISLATOR_COLUMNS = [
     "issue_contacts",
     "last_updated_on"
 ]
+# All columns for org dashboard (bill details + custom org details)
+BILL_COLUMNS_WITH_DETAILS = [
+    'openstates_bill_id',
+    'bill_number',
+    'bill_name',
+    'status',
+    'date_introduced',
+    'leg_session',
+    'author',
+    'coauthors',
+    'chamber',
+    'leginfo_link',
+    'bill_text',
+    'bill_history',
+    'bill_event',
+    'event_text',
+    'assigned_topics',
+    'last_updated_on',
+    #'org_id',
+    'org_position',
+    #'priority_tier',
+    #'community_sponsor',
+    #'coalition',
+    'assigned_to',
+    #'action_taken'
+]
 
 @profile("query.py - get_my_dashboard_bills")
 @st.cache_data(ttl=120)  #  Cache for 2 mins 
@@ -345,7 +371,7 @@ def clear_all_my_dashboard_bills():
 
 # ORG DASHBOARD FUNCTIONS
 @profile("query.py - get_org_dashboard_bills")
-@st.cache_data(ttl=120)  #  Cache for 2 mins 
+@st.cache_data(ttl=60)  #  Cache for 1 min
 def get_org_dashboard_bills(org_id):
     '''
     Fetches bills from the org dashboard in the database and returns them as a DataFrame.
@@ -361,37 +387,37 @@ def get_org_dashboard_bills(org_id):
 
         query = f"""
             SELECT 
-                b.openstates_bill_id,
-                b.bill_number,
-                b.bill_name,
-                b.status,
-                b.date_introduced,
-                b.leg_session,
-                b.author,
-                b.coauthors, 
-                b.chamber,
-                b.leginfo_link,
-                b.bill_text,
-                b.bill_history,
-                b.bill_event,
-                b.event_text,
-                b.assigned_topics,
-                b.last_updated_on
-            FROM app.bills_mv b
-            LEFT JOIN app.org_bill_dashboard ubd
-                ON ubd.openstates_bill_id = b.openstates_bill_id
-            WHERE ubd.org_id = %s;
+                openstates_bill_id,
+                bill_number,
+                bill_name,
+                status,
+                date_introduced,
+                leg_session,
+                author,
+                coauthors, 
+                chamber,
+                leginfo_link,
+                bill_text,
+                bill_history,
+                bill_event,
+                event_text,
+                assigned_topics,
+                last_updated_on,
+                org_position,
+                assigned_to
+            FROM app.org_bill_dashboard_custom
+            WHERE org_id = %s;
         """
 
         cursor.execute(query, (org_id,))
         rows = cursor.fetchall()
         pg_pool.putconn(conn)
 
-        return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
+        return pd.DataFrame(rows, columns=BILL_COLUMNS_WITH_DETAILS) if rows else pd.DataFrame(columns=BILL_COLUMNS_WITH_DETAILS)
     
     except Exception as e:
         print(f"Error fetching dashboard bills: {e}")
-        return pd.DataFrame(columns=BILL_COLUMNS)
+        return pd.DataFrame(columns=BILL_COLUMNS_WITH_DETAILS)
         #raise -- only for local debugging, not for production use as it could break the app if the database is down or the query fails
     
 @profile("query.py - add_bill_to_org_dashboard")
