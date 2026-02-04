@@ -1,5 +1,6 @@
 -- bill_custom_details_history.sql
 -- Creates a table for storing changes in user-entered bill custom fields.
+-- This table powers the Activity Feed on the org dashboard.
 
 DROP TABLE IF EXISTS app.bill_custom_details_history;
 

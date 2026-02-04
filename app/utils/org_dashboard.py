@@ -46,6 +46,7 @@ def display_org_dashboard_details(selected_rows):
     org_id = st.session_state.get('org_id', 'Unknown Org ID')
     org_name = st.session_state.get('org_name', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
+    user_name = st.session_state.get('user_name', 'Unknown User Name')
 
     # Un-escape and escape special characters in bill text for Markdown
     bill_text = clean_markdown(bill_text)
@@ -75,7 +76,7 @@ def display_org_dashboard_details(selected_rows):
     st.write("")
     
     st.markdown('#### Main Bill Details')
-    st.markdown(f"_Main bill data is sourced from LegInfo. Data is updated 2x per day. LegInfo data for this bill was last updated on: {last_updated}_")
+    st.markdown("View primary bill data for this bill, sourced from LegInfo.")
 
     # Expander for main bill details section
     with st.expander('Click to view main bill details'):
@@ -89,8 +90,8 @@ def display_org_dashboard_details(selected_rows):
 
                 st.markdown('')
 
-                st.markdown('##### Chamber')
-                st.markdown(chamber)
+                st.markdown('##### Last Updated')
+                st.markdown(last_updated)
                 
                 st.markdown('')
 
@@ -153,10 +154,6 @@ def display_org_dashboard_details(selected_rows):
 
                 st.markdown('##### Link to Bill')
                 st.link_button('leginfo.ca.gov', str(leginfo_link))
-
-        # Add empty rows of space    
-        st.write("")
-        st.write("")
 
         # Expander for bill text
         with st.container(key='bill_text_text'):
@@ -332,7 +329,7 @@ def display_org_dashboard_details(selected_rows):
             if add_letter_btn and new_letter_url and new_letter_name:
                 try:
                     add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name,
-                                                new_letter_name, new_letter_url, user_email)
+                                                new_letter_name, new_letter_url, user_name)
                     st.success(f"Letter added to history!")
                     st.rerun()
                 except Exception as e:
