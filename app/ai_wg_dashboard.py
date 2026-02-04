@@ -11,9 +11,8 @@ import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
 from db.query import (
+    query_table,
     get_working_group_bills,
-    get_discussion_comments,
-    save_comment,
     get_ai_members,
     get_all_custom_bill_details
 )
@@ -173,33 +172,29 @@ with tab1:
 ############################## Letters of Support ##############################
 
 with tab2:
+    st.markdown("_This section displays the most recent letters available for bills in the working group dashboard._")
     st.markdown(" ")
 
-    # Load custom bill details from all orgs
-    custom_details = pd.DataFrame(get_all_custom_bill_details())
+    # Load most recent available letters for all bills currently in the working group dashboard
+    @st.cache_data(show_spinner="Loading letters of support...", ttl=60) # Cache for 1 minute
+    def get_wg_dashboard_letters():
+        return query_table('app', 'wg_dashboard_letters')
 
-    if custom_details.empty or 'letter_of_support' not in custom_details.columns:
+    letters = pd.DataFrame(get_wg_dashboard_letters())
+
+    if letters.empty:
         st.info("No letters available.")
     else:
-        # Filter only rows with valid links
-        valid_letters = custom_details[
-            pd.notna(custom_details['letter_of_support']) &
-            custom_details['letter_of_support'].str.startswith("http")
-        ]
+        # Group by bill_number and display
+        grouped = letters.groupby("bill_number")
 
-        if valid_letters.empty:
-            st.info("No valid letter links found.")
-        else:
-            # Group by bill_number and display
-            grouped = valid_letters.groupby("bill_number")
-
-            for bill_number, group in grouped:
-                st.markdown(f"**{bill_number}**")
-                for _, row in group.iterrows():
-                    org_name = row.get("last_updated_org_name", "Unknown Org")
-                    letter_link = row["letter_of_support"]
-                    st.markdown(f"- [{org_name}'s Letter of Support]({letter_link})")
-                st.markdown("---")
+        for bill_number, group in grouped:
+            st.markdown(f"##### {bill_number}")
+            # More efficient than iterrows()
+            for row in group.itertuples():
+                # Display as bulleted list
+                st.markdown(f"- **{row.org_name}**: [{row.letter_name}]({row.letter_url}) ({pd.to_datetime(row.created_on).strftime('%m-%d-%Y')})")
+            st.markdown("---")
 
 ############################## Working Group Members ##############################
 

@@ -9,7 +9,7 @@ Function for displaying bills on the AI Working Group page.
 
 import streamlit as st
 import pandas as pd
-from db.query import get_all_custom_bill_details_for_bill, remove_bill_from_wg_dashboard
+from db.query import get_all_custom_bill_details_for_bill, remove_bill_from_wg_dashboard, save_wg_comment, get_wg_comments
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer
 
@@ -47,6 +47,7 @@ def display_working_group_bill_details(selected_rows):
     org_id = st.session_state.get('org_id', 'Unknown Org ID')
     org_name = st.session_state.get('org_name', 'Unknown Org')
     user_email = st.session_state.get('user_email', 'Unknown User')
+    user_name = st.session_state.get('user_name', 'Unknown User Name')
     
     # Un-escape and escape special characters in bill text for Markdown
     bill_text = clean_markdown(bill_text)
@@ -57,15 +58,14 @@ def display_working_group_bill_details(selected_rows):
     with st.container(key='title_button_container'):
         col1, col2, col3 = st.columns([7, 1, 3])  # Adjust column widths as needed
         with col1:
-            st.markdown(f'### {bill_number}')
-            st.markdown(bill_name)
+            st.markdown('')
         
         with col2:
             st.markdown('')
 
         with col3:
             # If button is clicked: 
-            if st.button('Remove Bill from AI Working Group Dashboard', width='stretch', type='primary'):
+            if st.button('Remove Bill from Dashboard', width='stretch', type='primary'):
                 # Call the function to remove the bill from the dashboard
                 remove_bill_from_wg_dashboard(openstates_bill_id, bill_number)
                 
@@ -73,29 +73,27 @@ def display_working_group_bill_details(selected_rows):
                 st.session_state.selected_rows = None
                 st.rerun()  # Refresh the app to reflect the change
 
-    # Add empty rows of space  
+    # Add empty row of space  
     st.write("")
-    st.write("")
-
-    # Display the bill number and name
-
-
-    col1, col2, col3 = st.columns([4, .5, 4])  # Adjust column widths as needed
     
-    with col1:
-        with st.container(border=True, key='bill_details_container'):
-            st.markdown(f'##### Main Bill Details <span title="Main bill data is sourced from LegInfo. Data is updated 2x per day." style="cursor: help;">💬</span>', unsafe_allow_html=True)
-            st.markdown('')
+    # Display bill number and name
+    st.markdown(f'### {bill_number}')
+    st.markdown(bill_name)
+    st.markdown('')
 
+    st.markdown(f'#### Main Bill Details')
+    with st.expander('Click to view main bill details'):
+        with st.container(border=True, key='bill_details_container'):
+            
             with st.container(key='status'):   
                 col1, col2 = st.columns([2, 2])
 
                 with col1:
-                    st.markdown('**Status**')
+                    st.markdown('##### Status')
                     st.markdown(status)
 
                 with col2:
-                    st.markdown('**Last Updated**')
+                    st.markdown('##### Last Updated')
                     st.markdown(last_updated)
 
                 st.markdown('')
@@ -104,29 +102,29 @@ def display_working_group_bill_details(selected_rows):
                 col1, col2 = st.columns([2, 2])
 
                 with col1:
-                    st.markdown('**Date Introduced**')
+                    st.markdown('##### Date Introduced')
                     st.markdown(date_introduced)
 
                 with col2:
                     if bill_event is not None:
-                        st.markdown('**Upcoming Event**')
+                        st.markdown('##### Upcoming Event')
                         st.markdown(f"{event_text}: {bill_event}")
                     else:
                         st.markdown('')
                         st.markdown('')
 
                 st.markdown('')
-            
+                
             with st.container(key='authors'):
                 col1, col2 = st.columns([2, 2])
 
                 with col1:
-                    st.markdown('**Author**')
+                    st.markdown('##### Author')
                     st.markdown(author)
-                
+                    
                 with col2:
                     if coauthors is not None:
-                        st.markdown('**Co-author(s)**')
+                        st.markdown('##### Co-author(s)')
                         st.markdown(coauthors)
                     else:
                         st.markdown('')
@@ -135,7 +133,7 @@ def display_working_group_bill_details(selected_rows):
                 st.markdown('')
 
             with st.container(key='button'):
-                st.markdown('**Link to Bill**')
+                st.markdown('##### Link to Bill')
                 st.link_button('leginfo.ca.gov', str(leginfo_link))
 
                 # Add empty rows of space    
@@ -157,47 +155,49 @@ def display_working_group_bill_details(selected_rows):
                     expander = st.expander('Click to view bill history')
                     expander.markdown(bill_history)
 
-                # Add empty rows of space    
-                st.write("")
-                st.write("")
+            # Add empty rows of space    
+            st.write("")
+            st.write("")
 
-    # Column for space between two sections
-    with col2:
-        st.markdown('')
+    st.markdown('')
 
-    # Avocacy details section
-    with col3:
-        with st.container(border=True, key='advocacy_details_container'):
-            # Retrieve all custom advocacy details for the selected bill across all orgs
-            advocacy_details_list = get_all_custom_bill_details_for_bill(openstates_bill_id)
+    # Discussion comments section
+    st.markdown('#### Working Group Discussion')
+    with st.expander('Click to view discussion comments on this bill'):
+        with st.container(border=True, key='wg_discussion_comments'):
             
-            st.markdown(f'##### Advocacy Details from All Organizations <span title="This section shows information entered by organizations collaborating on this bill. These fields are only editable from each Organization\'s Dashboard." style="cursor: help;">💬</span>', unsafe_allow_html=True)
-            st.markdown('')
-
-            if advocacy_details_list:
-                for detail in advocacy_details_list:
-                    with st.container():
-                        org_name = detail.get('last_updated_org_name', 'Unknown Org')
-                        org_position = detail.get('org_position', '')
-                        added_by = detail.get('assigned_to', 'Unknown Contact')
-                        letter_of_support = detail.get('letter_of_support', '')
-
-                        st.markdown(f"**Organization:** {org_name}")
-
-                        col1, col2, col3 = st.columns([3, 3, 3])
-                        with col1:
-                            st.markdown(f"**Position:** {org_position}")
-                            
-                        with col2:
-                            st.markdown(f"**Contact:** {added_by}")
-
-                        with col3:
-                            if letter_of_support:
-                                st.markdown(f"**Letter of Support:** [Open Link]({letter_of_support})")
-                            else:
-                                st.markdown("**Letter of Support:** _None_")
-                        
-                        st.markdown("---")  # separator line between orgs
+            # Text area for entering a comment
+            comment = st.text_area('Enter a comment about this bill',
+                                    value='',
+                                    help='Enter any comments or discussion points about this bill for your working group members to see.')
+            
+            # Save comment button
+            if st.button('Submit Comment', type='primary'):
+                # Save the comment to the database
+                save_wg_comment(
+                    bill_number=bill_number,
+                    user_name=user_name,
+                    user_email=user_email,
+                    org_id=org_id,
+                    org_name=org_name,
+                    comment=comment,
+                )
+                st.success('Comment submitted successfully!')
+            
+            st.markdown('---')
+            
+            # Display all comments
+            st.markdown('##### All Comments')
+            # Retrieve all comments for this bill
+            comments = get_wg_comments(bill_number)
+            if comments:
+                for row in comments:
+                    st.markdown(row['comment'])
+                    st.caption(f"— {row['user_name']} on *{pd.to_datetime(row['added_on']).strftime('%m-%d-%Y')}*")
+                    st.markdown('---')
             else:
-                st.write("No advocacy details have been added for this bill yet.")
+                st.markdown('No comments yet. Be the first to comment!')
+
+
+
                     

@@ -751,7 +751,7 @@ def save_custom_contact_details_with_timestamp(
 # Functions for letters of support and activity feed
 @profile("query.py - add_letter_to_history")
 def add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name, 
-                         letter_name, letter_url, user_email):
+                         letter_name, letter_url, user_name):
     '''
     Adds a new letter to the letter history table.
     '''
@@ -770,7 +770,7 @@ def add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name,
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (openstates_bill_id, bill_number, org_id, org_name, letter_name, letter_url, 
-         user_email, today, current_timestamp))
+         user_name, today, current_timestamp))
         
         conn.commit()
         print(f"Letter added to history for bill {bill_number}")
@@ -1069,53 +1069,93 @@ def get_working_group_bills():
         print(f"Error fetching AI Working Group bills: {e}")
         return pd.DataFrame(columns=BILL_COLUMNS)
 
-@profile("query.py - get_discussion_comments")
-@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache comment data and refresh every 6 hours
-def get_discussion_comments(bill_number: str) -> pd.DataFrame:
+@profile("query.py - get_wg_comments")
+@st.cache_data(ttl=30)  # Cache comment data for 30 seconds
+def get_wg_comments(bill_number: str):
     '''
-    Fetches discussion comments for a specific bill from the working_group_discussions table in the PostgreSQL database.
+    Fetches discussion comments for a specific bill from the working_group_discussions table.
+    
+    Args:
+        bill_number: The bill number to fetch comments for
+        
+    Returns:
+        list: List of dictionaries containing comment data
     '''
     
     conn = pg_pool.getconn()
-    print("Connected to the PostgreSQL database.")
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT comment_id, user_name, user_email, org_id, org_name, comment, added_on, added_at
+            FROM app.working_group_discussions
+            WHERE bill_number = %s
+            ORDER BY added_at DESC
+        """, (bill_number,))
+        
+        results = cursor.fetchall()
+        
+        # Convert to list of dictionaries
+        comments = []
+        for row in results:
+            comments.append({
+                'comment_id': row[0],
+                'user_name': row[1],
+                'user_email': row[2],
+                'org_id': row[3],
+                'org_name': row[4],
+                'comment': row[5],
+                'added_on': row[6],
+                'added_at': row[7]
+            })
+        
+        return comments
+        
+    finally:
+        pg_pool.putconn(conn)
 
-    query = """
-        SELECT user_email, comment, timestamp
-        FROM app.working_group_discussions
-        WHERE bill_number = %s
-        ORDER BY timestamp DESC;
-    """
-
-    with conn.cursor() as cursor:
-        cursor.execute(query, (bill_number,))
-        records = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-        df = pd.DataFrame(records, columns=columns)
-
-    conn.close()
-    print("Database connection closed.")
-    return df
-
-@profile("query.py - save_comment")
-def save_comment(bill_number: str, user_email: str, comment: str):
+@profile("query.py - save_wg_comment")
+def save_wg_comment(bill_number: str, user_name: str, user_email: str, comment: str, org_id: int = None, org_name: str = None):
     '''
     Saves a comment to the working group discussion table in the PostgreSQL database.
-    '''
     
+    Args:
+        bill_number: The bill number being discussed
+        user_name: Name of the user making the comment
+        user_email: Email of the user making the comment
+        comment: The comment text
+        org_id: Optional organization ID
+        org_name: Optional organization name
+        
+    Returns:
+        comment_id: The ID of the newly created comment
+    '''
+    import datetime
+    today = datetime.date.today()
+    current_timestamp = datetime.datetime.now()
+
     conn = pg_pool.getconn()
-    print("Connected to the PostgreSQL database.")
-
-    query = """
-        INSERT INTO app.working_group_discussions (bill_number, user_email, comment, timestamp)
-        VALUES (%s, %s, %s, %s);
-    """
-
-    with conn.cursor() as cursor:
-        cursor.execute(query, (bill_number, user_email, comment, datetime.utcnow()))
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO app.working_group_discussions 
+            (bill_number, user_name, user_email, org_id, org_name, comment, added_on, added_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING comment_id;
+        """, (bill_number, user_name, user_email, org_id, org_name, comment, today, current_timestamp))
+        
+        comment_id = cursor.fetchone()[0]
+        
         conn.commit()
 
-    conn.close()
-    print("Comment inserted and database connection closed.")
+        # Clear the cache so that the comments re-load and new comment appears
+        st.cache_data.clear()
+        
+        return comment_id
+        
+    finally:
+        pg_pool.putconn(conn)
 
 @profile("query.py - get_ai_members")
 @st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache name data and refresh every 6 hours
