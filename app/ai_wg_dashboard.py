@@ -108,10 +108,12 @@ st.session_state.wg_bills = load_ai_dashboard_table()
 st.markdown('<h3 class="section-header">Overview</h3>', unsafe_allow_html=True)
 metrics_col1, metrics_col2, metrics_col3, metrics_col4 = st.columns(4)
 
+# Num total bills on the dashboard
 with metrics_col1:
     total_bills = len(st.session_state.wg_bills) if not st.session_state.wg_bills.empty else 0
     st.metric("📊 Total Bills", total_bills)
 
+# Num bills updated this week
 with metrics_col2:
     # Get bills updates today
     #recent_bills_count = len(wg_bills[wg_bills['last_updated_on'] >= pd.Timestamp.now().strftime('%Y-%m-%d')]) if not wg_bills.empty else 0
@@ -122,21 +124,25 @@ with metrics_col2:
     
     st.metric("🕒 Bills Updated This Week", recent_bills_count)
 
+# Num working group members
 with metrics_col3:
     # TODO: move to loading function, or a metrics function
     ai_members = get_ai_members()
     member_count = len(ai_members) if not ai_members.empty else 0
     st.metric("👥 Working Group Members", member_count)
 
+# Num letters available
 with metrics_col4:
     # TODO: move to loading function, or a metrics function
-    custom_details = pd.DataFrame(get_all_custom_bill_details())
+    # Load most recent available letters for all bills currently in the working group dashboard
+    @st.cache_data(show_spinner="Loading letters of support...", ttl=60) # Cache for 1 minute
+    def get_wg_dashboard_letters():
+        return query_table('app', 'wg_dashboard_letters')
+
+    letters = pd.DataFrame(get_wg_dashboard_letters())
     letters_count = 0
-    if not custom_details.empty and 'letter_of_support' in custom_details.columns:
-        letters_count = len(custom_details[
-            pd.notna(custom_details['letter_of_support']) &
-            custom_details['letter_of_support'].str.startswith("http")
-        ])
+    if not letters.empty:
+        letters_count = len(letters)
     st.metric("📄 Letters Available", letters_count)
 
 # Add space
@@ -175,13 +181,7 @@ with tab2:
     st.markdown("_This section displays the most recent letters available for bills in the working group dashboard._")
     st.markdown(" ")
 
-    # Load most recent available letters for all bills currently in the working group dashboard
-    @st.cache_data(show_spinner="Loading letters of support...", ttl=60) # Cache for 1 minute
-    def get_wg_dashboard_letters():
-        return query_table('app', 'wg_dashboard_letters')
-
-    letters = pd.DataFrame(get_wg_dashboard_letters())
-
+    # Reference letters -- loaded above
     if letters.empty:
         st.info("No letters available.")
     else:
