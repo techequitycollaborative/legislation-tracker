@@ -1,51 +1,24 @@
+from contextlib import contextmanager
 import psycopg2
-from psycopg2 import pool, OperationalError
 from db.config import db_config as config
 
-############################# GLOBAL VARIABLES #################################
-_pool = None  # module-level singleton
-
-############################# CONNECTION POOLING ###############################
-
-def get_pool():
-    # use global variable
-    global _pool
-
-    # Only import package when _pool hasn't ben assigned (at session start)
-    if _pool is None:
-        # Import streamlit lazily inside to avoid triggering runtime before set_page_config
-        from streamlit.runtime.caching import cache_resource
+@contextmanager
+def get_connection():
+    """
+    Context manager for database connections through PgBouncer.
+    Automatically handles connection cleanup.
     
-    # Create a connection pool and cache the resource
-    @cache_resource
-    def _make_pool():
-        return pool.SimpleConnectionPool(minconn=1, maxconn=5, **config('postgres'))
-    
-    # Call the cached connection pool
-    pg_pool = _make_pool()
-
-    # Verify at least one connection is valid
+    Usage:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM table")
+                data = cur.fetchall()
+    """
+    conn = None
     try:
-        conn = pg_pool.getconn()
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1;")
-        pg_pool.putconn(conn)
-    except OperationalError:
-        # Connection is stale - we need to rebuild pool
-        # (Clears Streamlit cache and re-create resource)
-        cache_resource.clear()
-        pg_pool = _make_pool()
-
-    # Return the cached connection pool
-    return _make_pool()
-
-################################ DEPRECATED ###################################
-def connect(config):
-    """ Connect to the PostgreSQL database server """
-    try:
-        # connecting to the PostgreSQL server
-        with psycopg2.connect(**config) as conn:
-            print('Connected to the PostgreSQL server.')
-            return conn
-    except (psycopg2.DatabaseError, Exception) as error:
-        print(error)
+        conn = psycopg2.connect(**config('postgres'))
+        yield conn
+    finally:
+        if conn is not None:
+            conn.close()  # Returns connection to PgBouncer pool
+            print("Database connection closed.")
