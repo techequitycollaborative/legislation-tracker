@@ -13,7 +13,7 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 import psycopg2.extras
-from db.connect import get_pool
+from db.connect import get_connection
 import numpy as np
 import datetime
 from psycopg2.extensions import register_adapter, AsIs
@@ -21,8 +21,6 @@ register_adapter(np.int64, AsIs)
 import sys
 sys.path.append("..")
 from utils.profiling import profile, timer, logger
-
-pg_pool = get_pool()
 
 ###############################################################################
 class Query:
@@ -44,48 +42,45 @@ class Query:
     
     @profile("query.py - Query object fetch records")
     def fetch_records(self):
-        conn = pg_pool.getconn()
-        logger.info(f"Connected to PostgreSQL database.")
-        # Default empty set value in case there are no records to fetch
-        records = []
+        with get_connection() as conn:
+            logger.info(f"Connected to PostgreSQL database.")
+            # Default empty set value in case there are no records to fetch
+            records = []
 
-        with conn.cursor() as cursor:
-            cursor.execute(self.query)
-            records = cursor.fetchall()
+            with conn.cursor() as cursor:
+                cursor.execute(self.query)
+                records = cursor.fetchall()
 
-            if self.df_columns == None:
-                self.df_columns = [desc[0] for desc in cursor.description]
-        df = pd.DataFrame(records, columns=self.df_columns)
-        
-        pg_pool.putconn(conn)
+                if self.df_columns == None:
+                    self.df_columns = [desc[0] for desc in cursor.description]
+            df = pd.DataFrame(records, columns=self.df_columns)
+
         logger.info(f"Database connection closed.")
 
         return df
     
     @profile("query.py - Query object check if record exists")
     def check_for_record(self):
-        conn = pg_pool.getconn()
+        with get_connection() as conn:
 
-        with conn.cursor() as cursor:
-            cursor.execute(self.query)
-            count = cursor.fetchone()[0]
-        
-        if not count:
-            st.warning(self.warning_message)
-        
-        pg_pool.putconn(conn)
+            with conn.cursor() as cursor:
+                cursor.execute(self.query)
+                count = cursor.fetchone()[0]
+            
+            if not count:
+                st.warning(self.warning_message)
+
         return bool(count)
     
     @profile("query.py - Query object update records and rerun Streamlit")
     def update_records(self):
-        conn = pg_pool.getconn()
-        logger.info(f"Connected to PostgreSQL database.")
+        with get_connection() as conn:
+            logger.info(f"Connected to PostgreSQL database.")
 
-        with conn.cursor() as cursor:
-            cursor.execute(self.query)
-            conn.commit()
+            with conn.cursor() as cursor:
+                cursor.execute(self.query)
+                conn.commit()
 
-        pg_pool.putconn(conn) 
         # Clear the cache so data reloads
         st.cache_data.clear()
         st.rerun()
@@ -110,21 +105,18 @@ def query_table(schema, table):
     pd.DataFrame
         The queried table in DataFrame format.
     """
-    conn = pg_pool.getconn()
-    print("Connected to the PostgreSQL database.")
-    
-    # Define SQL query
-    query = f'SELECT * FROM {schema}.{table};'
-    
-    # Query the table and convert to a DataFrame
-    with conn.cursor() as cursor:
-        cursor.execute(query)
-        records = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-        df = pd.DataFrame(records, columns=columns)
-    
-    pg_pool.putconn(conn)
-    print("Database connection closed.")
+    with get_connection() as conn:
+        print("Connected to the PostgreSQL database.")
+        
+        # Define SQL query
+        query = f'SELECT * FROM {schema}.{table};'
+        
+        # Query the table and convert to a DataFrame
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+            records = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            df = pd.DataFrame(records, columns=columns)
     
     return df
     
@@ -238,42 +230,41 @@ def get_my_dashboard_bills(user_email):
     Returns: DataFrame of user's saved bills
 
     '''
-    try:
-        conn = pg_pool.getconn()
-        cursor = conn.cursor()
-        query = f"""
-            SELECT 
-                b.openstates_bill_id,
-                b.bill_number,
-                b.bill_name,
-                b.status,
-                b.date_introduced,
-                b.leg_session,
-                b.author,
-                b.coauthors, 
-                b.chamber,
-                b.leginfo_link,
-                b.bill_text,
-                b.bill_history,
-                b.bill_event,
-                b.event_text,
-                b.assigned_topics,
-                b.last_updated_on
-            FROM app.bills_mv b
-            LEFT JOIN app.user_bill_dashboard ubd
-                ON ubd.openstates_bill_id = b.openstates_bill_id
-            WHERE ubd.user_email = %s;
-        """
+    with get_connection() as conn:
+        try:
+            cursor = conn.cursor()
+            query = f"""
+                SELECT 
+                    b.openstates_bill_id,
+                    b.bill_number,
+                    b.bill_name,
+                    b.status,
+                    b.date_introduced,
+                    b.leg_session,
+                    b.author,
+                    b.coauthors, 
+                    b.chamber,
+                    b.leginfo_link,
+                    b.bill_text,
+                    b.bill_history,
+                    b.bill_event,
+                    b.event_text,
+                    b.assigned_topics,
+                    b.last_updated_on
+                FROM app.bills_mv b
+                LEFT JOIN app.user_bill_dashboard ubd
+                    ON ubd.openstates_bill_id = b.openstates_bill_id
+                WHERE ubd.user_email = %s;
+            """
 
-        cursor.execute(query, (user_email,))
-        rows = cursor.fetchall()
-        pg_pool.putconn(conn)
+            cursor.execute(query, (user_email,))
+            rows = cursor.fetchall()
 
-        return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
-    
-    except Exception as e:
-        print(f"Error fetching dashboard bills: {e}")
-        return pd.DataFrame(columns=BILL_COLUMNS)
+            return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
+        
+        except Exception as e:
+            print(f"Error fetching dashboard bills: {e}")
+            return pd.DataFrame(columns=BILL_COLUMNS)
 
 @profile("query.py - add_bill_to_dashboard")
 def add_bill_to_dashboard(openstates_bill_id, bill_number):
@@ -283,42 +274,39 @@ def add_bill_to_dashboard(openstates_bill_id, bill_number):
     user_email = st.session_state['user_email']
     org_id = st.session_state.get('org_id')
     
-
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    # Check if bill already exists for this user
-    cursor.execute("""
-        SELECT COUNT(*) FROM app.user_bill_dashboard 
-        WHERE openstates_bill_id = %s AND user_email = %s;
-    """, (openstates_bill_id, user_email))
-    
-    count = cursor.fetchone()[0]
-
-    if count == 0:
-        # Insert new tracked bill
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Check if bill already exists for this user
         cursor.execute("""
-            INSERT INTO app.user_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
-            VALUES (%s, %s, %s, %s);
-        """, (user_email, org_id, openstates_bill_id, bill_number))
+            SELECT COUNT(*) FROM app.user_bill_dashboard 
+            WHERE openstates_bill_id = %s AND user_email = %s;
+        """, (openstates_bill_id, user_email))
+        
+        count = cursor.fetchone()[0]
 
-        conn.commit()
-        st.success(f'Bill {bill_number} added to dashboard!')
+        if count == 0:
+            # Insert new tracked bill
+            cursor.execute("""
+                INSERT INTO app.user_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
+                VALUES (%s, %s, %s, %s);
+            """, (user_email, org_id, openstates_bill_id, bill_number))
 
-        # Optionally refresh dashboard state
-        #if 'selected_bills' not in st.session_state:
-        #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
+            conn.commit()
+            st.success(f'Bill {bill_number} added to dashboard!')
 
-        # Create a new row as a dictionary
-        #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
+            # Optionally refresh dashboard state
+            #if 'selected_bills' not in st.session_state:
+            #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
 
-        # Append the new row to the selected_bills list
-        #st.session_state.selected_bills.append(new_row)
+            # Create a new row as a dictionary
+            #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
 
-    else:
-        st.warning(f'Bill {bill_number} is already in your dashboard.')
+            # Append the new row to the selected_bills list
+            #st.session_state.selected_bills.append(new_row)
 
-    pg_pool.putconn(conn)
+        else:
+            st.warning(f'Bill {bill_number} is already in your dashboard.')
 
 @profile("query.py - remove_bill_from_dashboard")
 def remove_bill_from_dashboard(openstates_bill_id, bill_number):
@@ -328,18 +316,16 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     user_email = st.session_state['user_email']
     
 
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM app.user_bill_dashboard 
+            WHERE openstates_bill_id = %s AND user_email = %s;
+        """, (openstates_bill_id, user_email))
     
-    cursor.execute("""
-        DELETE FROM app.user_bill_dashboard 
-        WHERE openstates_bill_id = %s AND user_email = %s;
-    """, (openstates_bill_id, user_email))
-    
-    conn.commit()
-    
-    pg_pool.putconn(conn)
-    
+        conn.commit() #TODO: do we need this?
+        
     # Clear the cache so data reloads
     st.cache_data.clear()
     
@@ -352,13 +338,12 @@ def clear_all_my_dashboard_bills():
     Clears ALL bills from the user's personal dashboard, deletes them from the database, and updates session state.
     '''    
     
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
+    with get_connection() as conn:
+        cursor = conn.cursor()
 
-    cursor.execute("DELETE FROM app.user_bill_dashboard WHERE user_email = %s", (st.session_state['user_email'],))
-    
-    conn.commit()
-    pg_pool.putconn(conn)
+        cursor.execute("DELETE FROM app.user_bill_dashboard WHERE user_email = %s", (st.session_state['user_email'],))
+        
+        conn.commit()
 
     # Clear the cache so data reloads
     st.cache_data.clear()
@@ -380,45 +365,43 @@ def get_org_dashboard_bills(org_id):
     Returns: DataFrame of organization's saved bills
 
     '''
-    try:
+    with get_connection() as conn:
+        try:
+            cursor = conn.cursor()
+
+            query = f"""
+                SELECT 
+                    openstates_bill_id,
+                    bill_number,
+                    bill_name,
+                    status,
+                    date_introduced,
+                    leg_session,
+                    author,
+                    coauthors, 
+                    chamber,
+                    leginfo_link,
+                    bill_text,
+                    bill_history,
+                    bill_event,
+                    event_text,
+                    assigned_topics,
+                    last_updated_on,
+                    org_position,
+                    assigned_to
+                FROM app.org_bill_dashboard_custom
+                WHERE org_id = %s;
+            """
+
+            cursor.execute(query, (org_id,))
+            rows = cursor.fetchall()
+
+            return pd.DataFrame(rows, columns=BILL_COLUMNS_WITH_DETAILS) if rows else pd.DataFrame(columns=BILL_COLUMNS_WITH_DETAILS)
         
-        conn = pg_pool.getconn()
-        cursor = conn.cursor()
-
-        query = f"""
-            SELECT 
-                openstates_bill_id,
-                bill_number,
-                bill_name,
-                status,
-                date_introduced,
-                leg_session,
-                author,
-                coauthors, 
-                chamber,
-                leginfo_link,
-                bill_text,
-                bill_history,
-                bill_event,
-                event_text,
-                assigned_topics,
-                last_updated_on,
-                org_position,
-                assigned_to
-            FROM app.org_bill_dashboard_custom
-            WHERE org_id = %s;
-        """
-
-        cursor.execute(query, (org_id,))
-        rows = cursor.fetchall()
-        pg_pool.putconn(conn)
-
-        return pd.DataFrame(rows, columns=BILL_COLUMNS_WITH_DETAILS) if rows else pd.DataFrame(columns=BILL_COLUMNS_WITH_DETAILS)
-    
-    except Exception as e:
-        print(f"Error fetching dashboard bills: {e}")
-        return pd.DataFrame(columns=BILL_COLUMNS_WITH_DETAILS)
-        #raise -- only for local debugging, not for production use as it could break the app if the database is down or the query fails
+        except Exception as e:
+            print(f"Error fetching dashboard bills: {e}")
+            return pd.DataFrame(columns=BILL_COLUMNS_WITH_DETAILS)
+            #raise -- only for local debugging, not for production use as it could break the app if the database is down or the query fails
     
 @profile("query.py - add_bill_to_org_dashboard")
 def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
@@ -429,41 +412,39 @@ def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
     org_id = st.session_state.get('org_id')
     
 
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    # Check if bill already exists for this org
-    cursor.execute("""
-        SELECT COUNT(*) FROM app.org_bill_dashboard 
-        WHERE openstates_bill_id = %s AND org_id = %s;
-    """, (openstates_bill_id, org_id))
-    
-    count = cursor.fetchone()[0]
-
-    if count == 0:
-        # Insert new tracked bill
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Check if bill already exists for this org
         cursor.execute("""
-            INSERT INTO app.org_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
-            VALUES (%s, %s, %s, %s);
-        """, (user_email, org_id, openstates_bill_id, bill_number))
+            SELECT COUNT(*) FROM app.org_bill_dashboard 
+            WHERE openstates_bill_id = %s AND org_id = %s;
+        """, (openstates_bill_id, org_id))
+        
+        count = cursor.fetchone()[0]
 
-        conn.commit()
-        st.success(f'Bill {bill_number} added to dashboard!')
+        if count == 0:
+            # Insert new tracked bill
+            cursor.execute("""
+                INSERT INTO app.org_bill_dashboard (user_email, org_id, openstates_bill_id, bill_number)
+                VALUES (%s, %s, %s, %s);
+            """, (user_email, org_id, openstates_bill_id, bill_number))
 
-        # Optionally refresh dashboard state
-        #if 'selected_bills' not in st.session_state:
-        #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
+            conn.commit()
+            st.success(f'Bill {bill_number} added to dashboard!')
 
-        # Create a new row as a dictionary
-        #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
+            # Optionally refresh dashboard state
+            #if 'selected_bills' not in st.session_state:
+            #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
 
-        # Append the new row to the selected_bills list
-        #st.session_state.selected_bills.append(new_row)
+            # Create a new row as a dictionary
+            #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
 
-    else:
-        st.warning(f'Bill {bill_number} is already in your dashboard.')
+            # Append the new row to the selected_bills list
+            #st.session_state.selected_bills.append(new_row)
 
-    pg_pool.putconn(conn)
+        else:
+            st.warning(f'Bill {bill_number} is already in your dashboard.')
 
 @profile("query.py - remove_bill_from_org_dashboard")
 def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
@@ -474,17 +455,16 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
     org_id = st.session_state.get('org_id')
     
 
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM app.org_bill_dashboard 
+            WHERE openstates_bill_id = %s AND org_id = %s;
+        """, (openstates_bill_id, org_id))
+        
+        conn.commit()
     
-    cursor.execute("""
-        DELETE FROM app.org_bill_dashboard 
-        WHERE openstates_bill_id = %s AND org_id = %s;
-    """, (openstates_bill_id, org_id))
-    
-    conn.commit()
-    
-    pg_pool.putconn(conn)
 
     # Clear the cache so data reloads
     st.cache_data.clear()
@@ -500,24 +480,21 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page, 
     along with the timestamp of the last update and the user who made the changes.
     '''
-    # Load the database configuration
-    
+    result = None
     # Establish connection to the PostgreSQL server
-    conn = pg_pool.getconn()
-    print("Connected to the PostgreSQL database.")
+    with get_connection() as conn:
+        print("Connected to the PostgreSQL database.")
+        
+        # Create a cursor that returns rows as dictionaries
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        
+        cursor.execute("""
+                        SELECT * FROM app.bill_custom_details 
+                        WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+                        """, (openstates_bill_id, org_id))
+        result = cursor.fetchone()
     
-    # Create a cursor that returns rows as dictionaries
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    
-    cursor.execute("""
-                    SELECT * FROM app.bill_custom_details 
-                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
-                    """, (openstates_bill_id, org_id))
-    result = cursor.fetchone()
-
-    pg_pool.putconn(conn)
-    
-    if result:
+    if result != None:
         return {
             "org_position": result["org_position"],
             "priority_tier": result["priority_tier"],
@@ -534,7 +511,7 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
             "last_updated_at": result["last_updated_on"],
         }
     else:
-        return None
+        return result
 
 @profile("query.py - get_custom_contact_details_with_timestamp")
 @st.cache_data(ttl=120)  #  Cache for 2 mins 
@@ -545,16 +522,15 @@ def get_custom_contact_details_with_timestamp(openstates_people_id):
     # Load the database configuration
     
     # Establish connection to the PostgreSQL server
-    conn = pg_pool.getconn()
-    print("Connected to the PostgreSQL database.")
-    
-    # Create a cursor that returns rows as dictionaries
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    
-    cursor.execute("SELECT * FROM app.contact_custom_details WHERE openstates_people_id = '{}'".format(openstates_people_id))
-    result = cursor.fetchall() # There can be more than one custom contact detail
-    conn.close()
-    
+    with get_connection() as conn:
+        print("Connected to the PostgreSQL database.")
+        
+        # Create a cursor that returns rows as dictionaries
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        
+        cursor.execute("SELECT * FROM app.contact_custom_details WHERE openstates_people_id = '{}'".format(openstates_people_id))
+        result = cursor.fetchall() # There can be more than one custom contact detail
+
     if result:
         return result
     else:
@@ -572,105 +548,102 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
     today = datetime.date.today()
     current_timestamp = datetime.datetime.now()
     
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    # Fetch existing record to compare changes
-    cursor.execute("""
-        SELECT org_position, priority_tier, community_sponsor, coalition, 
-               assigned_to, action_taken
-        FROM app.bill_custom_details 
-        WHERE openstates_bill_id = %s AND last_updated_org_id = %s
-    """, (openstates_bill_id, org_id))
-    existing = cursor.fetchone()
-    
-    # Define field mappings for comparison
-    new_values = {
-        'org_position': org_position,
-        'priority_tier': priority_tier,
-        'community_sponsor': community_sponsor,
-        'coalition': coalition,
-        'assigned_to': assigned_to,
-        'action_taken': action_taken
-    }
-    
-    try:
-        # Log changes if record exists
-        if existing:
-            old_values = {
-                'org_position': existing[0],
-                'priority_tier': existing[1],
-                'community_sponsor': existing[2],
-                'coalition': existing[3],
-                'assigned_to': existing[4],      # Fixed: was existing[5]
-                'action_taken': existing[5]      # Fixed: was existing[6]
-            }
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Fetch existing record to compare changes
+        cursor.execute("""
+            SELECT org_position, priority_tier, community_sponsor, coalition, 
+                assigned_to, action_taken
+            FROM app.bill_custom_details 
+            WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+        """, (openstates_bill_id, org_id))
+        existing = cursor.fetchone()
+        
+        # Define field mappings for comparison
+        new_values = {
+            'org_position': org_position,
+            'priority_tier': priority_tier,
+            'community_sponsor': community_sponsor,
+            'coalition': coalition,
+            'assigned_to': assigned_to,
+            'action_taken': action_taken
+        }
+        
+        try:
+            # Log changes if record exists
+            if existing:
+                old_values = {
+                    'org_position': existing[0],
+                    'priority_tier': existing[1],
+                    'community_sponsor': existing[2],
+                    'coalition': existing[3],
+                    'assigned_to': existing[4],      # Fixed: was existing[5]
+                    'action_taken': existing[5]      # Fixed: was existing[6]
+                }
+                
+                # Log each changed field
+                for field_name, new_value in new_values.items():
+                    old_value = old_values[field_name]
+                    if old_value != new_value:
+                        cursor.execute("""
+                            INSERT INTO app.bill_custom_details_history
+                            (openstates_bill_id, bill_number, org_id, org_name, 
+                            field_name, old_value, new_value, changed_by, 
+                            changed_on, changed_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (openstates_bill_id, bill_number, org_id, org_name,
+                            field_name, old_value, new_value, user_email,
+                            today, current_timestamp))
+            else:
+                # Log initial creation for all non-null fields
+                for field_name, new_value in new_values.items():
+                    if new_value:  # Only log fields that have values
+                        cursor.execute("""
+                            INSERT INTO app.bill_custom_details_history
+                            (openstates_bill_id, bill_number, org_id, org_name, 
+                            field_name, old_value, new_value, changed_by, 
+                            changed_on, changed_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (openstates_bill_id, bill_number, org_id, org_name,
+                            field_name, None, new_value, user_email,
+                            today, current_timestamp))
             
-            # Log each changed field
-            for field_name, new_value in new_values.items():
-                old_value = old_values[field_name]
-                if old_value != new_value:
-                    cursor.execute("""
-                        INSERT INTO app.bill_custom_details_history
-                        (openstates_bill_id, bill_number, org_id, org_name, 
-                         field_name, old_value, new_value, changed_by, 
-                         changed_on, changed_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (openstates_bill_id, bill_number, org_id, org_name,
-                          field_name, old_value, new_value, user_email,
-                          today, current_timestamp))
-        else:
-            # Log initial creation for all non-null fields
-            for field_name, new_value in new_values.items():
-                if new_value:  # Only log fields that have values
-                    cursor.execute("""
-                        INSERT INTO app.bill_custom_details_history
-                        (openstates_bill_id, bill_number, org_id, org_name, 
-                         field_name, old_value, new_value, changed_by, 
-                         changed_on, changed_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (openstates_bill_id, bill_number, org_id, org_name,
-                          field_name, None, new_value, user_email,
-                          today, current_timestamp))
-        
-        # Now update/insert the main record
-        if existing:
-            cursor.execute("""
-                UPDATE app.bill_custom_details
-                SET bill_number = %s, org_position = %s, priority_tier = %s,
-                    community_sponsor = %s, coalition = %s,
-                    assigned_to = %s, action_taken = %s, last_updated_by = %s,
-                    last_updated_org_id = %s, last_updated_org_name = %s,
-                    last_updated_on = %s, last_updated_at = %s
-                WHERE openstates_bill_id = %s AND last_updated_org_id = %s
-            """, (bill_number, org_position, priority_tier, community_sponsor, 
-                  coalition, assigned_to, action_taken, 
-                  user_email, org_id, org_name, today, current_timestamp, 
-                  openstates_bill_id, org_id))
-        else:
-            cursor.execute("""
-                INSERT INTO app.bill_custom_details
-                (bill_number, org_position, priority_tier, community_sponsor, 
-                 coalition, openstates_bill_id, assigned_to, 
-                 action_taken, last_updated_by, last_updated_org_id, 
-                 last_updated_org_name, last_updated_on, last_updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (bill_number, org_position, priority_tier, community_sponsor, 
-                  coalition, openstates_bill_id, assigned_to, 
-                  action_taken, user_email, org_id, org_name, today, current_timestamp))
-        
-        conn.commit()
-        print(f"Custom details for bill {bill_number} saved with change history.")
-        
-        return True
-        
-    except Exception as e:
-        conn.rollback()
-        print(f"Error saving custom details: {str(e)}")
-        raise e
-        
-    finally:
-        pg_pool.putconn(conn)
+            # Now update/insert the main record
+            if existing:
+                cursor.execute("""
+                    UPDATE app.bill_custom_details
+                    SET bill_number = %s, org_position = %s, priority_tier = %s,
+                        community_sponsor = %s, coalition = %s,
+                        assigned_to = %s, action_taken = %s, last_updated_by = %s,
+                        last_updated_org_id = %s, last_updated_org_name = %s,
+                        last_updated_on = %s, last_updated_at = %s
+                    WHERE openstates_bill_id = %s AND last_updated_org_id = %s
+                """, (bill_number, org_position, priority_tier, community_sponsor, 
+                    coalition, assigned_to, action_taken, 
+                    user_email, org_id, org_name, today, current_timestamp, 
+                    openstates_bill_id, org_id))
+            else:
+                cursor.execute("""
+                    INSERT INTO app.bill_custom_details
+                    (bill_number, org_position, priority_tier, community_sponsor, 
+                    coalition, openstates_bill_id, assigned_to, 
+                    action_taken, last_updated_by, last_updated_org_id, 
+                    last_updated_org_name, last_updated_on, last_updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (bill_number, org_position, priority_tier, community_sponsor, 
+                    coalition, openstates_bill_id, assigned_to, 
+                    action_taken, user_email, org_id, org_name, today, current_timestamp))
+            
+            conn.commit()
+            print(f"Custom details for bill {bill_number} saved with change history.")
+            
+            return True
+            
+        except Exception as e:
+            conn.rollback()
+            print(f"Error saving custom details: {str(e)}")
+            raise e
 
 ##################################################################################
 @profile("query.py - save_custom_contact_details_with_timestamp")
@@ -690,61 +663,57 @@ def save_custom_contact_details_with_timestamp(
     today = datetime.date.today()
     
     # Establish connection to the PostgreSQL server
-    conn = pg_pool.getconn()
+    with get_connection() as conn:
     
-    # Create a cursor
-    cursor = conn.cursor()
-    
-    
-    try:
-        # Save updated data to a temporary table which drops after updates are committed
-        cursor.execute("""
-        CREATE TEMP TABLE temp_updates (
-            people_contact_id INT PRIMARY KEY,
-            openstates_people_id TEXT,
-            custom_staffer_contact TEXT,
-            custom_staffer_email TEXT,
-            last_updated_by TEXT,
-            last_updated_org_id INT,
-            last_updated_org_name TEXT,
-            last_updated_on DATE      
-        ) ON COMMIT DROP
-        """)
+        # Create a cursor
+        cursor = conn.cursor()
         
-        # Insert updates to temp table
-        for _, row in contact_update_df.iterrows():
-            print(row)
+        
+        try:
+            # Save updated data to a temporary table which drops after updates are committed
             cursor.execute("""
-                INSERT INTO temp_updates
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s::date)
-            """, (row['people_contact_id'], openstates_people_id, row['custom_contact'], row['custom_email'], user_email, org_id, org_name, today))
-        
-        # Apply updates to prod table
-        cursor.execute("""
-        INSERT INTO app.contact_custom_details 
-        (people_contact_id, openstates_people_id, custom_staffer_contact, custom_staffer_email, last_updated_by, last_updated_org_id, last_updated_org_name, last_updated_on)
-        SELECT *
-        FROM temp_updates
-        ON CONFLICT (people_contact_id) DO UPDATE SET
-            custom_staffer_contact = EXCLUDED.custom_staffer_contact,
-            custom_staffer_email = EXCLUDED.custom_staffer_email,
-            last_updated_by = EXCLUDED.last_updated_by,
-            last_updated_org_id = EXCLUDED.last_updated_org_id,
-            last_updated_org_name = EXCLUDED.last_updated_org_name,
-            last_updated_on = EXCLUDED.last_updated_on            
-        """)
-        conn.commit()
-        return True
-        
-    except Exception as e:
-        # Roll back the transaction in case of error
-        conn.rollback()
-        print(f"Error saving custom details for point of contact: {str(e)}")
-        raise e
-        
-    finally:
-        # Always close the connection
-        pg_pool.putconn(conn)
+            CREATE TEMP TABLE temp_updates (
+                people_contact_id INT PRIMARY KEY,
+                openstates_people_id TEXT,
+                custom_staffer_contact TEXT,
+                custom_staffer_email TEXT,
+                last_updated_by TEXT,
+                last_updated_org_id INT,
+                last_updated_org_name TEXT,
+                last_updated_on DATE      
+            ) ON COMMIT DROP
+            """)
+            
+            # Insert updates to temp table
+            for _, row in contact_update_df.iterrows():
+                print(row)
+                cursor.execute("""
+                    INSERT INTO temp_updates
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s::date)
+                """, (row['people_contact_id'], openstates_people_id, row['custom_contact'], row['custom_email'], user_email, org_id, org_name, today))
+            
+            # Apply updates to prod table
+            cursor.execute("""
+            INSERT INTO app.contact_custom_details 
+            (people_contact_id, openstates_people_id, custom_staffer_contact, custom_staffer_email, last_updated_by, last_updated_org_id, last_updated_org_name, last_updated_on)
+            SELECT *
+            FROM temp_updates
+            ON CONFLICT (people_contact_id) DO UPDATE SET
+                custom_staffer_contact = EXCLUDED.custom_staffer_contact,
+                custom_staffer_email = EXCLUDED.custom_staffer_email,
+                last_updated_by = EXCLUDED.last_updated_by,
+                last_updated_org_id = EXCLUDED.last_updated_org_id,
+                last_updated_org_name = EXCLUDED.last_updated_org_name,
+                last_updated_on = EXCLUDED.last_updated_on            
+            """)
+            conn.commit()
+            return True
+            
+        except Exception as e:
+            # Roll back the transaction in case of error
+            conn.rollback()
+            print(f"Error saving custom details for point of contact: {str(e)}")
+            raise e
 
 
 #################################################################################
@@ -759,29 +728,26 @@ def add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name,
     today = datetime.date.today()
     current_timestamp = datetime.datetime.now()
     
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    try:
-        cursor.execute("""
-            INSERT INTO app.bill_letter_history
-                (openstates_bill_id, bill_number, org_id, org_name, letter_name, letter_url, 
-                 created_by, created_on, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (openstates_bill_id, bill_number, org_id, org_name, letter_name, letter_url, 
-         user_name, today, current_timestamp))
+    with get_connection() as conn:
+        cursor = conn.cursor()
         
-        conn.commit()
-        print(f"Letter added to history for bill {bill_number}")
+        try:
+            cursor.execute("""
+                INSERT INTO app.bill_letter_history
+                    (openstates_bill_id, bill_number, org_id, org_name, letter_name, letter_url, 
+                    created_by, created_on, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (openstates_bill_id, bill_number, org_id, org_name, letter_name, letter_url, 
+            user_name, today, current_timestamp))
+            
+            conn.commit()
+            print(f"Letter added to history for bill {bill_number}")
 
-    except Exception as e:
-        conn.rollback()
-        print(f"Error adding letter to history: {str(e)}")
-        raise e
-        
-    finally:
-        pg_pool.putconn(conn)
+        except Exception as e:
+            conn.rollback()
+            print(f"Error adding letter to history: {str(e)}")
+            raise e
 
     st.rerun()
     return True
@@ -793,10 +759,8 @@ def get_letter_history(openstates_bill_id, org_id):
     '''
     Retrieves all letters for a specific bill and organization, ordered by date.
     '''
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    try:
+    with get_connection() as conn:
+        cursor = conn.cursor()
         cursor.execute("""
             SELECT letter_name, letter_url, created_by, created_on, created_at
             FROM app.bill_letter_history
@@ -818,9 +782,6 @@ def get_letter_history(openstates_bill_id, org_id):
             })
         
         return letter_history
-        
-    finally:
-        pg_pool.putconn(conn)
 
 
 @profile("query.py - get_most_recent_letter")
@@ -829,10 +790,9 @@ def get_most_recent_letter(openstates_bill_id, org_id):
     Retrieves the most recent letter for a specific bill and organization.
     Returns None if no letter exists.
     '''
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    try:
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
         cursor.execute("""
             SELECT letter_name, letter_url, created_by, created_on, created_at
             FROM app.bill_letter_history
@@ -853,9 +813,6 @@ def get_most_recent_letter(openstates_bill_id, org_id):
             }
         
         return None
-        
-    finally:
-        pg_pool.putconn(conn)
 
 
 @profile("query.py - get_bill_activity_history")
@@ -865,22 +822,20 @@ def get_bill_activity_history(openstates_bill_id, org_id):
     Retrieves complete activity history for a bill including field changes
     and letters.
     '''
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    try:
+    with get_connection() as conn:
+        cursor = conn.cursor()
         cursor.execute("""
             SELECT 'field_change' as activity_type, field_name, 
-                   old_value, new_value, changed_by as user, 
-                   changed_on as date, changed_at as timestamp
+                old_value, new_value, changed_by as user, 
+                changed_on as date, changed_at as timestamp
             FROM app.bill_custom_details_history
             WHERE openstates_bill_id = %s AND org_id = %s
             
             UNION ALL
             
             SELECT 'letter' as activity_type, letter_name as field_name,
-                   letter_url as old_value, NULL as new_value,
-                   created_by as user, created_on as date, created_at as timestamp
+                letter_url as old_value, NULL as new_value,
+                created_by as user, created_on as date, created_at as timestamp
             FROM app.bill_letter_history
             WHERE openstates_bill_id = %s AND org_id = %s
             
@@ -902,9 +857,6 @@ def get_bill_activity_history(openstates_bill_id, org_id):
             })
         
         return activity_history
-        
-    finally:
-        pg_pool.putconn(conn)
 
         
 ##################################################################################
@@ -917,17 +869,15 @@ def get_all_custom_bill_details():
     For use on the advocacy hub page.
     """
     
-    conn = pg_pool.getconn()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    with get_connection() as conn:
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    cursor.execute("""
-        SELECT * FROM app.bill_custom_details
-        ORDER BY bill_number ASC
-    """, )
-    
-    results = cursor.fetchall()
-
-    pg_pool.putconn(conn)
+        cursor.execute("""
+            SELECT * FROM app.bill_custom_details
+            ORDER BY bill_number ASC
+        """, )
+        
+        results = cursor.fetchall()
 
     return [dict(row) for row in results]
 
@@ -939,18 +889,16 @@ def get_all_custom_bill_details_for_bill(openstates_bill_id):
     For use on the AI Working Group dashboard.
     """
     
-    conn = pg_pool.getconn()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    with get_connection() as conn:
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    query = """
-        SELECT * FROM app.bill_custom_details
-        WHERE openstates_bill_id = %s
-        ORDER BY last_updated_org_name ASC
-    """
-    cursor.execute(query, (openstates_bill_id,))
-    results = cursor.fetchall()
-
-    pg_pool.putconn(conn)
+        query = """
+            SELECT * FROM app.bill_custom_details
+            WHERE openstates_bill_id = %s
+            ORDER BY last_updated_org_name ASC
+        """
+        cursor.execute(query, (openstates_bill_id,))
+        results = cursor.fetchall()
 
     return [dict(row) for row in results]
 
@@ -965,58 +913,47 @@ def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
     if not openstates_bill_id or not bill_number or not user_email or not org_name:
         st.error("Missing required information to save this bill.")
         return
+    with get_connection() as conn:
+        try:
+            cursor = conn.cursor()
 
-    try:
-        
-        conn = pg_pool.getconn()
-        cursor = conn.cursor()
-
-        # Check if bill already exists for this org/user
-        cursor.execute("""
-            SELECT COUNT(*) FROM app.working_group_dashboard
-            WHERE openstates_bill_id = %s AND added_by_org = %s AND added_by_user = %s;
-        """, (openstates_bill_id, org_name, user_email))
-
-        count = cursor.fetchone()[0]
-
-        if count == 0:
+            # Check if bill already exists for this org/user
             cursor.execute("""
-                INSERT INTO app.working_group_dashboard 
-                (openstates_bill_id, bill_number, added_by_org, added_by_user)
-                VALUES (%s, %s, %s, %s);
-            """, (openstates_bill_id, bill_number, org_name, user_email))
+                SELECT COUNT(*) FROM app.working_group_dashboard
+                WHERE openstates_bill_id = %s AND added_by_org = %s AND added_by_user = %s;
+            """, (openstates_bill_id, org_name, user_email))
 
-            conn.commit()
-            st.success(f'Bill {bill_number} added to Working Group Dashboard!')
-        else:
-            st.warning(f'Bill {bill_number} is already in the Working Group Dashboard.')
+            count = cursor.fetchone()[0]
 
-    except Exception as e:
-        st.error(f"Error adding bill to Working Group Dashboard: {e}")
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+            if count == 0:
+                cursor.execute("""
+                    INSERT INTO app.working_group_dashboard 
+                    (openstates_bill_id, bill_number, added_by_org, added_by_user)
+                    VALUES (%s, %s, %s, %s);
+                """, (openstates_bill_id, bill_number, org_name, user_email))
+
+                conn.commit()
+                st.success(f'Bill {bill_number} added to Working Group Dashboard!')
+            else:
+                st.warning(f'Bill {bill_number} is already in the Working Group Dashboard.')
+
+        except Exception as e:
+            st.error(f"Error adding bill to Working Group Dashboard: {e}")
 
 @profile("query.py - remove_bill_from_wg_dashboard")
 def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     '''
     Removes a selected bill from the AI working group dashboard, deletes it from the database, and updates session state.
     '''
-    
-
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        DELETE FROM app.working_group_dashboard 
-        WHERE openstates_bill_id = %s;
-    """, (openstates_bill_id,))
-    
-    conn.commit()
-    
-    pg_pool.putconn(conn)
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM app.working_group_dashboard 
+            WHERE openstates_bill_id = %s;
+        """, (openstates_bill_id,))
+        
+        conn.commit()
 
     # Clear the cache so data reloads
     st.cache_data.clear()
@@ -1030,44 +967,41 @@ def get_working_group_bills():
     '''
     Fetches bills from the working_group_dashboard table in the PostgreSQL database.
     '''
-    try:
+    with get_connection() as conn:
+        try:
+            cursor = conn.cursor()
+
+            query = f"""
+                SELECT 
+                    b.openstates_bill_id,
+                    b.bill_number,
+                    b.bill_name,
+                    b.status,
+                    b.date_introduced,
+                    b.leg_session,
+                    b.author,
+                    b.coauthors, 
+                    b.chamber,
+                    b.leginfo_link,
+                    b.bill_text,
+                    b.bill_history,
+                    b.bill_event,
+                    b.event_text,
+                    b.assigned_topics,
+                    b.last_updated_on
+                FROM app.bills_mv b
+                INNER JOIN app.working_group_dashboard wgd
+                    ON wgd.openstates_bill_id = b.openstates_bill_id;
+
+            """
+
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
         
-        conn = pg_pool.getconn()
-        cursor = conn.cursor()
-
-        query = f"""
-            SELECT 
-                b.openstates_bill_id,
-                b.bill_number,
-                b.bill_name,
-                b.status,
-                b.date_introduced,
-                b.leg_session,
-                b.author,
-                b.coauthors, 
-                b.chamber,
-                b.leginfo_link,
-                b.bill_text,
-                b.bill_history,
-                b.bill_event,
-                b.event_text,
-                b.assigned_topics,
-                b.last_updated_on
-            FROM app.bills_mv b
-            INNER JOIN app.working_group_dashboard wgd
-                ON wgd.openstates_bill_id = b.openstates_bill_id;
-
-        """
-
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        pg_pool.putconn(conn)
-
-        return pd.DataFrame(rows, columns=BILL_COLUMNS) if rows else pd.DataFrame(columns=BILL_COLUMNS)
-    
-    except Exception as e:
-        print(f"Error fetching AI Working Group bills: {e}")
-        return pd.DataFrame(columns=BILL_COLUMNS)
+        except Exception as e:
+            print(f"Error fetching AI Working Group bills: {e}")
+            return pd.DataFrame(columns=BILL_COLUMNS)
 
 @profile("query.py - get_wg_comments")
 @st.cache_data(ttl=30)  # Cache comment data for 30 seconds
@@ -1082,10 +1016,8 @@ def get_wg_comments(bill_number: str):
         list: List of dictionaries containing comment data
     '''
     
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    try:
+    with get_connection() as conn:
+        cursor = conn.cursor()
         cursor.execute("""
             SELECT comment_id, user_name, user_email, org_id, org_name, comment, added_on, added_at
             FROM app.working_group_discussions
@@ -1110,9 +1042,6 @@ def get_wg_comments(bill_number: str):
             })
         
         return comments
-        
-    finally:
-        pg_pool.putconn(conn)
 
 @profile("query.py - save_wg_comment")
 def save_wg_comment(bill_number: str, user_name: str, user_email: str, comment: str, org_id: int = None, org_name: str = None):
@@ -1134,10 +1063,8 @@ def save_wg_comment(bill_number: str, user_name: str, user_email: str, comment: 
     today = datetime.date.today()
     current_timestamp = datetime.datetime.now()
 
-    conn = pg_pool.getconn()
-    cursor = conn.cursor()
-    
-    try:
+    with get_connection() as conn:
+        cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO app.working_group_discussions 
             (bill_number, user_name, user_email, org_id, org_name, comment, added_on, added_at)
@@ -1153,9 +1080,6 @@ def save_wg_comment(bill_number: str, user_name: str, user_email: str, comment: 
         st.cache_data.clear()
         
         return comment_id
-        
-    finally:
-        pg_pool.putconn(conn)
 
 @profile("query.py - get_ai_members")
 @st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache name data and refresh every 6 hours
@@ -1163,26 +1087,24 @@ def get_ai_members():
     '''
     Get list of names of AI Working Group members from the database.
     '''
-    try:
-        
-        conn = pg_pool.getconn()
-        cursor = conn.cursor()
+    with get_connection() as conn:
+        try:
+            cursor = conn.cursor()
 
-        query = f"""
-            SELECT name, email, org_name
-            FROM auth.approved_users
-            WHERE ai_working_group = 'yes';
-        """
+            query = f"""
+                SELECT name, email, org_name
+                FROM auth.approved_users
+                WHERE ai_working_group = 'yes';
+            """
 
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        pg_pool.putconn(conn)
+            cursor.execute(query)
+            rows = cursor.fetchall()
 
-        return pd.DataFrame(rows, columns=['name', 'email', 'org_name']) if rows else pd.DataFrame(columns=['name', 'email', 'org_name'])
+            return pd.DataFrame(rows, columns=['name', 'email', 'org_name']) if rows else pd.DataFrame(columns=['name', 'email', 'org_name'])
 
-    except Exception as e:
-        print(f"Error fetching AI Working Group members: {e}")
-        return []
+        except Exception as e:
+            print(f"Error fetching AI Working Group members: {e}")
+            return []
 
 
 

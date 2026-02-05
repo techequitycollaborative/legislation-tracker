@@ -14,7 +14,7 @@ import psycopg2
 import re
 import os
 from db.config import db_config as config
-from db.connect import get_pool
+from db.connect import get_connection
 from typing import Optional, Tuple, List
 from datetime import datetime, timedelta
 from utils.profiling import profile, show_performance_metrics, track_rerun
@@ -109,8 +109,6 @@ def clear_login_cookies():
         del st.session_state["backup_user_email"]
 
 '''
-############################# GLOBALS ####################################
-pg_pool = get_pool()
 ############################# AUTH FUNCTIONS #############################
         
 # Improved security and validation functions
@@ -179,20 +177,6 @@ def check_password(password: str, hashed: str) -> bool:
     """
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def get_db_connection():
-    """
-    Establish and return a database connection.
-    
-    Returns:
-        tuple: Database connection and cursor
-    """
-    try:
-        conn = pg_pool.getconn()
-        return conn, conn.cursor()
-    except (Exception, psycopg2.Error) as error:
-        st.error(f"Error connecting to database: {error}")
-        return None, None
-
 def get_user(email: str) -> Optional[Tuple]:
     """
     Retrieve user information by email.
@@ -203,19 +187,18 @@ def get_user(email: str) -> Optional[Tuple]:
     Returns:
         Optional[Tuple]: User information or None if not found
     """
-    conn, c = get_db_connection()
-    if not conn:
-        return None
-    
-    try:
-        c.execute("SELECT id, name, email, password_hash, org_id FROM auth.logged_users WHERE email=%s", (email,))
-        user = c.fetchone()
-        return user
-    except psycopg2.Error as e:
-        st.error(f"Database error: {e}")
-        return None
-    finally:
-        pg_pool.putconn(conn)
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn:
+            return None
+        
+        try:
+            c.execute("SELECT id, name, email, password_hash, org_id FROM auth.logged_users WHERE email=%s", (email,))
+            user = c.fetchone()
+            return user
+        except psycopg2.Error as e:
+            st.error(f"Database error: {e}")
+            return None
 
 def is_approved_user(email: str) -> bool:
     """
@@ -227,19 +210,18 @@ def is_approved_user(email: str) -> bool:
     Returns:
         bool: True if email is in approved_users table, False otherwise
     """
-    conn, c = get_db_connection()
-    if not conn:
-        return False
-    
-    try:
-        c.execute("SELECT 1 FROM auth.approved_users WHERE email=%s", (email,))
-        result = c.fetchone()
-        return result is not None
-    except psycopg2.Error as e:
-        st.error(f"Database error: {e}")
-        return False
-    finally:
-        pg_pool.putconn(conn)
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn:
+            return False
+        
+        try:
+            c.execute("SELECT 1 FROM auth.approved_users WHERE email=%s", (email,))
+            result = c.fetchone()
+            return result is not None
+        except psycopg2.Error as e:
+            st.error(f"Database error: {e}")
+            return False
 
 def get_all_organizations() -> List[Tuple]:
     """
@@ -248,19 +230,18 @@ def get_all_organizations() -> List[Tuple]:
     Returns:
         List[Tuple]: List of organizations (id, name)
     """
-    conn, c = get_db_connection()
-    if not conn:
-        return []
-    
-    try:
-        c.execute("SELECT id, name FROM auth.approved_organizations ORDER BY name")
-        orgs = c.fetchall()
-        return orgs
-    except psycopg2.Error as e:
-        st.error(f"Database error: {e}")
-        return []
-    finally:
-        pg_pool.putconn(conn)
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn:
+            return []
+        
+        try:
+            c.execute("SELECT id, name FROM auth.approved_organizations ORDER BY name")
+            orgs = c.fetchall()
+            return orgs
+        except psycopg2.Error as e:
+            st.error(f"Database error: {e}")
+            return []
 
 def create_user(name: str, email: str, password: str, org_id: int) -> Optional[int]:
     """
@@ -275,31 +256,30 @@ def create_user(name: str, email: str, password: str, org_id: int) -> Optional[i
     Returns:
         Optional[int]: Created user ID or None if creation failed
     """
-    conn, c = get_db_connection()
-    if not conn:
-        return None
-    
-    try:
-        password_hash = hash_password(password)
-        # Set both created_at and last_login to NOW() when creating a new user
-        c.execute("""
-            INSERT INTO auth.logged_users 
-            (name, email, password_hash, org_id, created_at, last_login) 
-            VALUES (%s, %s, %s, %s, NOW(), NOW()) 
-            RETURNING id
-        """, (name, email, password_hash, org_id))
-        conn.commit()
-        return c.fetchone()[0]
-    except psycopg2.IntegrityError:
-        st.error("Email already exists. Please log in.")
-        conn.rollback()
-        return None
-    except psycopg2.Error as e:
-        st.error(f"Database error: {e}")
-        conn.rollback()
-        return None
-    finally:
-        pg_pool.putconn(conn)
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn:
+            return None
+        
+        try:
+            password_hash = hash_password(password)
+            # Set both created_at and last_login to NOW() when creating a new user
+            c.execute("""
+                INSERT INTO auth.logged_users 
+                (name, email, password_hash, org_id, created_at, last_login) 
+                VALUES (%s, %s, %s, %s, NOW(), NOW()) 
+                RETURNING id
+            """, (name, email, password_hash, org_id))
+            conn.commit()
+            return c.fetchone()[0]
+        except psycopg2.IntegrityError:
+            st.error("Email already exists. Please log in.")
+            conn.rollback()
+            return None
+        except psycopg2.Error as e:
+            st.error(f"Database error: {e}")
+            conn.rollback()
+            return None
 
 def get_organization_by_id(org_id: int) -> Optional[Tuple]:
     """
@@ -311,20 +291,18 @@ def get_organization_by_id(org_id: int) -> Optional[Tuple]:
     Returns:
         Optional[Tuple]: Organization information or None if not found
     """
-    conn, c = get_db_connection()
-    if not conn:
-        return None
-    
-    try:
-        c.execute("SELECT id, name, domain, nickname FROM auth.approved_organizations WHERE id=%s", (org_id,))
-        org = c.fetchone()
-        return org
-    except psycopg2.Error as e:
-        st.error(f"Database error: {e}")
-        return None
-    finally:
-        pg_pool.putconn(conn)
-
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn:
+            return None
+        
+        try:
+            c.execute("SELECT id, name, domain, nickname FROM auth.approved_organizations WHERE id=%s", (org_id,))
+            org = c.fetchone()
+            return org
+        except psycopg2.Error as e:
+            st.error(f"Database error: {e}")
+            return None
 
 def update_last_login(user_id: int) -> bool:
     """
@@ -336,25 +314,24 @@ def update_last_login(user_id: int) -> bool:
     Returns:
         bool: True if update was successful, False otherwise
     """
-    conn, c = get_db_connection()
-    if not conn:
-        return False
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn:
+            return False
+        
+        try:
+            c.execute("""
+                UPDATE auth.logged_users 
+                SET last_login = NOW() 
+                WHERE id = %s
+            """, (user_id,))
+            conn.commit()
+            return True
+        except psycopg2.Error as e:
+            st.error(f"Database error updating last login: {e}")
+            conn.rollback()
+            return False
     
-    try:
-        c.execute("""
-            UPDATE auth.logged_users 
-            SET last_login = NOW() 
-            WHERE id = %s
-        """, (user_id,))
-        conn.commit()
-        return True
-    except psycopg2.Error as e:
-        st.error(f"Database error updating last login: {e}")
-        conn.rollback()
-        return False
-    finally:
-        pg_pool.putconn(conn)
-
 
 def log_user_login(user_id: int, name: str, email: str, org_id: int) -> bool:
     """
@@ -369,28 +346,27 @@ def log_user_login(user_id: int, name: str, email: str, org_id: int) -> bool:
     Returns:
         bool: True if logging was successful, False otherwise
     """
-    conn, c = get_db_connection()
-    if not conn:
-        return False
-    
-    try:
-        # Get organization name for the log
-        org = get_organization_by_id(org_id)
-        org_name = org[1] if org else None
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn:
+            return False
         
-        c.execute("""
-            INSERT INTO auth.logins 
-            (login_date, login_time, user_id, name, email, org, org_id) 
-            VALUES (CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s)
-        """, (user_id, name, email, org_name, org_id))
-        conn.commit()
-        return True
-    except psycopg2.Error as e:
-        st.error(f"Database error logging login: {e}")
-        conn.rollback()
-        return False
-    finally:
-        pg_pool.putconn(conn)
+        try:
+            # Get organization name for the log
+            org = get_organization_by_id(org_id)
+            org_name = org[1] if org else None
+            
+            c.execute("""
+                INSERT INTO auth.logins 
+                (login_date, login_time, user_id, name, email, org, org_id) 
+                VALUES (CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s)
+            """, (user_id, name, email, org_name, org_id))
+            conn.commit()
+            return True
+        except psycopg2.Error as e:
+            st.error(f"Database error logging login: {e}")
+            conn.rollback()
+            return False
 
 
 ############################# AI WORKING GROUP VALIDATION #############################
@@ -399,27 +375,26 @@ def is_user_in_working_group(user_email):
     """
     Check if the user is in the AI Working Group by querying the approved_users table.
     """
-    conn, c = get_db_connection()
-    if not conn or not c:
-        return False  # Prefer returning False for clean boolean logic
+    with get_connection() as conn:
+        c = conn.cursor()
+        if not conn or not c:
+            return False  # Prefer returning False for clean boolean logic
 
-    try:
-        c.execute("""
-            SELECT ai_working_group FROM auth.approved_users WHERE email = %s;
-        """, (user_email,))
-        result = c.fetchone()
+        try:
+            c.execute("""
+                SELECT ai_working_group FROM auth.approved_users WHERE email = %s;
+            """, (user_email,))
+            result = c.fetchone()
 
-        if result and isinstance(result[0], str):
-            return result[0].strip().lower() == 'yes'
-        else:
-            return False
+            if result and isinstance(result[0], str):
+                return result[0].strip().lower() == 'yes'
+            else:
+                return False
 
-    except psycopg2.Error as e:
-        st.error(f"Database error: {e}")
-        return False  # Avoid returning None unless there's a specific reason
+        except psycopg2.Error as e:
+            st.error(f"Database error: {e}")
+            return False  # Avoid returning None unless there's a specific reason
 
-    finally:
-        pg_pool.putconn(conn)
 
 ############################# SIGN UP AND LOGIN PAGE #############################
 

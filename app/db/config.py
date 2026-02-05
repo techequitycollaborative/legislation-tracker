@@ -13,6 +13,7 @@ Date: Jan 15, 2025
 """
 
 import os
+# import os.path
 from configparser import ConfigParser
 
 def db_config(section, filename = 'db/credentials.ini'):
@@ -31,7 +32,14 @@ def db_config(section, filename = 'db/credentials.ini'):
     }
 
     # Check if environment variables are empty
+    # Check if environment variables are empty
+    print(db_config)
     if all(value is None for value in db_config.values()):
+        print(f"=== ENV VARS ARE NONE, FALLING BACK TO {filename} ===")
+        
+        # Check if file exists
+        print(f"File exists: {os.path.isfile(filename)}")
+        print(f"Current working directory: {os.getcwd()}")
         # If environment variables are not set, fall back to the credentials.ini file
         parser = ConfigParser()
         if parser.read(filename):
@@ -39,7 +47,7 @@ def db_config(section, filename = 'db/credentials.ini'):
                 db_config = {
                     'host': parser.get(section, 'host'),
                     'port': parser.get(section, 'port'),
-                    'dbname': parser.get(section, 'dbname'),
+                    'database': parser.get(section, 'dbname'),
                     'user': parser.get(section, 'user'),
                     'password': parser.get(section, 'password'),
                     'sslmode': parser.get(section, 'sslmode')
