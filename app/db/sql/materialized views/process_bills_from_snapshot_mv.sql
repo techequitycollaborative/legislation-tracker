@@ -17,7 +17,7 @@
 ----- schema: app
 ----- materialized view name: bills_mv
 
-DROP MATERIALIZED VIEW IF EXISTS app.bills_mv;
+DROP MATERIALIZED VIEW IF EXISTS app.bills_mv CASCADE;
 CREATE MATERIALIZED VIEW app.bills_mv AS
 
 -- Copy data from snapshot.bill and clean up
@@ -47,9 +47,15 @@ WITH temp_bills AS (
         AND bill.bill_num NOT LIKE 'SR%'
         AND bill.bill_num NOT LIKE 'SJR%' 
         AND bill.bill_num NOT LIKE 'AJR%' 
-		AND last_action_date >= '2025-12-01' -- Filtering by bills that were updated on or after 2025-12-01
-
-		
+		AND (
+            last_action_date >= '2025-12-01' -- Get bills updated on or after 2025-12-01
+			-- OR get bills with 'inactive file' in their latest status (our way of grabbing 2-year bills)
+            OR openstates_bill_id IN (
+                SELECT DISTINCT openstates_bill_id 
+                FROM app.bill_history 
+                WHERE LOWER(description) LIKE '%inactive file%'
+            )
+        )
 		
 ),
 
