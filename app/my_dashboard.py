@@ -70,8 +70,9 @@ def load_my_dashboard_table():
     db_bills = db_bills.drop(columns=['assigned_topics'])
     db_bills['bill_history'] = db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-    # Default sorting: by upcoming bill_event
-    #db_bills = db_bills.sort_values(by='bill_event', ascending=False)
+    # Default sorting: by last updated date
+    db_bills = db_bills.sort_values(by='last_updated_on', ascending=False)
+    
     return db_bills
 
 st.session_state.dashboard_bills = load_my_dashboard_table()

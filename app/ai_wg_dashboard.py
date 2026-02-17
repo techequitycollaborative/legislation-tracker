@@ -95,8 +95,9 @@ def load_ai_dashboard_table():
 
     wg_bills['bill_history'] = wg_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-    # Default sorting: by upcoming bill_event
-    wg_bills = wg_bills.sort_values(by='bill_event', ascending=False)
+    # Default sorting: by last updated date, most recent first
+    wg_bills = wg_bills.sort_values(by='last_updated_on', ascending=False)
+    
     
     return wg_bills
 
