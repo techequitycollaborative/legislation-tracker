@@ -79,8 +79,9 @@ def load_org_dashboard_table():
 
     org_db_bills['bill_history'] = org_db_bills['bill_history'].apply(format_bill_history) #Format bill history
 
-    # Default sorting: by upcoming bill_event
-    org_db_bills = org_db_bills.sort_values(by='bill_event', ascending=False)
+    # Sort bills by last updated date, with most recently updated bills at the top
+    org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d')
+    org_db_bills = org_db_bills.sort_values(by='last_updated_on', ascending=False)
     
     return org_db_bills
 

@@ -202,18 +202,18 @@ def display_bill_filters(bills_df,
                         key="keyword_filter"
                     )
                 elif filter_type == 'org_position':
-                    # Get unique list of org positions
-                    unique_positions = bills_df['org_position'].dropna().unique().tolist()
-
+                    # List of possible options for org_position filter dropdown
+                    org_position_options = ['None', 'Needs Decision', 'Neutral/No Position', 'Support',
+                                        'Support, if Amended', 'Oppose', 'Oppose, unless Amended']
+                    
                     selected_org_positions = st.multiselect(
                         "Org Position:",
-                        options=unique_positions,
+                        options=org_position_options,
                         key="org_position_filter",
-                        help="Only existing values appear in this dropdown. Dropdown options update based on new data entered in Custom Advocacy Details."
                     )
                 elif filter_type == 'assigned_to':
                     # Get unique list of assigned to
-                    unique_assigned_to = bills_df['assigned_to'].dropna().unique().tolist()
+                    unique_assigned_to = ['None'] + bills_df['assigned_to'].dropna().unique().tolist()
 
                     selected_assigned_to = st.multiselect(
                         "Assigned To:",
@@ -343,12 +343,24 @@ def apply_bill_filters(bills_df,
         filtered_bills = filtered_bills[mask]
     
     # Org position filter
-    if selected_org_positions and 'org_position' in filtered_bills.columns: # Make sure org_position column exists
-        filtered_bills = filtered_bills[filtered_bills['org_position'].isin(selected_org_positions)]
+    if selected_org_positions and 'org_position' in filtered_bills.columns:
+        # Handle 'None' string as None/NaN
+        if 'None' in selected_org_positions:
+            # Include rows where org_position is in the selected list OR is null
+            mask = (filtered_bills['org_position'].isin([x for x in selected_org_positions if x != 'None'])) | (filtered_bills['org_position'].isna())
+            filtered_bills = filtered_bills[mask]
+        else:
+            filtered_bills = filtered_bills[filtered_bills['org_position'].isin(selected_org_positions)]
 
     # Assigned to filter
-    if selected_assigned_to and 'assigned_to' in filtered_bills.columns: # Make sure assigned_to column exists
-        filtered_bills = filtered_bills[filtered_bills['assigned_to'].isin(selected_assigned_to)]
+    if selected_assigned_to and 'assigned_to' in filtered_bills.columns:
+        # Handle 'None' string as None/NaN
+        if 'None' in selected_assigned_to:
+            # Include rows where assigned_to is in the selected list OR is null
+            mask = (filtered_bills['assigned_to'].isin([x for x in selected_assigned_to if x != 'None'])) | (filtered_bills['assigned_to'].isna())
+            filtered_bills = filtered_bills[mask]
+        else:
+            filtered_bills = filtered_bills[filtered_bills['assigned_to'].isin(selected_assigned_to)]
     
     return filtered_bills
 
