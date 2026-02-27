@@ -55,6 +55,7 @@ WITH temp_bills AS (
                 FROM app.bill_history 
                 WHERE LOWER(description) LIKE '%inactive file%'
             )
+			OR bill_num = 'AB 412'
         )
 		
 ),
