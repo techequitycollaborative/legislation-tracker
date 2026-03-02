@@ -189,7 +189,7 @@ def display_org_dashboard_details(selected_rows):
                 
                 with col1:
                     st.markdown('##### Org Position')
-                    org_position_options = ['','Needs Decision', 'Neutral/No Position', 'Support',
+                    org_position_options = ['','Needs Decision', 'Needs Decision - Policy', 'Needs Decision - Political', 'Neutral/No Position', 'Support',
                                         'Support, if Amended', 'Oppose', 'Oppose, unless Amended']
                     
                     # Get the index
