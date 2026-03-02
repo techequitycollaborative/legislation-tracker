@@ -203,7 +203,7 @@ def display_bill_filters(bills_df,
                     )
                 elif filter_type == 'org_position':
                     # List of possible options for org_position filter dropdown
-                    org_position_options = ['None', 'Needs Decision', 'Neutral/No Position', 'Support',
+                    org_position_options = ['None', 'Needs Decision', 'Needs Decision - Policy', 'Needs Decision - Political', 'Neutral/No Position', 'Support',
                                         'Support, if Amended', 'Oppose', 'Oppose, unless Amended']
                     
                     selected_org_positions = st.multiselect(
