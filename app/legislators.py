@@ -16,6 +16,7 @@ from utils.general import to_csv, transform_name
 from utils.legislators import display_legislator_info_text
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
 from utils.legislators import initialize_filter_state, display_legislator_filters, apply_legislator_filters, display_legislator_table
+from utils.lastpass import disable_lastpass
 
 
 ############################ SESSION STATE #############################
@@ -57,6 +58,9 @@ st.markdown(" ")
 
 ############################ LOAD AND PROCESS DATA #############################
 track_rerun("Legislators")
+
+# Disable LastPass auto-fill
+disable_lastpass()
 
 # Load data
 @profile("DB - Fetch LEGISLATOR table data")

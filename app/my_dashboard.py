@@ -16,8 +16,12 @@ from utils.my_dashboard import display_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
 from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.lastpass import disable_lastpass
 
 track_rerun("My Dashboard")
+
+# Disable LastPass auto-fill
+disable_lastpass()
 
 # Page title
 st.title('📌 My Dashboard')

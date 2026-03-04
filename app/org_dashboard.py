@@ -15,9 +15,13 @@ from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
 from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.lastpass import disable_lastpass
 
 
 track_rerun("Org Dashboard")
+
+# Disable LastPass auto-fill
+disable_lastpass()
 
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:
