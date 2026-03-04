@@ -18,6 +18,7 @@ from utils import aggrid_styler
 from utils.general import to_csv
 from utils.committees import display_committee_info_text, initialize_filter_state, display_committee_filters, apply_committee_filters, display_committee_table
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
+from utils.lastpass import disable_lastpass
 
 # Page title and description
 st.title('🗣 Committees')
@@ -33,6 +34,9 @@ st.markdown(" ")
 
 ############################ LOAD AND PROCESS COMMITTEE DATA #############################
 track_rerun("Committees")
+
+# Disable LastPass auto-fill
+disable_lastpass()
 
 # Load committee membership data
 @profile("DB - Fetch COMMITTEE table data")

@@ -22,9 +22,13 @@ from utils.ai_working_group import display_working_group_bill_details
 from utils.css_utils import load_css_with_fallback, DEFAULT_FALLBACK_CSS
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
 from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.lastpass import disable_lastpass
 
 track_rerun("AI Working Group Dashboard")
 #################################### PAGE SETUP ####################################
+
+# Disable LastPass auto-fill
+disable_lastpass()
 
 # Load custom CSS with fallback
 load_css_with_fallback(
