@@ -617,12 +617,14 @@ def display_org_dashboard_details(selected_rows):
             with col3:
                 st.markdown('##### Community Sponsor')
                 community_sponsor = st.text_input('Enter Community Sponsor',
-                                                value=custom_details.get('community_sponsor', '') if custom_details else '')
+                                                value=custom_details.get('community_sponsor', '') if custom_details else '',
+                                                autocomplete="off")
             
             with col4:
                 st.markdown('##### Coalition')
                 coalition = st.text_input('Enter Coalition',
-                                        value=custom_details.get('coalition', '') if custom_details else '')
+                                        value=custom_details.get('coalition', '') if custom_details else '',
+                                        autocomplete="off")
 
         # Add empty rows of space    
         st.write("")
@@ -649,12 +651,14 @@ def display_org_dashboard_details(selected_rows):
             with col6:
                 st.markdown('##### Assigned To')
                 assigned_to = st.text_input('Enter Name',
-                                        value=custom_details.get('assigned_to', '') if custom_details else '')
+                                        value=custom_details.get('assigned_to', '') if custom_details else '',
+                                        autocomplete="off")
             
             with col7:
                 st.markdown('##### Letter of Support')
                 letter_of_support = st.text_input('Enter link to letter of support',
-                                                value=custom_details.get('letter_of_support', '') if custom_details else '')
+                                                value=custom_details.get('letter_of_support', '') if custom_details else '',
+                                                autocomplete="off")
             
             with col8:
                 if letter_of_support:
@@ -857,7 +861,8 @@ def staffer_filter(df):
     with filter_col2:
         staffer_filter = st.text_input(
             "Filter by Staffer Name",
-            placeholder="Type to search..."
+            placeholder="Type to search...",
+            autocomplete="off"
         )
     
     with filter_col3:
