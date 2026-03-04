@@ -217,12 +217,14 @@ def display_org_dashboard_details(selected_rows):
                 with col3:
                     st.markdown('##### Community Sponsor')
                     community_sponsor = st.text_input('Enter Community Sponsor',
-                                                    value=custom_details.get('community_sponsor', '') if custom_details else '')
+                                                    value=custom_details.get('community_sponsor', '') if custom_details else '',
+                                                    autocomplete="off")
                 
                 with col4:
                     st.markdown('##### Coalition')
                     coalition = st.text_input('Enter Coalition',
-                                            value=custom_details.get('coalition', '') if custom_details else '')
+                                            value=custom_details.get('coalition', '') if custom_details else '',
+                                            autocomplete="off")
 
             # Add empty rows of space    
             st.write("")
@@ -236,7 +238,8 @@ def display_org_dashboard_details(selected_rows):
                     st.markdown('##### Assigned To')
                     assigned_to = st.text_input('Enter Name',
                                             value=custom_details.get('assigned_to', '') if custom_details else '',
-                                            help='Enter the name of the person assigned to this bill within your organization.')
+                                            help='Enter the name of the person assigned to this bill within your organization.',
+                                            autocomplete="off")
             
 
                 with col6:
@@ -322,8 +325,8 @@ def display_org_dashboard_details(selected_rows):
         # Button to add new letter
         with st.form(key='add_letter_form', border=True):
             st.markdown('##### Add New Letter')
-            new_letter_name = st.text_input('Letter Name', help='Enter a name for the letter')
-            new_letter_url = st.text_input('Letter URL', help='Enter valid URL to the letter')
+            new_letter_name = st.text_input('Letter Name', help='Enter a name for the letter', autocomplete="off")
+            new_letter_url = st.text_input('Letter URL', help='Enter valid URL to the letter', autocomplete="off")
             add_letter_btn = st.form_submit_button('Add Letter to History', type='primary')
             
             if add_letter_btn and new_letter_url and new_letter_name:

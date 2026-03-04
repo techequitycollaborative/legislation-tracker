@@ -58,7 +58,8 @@ def staffer_filter(df):
     with filter_col2:
         staffer_filter = st.text_input(
             "Filter by Staffer Name",
-            placeholder="Type to search..."
+            placeholder="Type to search...",
+            autocomplete="off"
         )
     
     with filter_col3:
@@ -317,7 +318,8 @@ def display_legislator_filters(df):
         selected_name = st.text_input(
             "Filter by Legislator:",
             placeholder="Enter legislator name",
-            key="name_filter"
+            key="name_filter",
+            autocomplete="off"
         )
     
     with filter_col2:
