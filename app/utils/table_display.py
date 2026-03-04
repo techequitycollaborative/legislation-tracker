@@ -150,19 +150,22 @@ def display_bill_filters(bills_df,
                     bill_number_search = st.text_input(
                         "Bill Number:",
                         placeholder="ex: AB 123",
-                        key="bill_number_filter"
+                        key="bill_number_filter",
+                        autocomplete="off"
                     )
                 elif filter_type == 'bill_name':
                     bill_name_search = st.text_input(
                         "Bill Name:",
                         placeholder="Search bill name...",
-                        key="bill_name_filter"
+                        key="bill_name_filter",
+                        autocomplete="off"
                     )
                 elif filter_type == 'status':
                     status_search = st.text_input(
                         "Bill Status:",
                         placeholder="ex: Introduced",
-                        key="status_filter"
+                        key="status_filter",
+                        autocomplete="off"
                     )
                 elif filter_type == 'topic':
                     # Get unique topics
@@ -199,7 +202,8 @@ def display_bill_filters(bills_df,
                     keyword_search = st.text_input(
                         "Keyword Search:",
                         placeholder="ex: artificial intelligence",
-                        key="keyword_filter"
+                        key="keyword_filter",
+                        autocomplete="off"
                     )
                 elif filter_type == 'org_position':
                     # List of possible options for org_position filter dropdown

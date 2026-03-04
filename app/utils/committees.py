@@ -172,13 +172,15 @@ def display_committee_filters(df):
     with filter_col4:
         chairperson_search = st.text_input(
             "Filter by Chairperson:",
-            key="chairperson_filter"
+            key="chairperson_filter",
+            autocomplete="off"
         )
     
     with filter_col5:
         vice_chairperson_search = st.text_input(
             "Filter by Vice Chairperson:",
-            key="vice_chairperson_filter"
+            key="vice_chairperson_filter",
+            autocomplete="off"
         )
 
     with filter_col5:

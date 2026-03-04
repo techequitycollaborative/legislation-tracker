@@ -16,7 +16,6 @@ from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
 from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
-from utils.lastpass import disable_lastpass
 
 # Page title and description
 st.title('📝 Bills')
@@ -36,9 +35,6 @@ st.markdown(" ")
 
 ############################ LOAD AND PROCESS BILLS DATA #############################
 track_rerun("Bills")
-
-# Disable LastPass auto-fill
-disable_lastpass()
 
 @profile("DB - Fetch bills table data")
 @st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
