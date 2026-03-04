@@ -56,6 +56,7 @@ WITH temp_bills AS (
                 WHERE LOWER(description) LIKE '%inactive file%'
             )
 			OR bill_num = 'AB 412'
+			OR bill_num = 'SB 435'
         )
 		
 ),
