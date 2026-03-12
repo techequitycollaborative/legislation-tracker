@@ -90,6 +90,25 @@ bill_authors AS (
     GROUP BY openstates_bill_id
 ),
 
+-- Deduplicate bill_schedule: if multiple rows per bill exist, keep the event_states = 'active' one.
+-- If no row has event_status = 'active' among duplicates, both event_date and event_text will be NULL.
+-- If only one row exists for a bill, use it as-is regardless of event_status.
+bill_schedule AS (
+    SELECT
+        openstates_bill_id,
+        CASE
+            WHEN COUNT(*) > 1 THEN MAX(CASE WHEN event_status = 'active' THEN event_date END)
+            ELSE MAX(event_date)
+        END AS event_date,
+        CASE
+            WHEN COUNT(*) > 1 THEN MAX(CASE WHEN event_status = 'active' THEN event_text END)
+            ELSE MAX(event_text)
+        END AS event_text
+    FROM snapshot.bill_schedule
+    GROUP BY openstates_bill_id
+),
+
+-- Get bill topics
 bill_topics AS (
     SELECT
         openstates_bill_id,
@@ -125,8 +144,11 @@ FROM temp_bills b
 LEFT JOIN latest_status s ON b.openstates_bill_id = s.openstates_bill_id
 LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
 LEFT JOIN bill_authors a ON b.openstates_bill_id = a.openstates_bill_id
-LEFT JOIN snapshot.bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id -- Add bill events from bill schedule table
+LEFT JOIN bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id -- Add bill events from bill schedule table (without dupes)
 LEFT JOIN bill_topics t ON b.openstates_bill_id = t.openstates_bill_id;
 
 -- UNIQUE index to use CONCURRENTLY (refresh view without interruption)
 CREATE UNIQUE INDEX idx_bills_mv_pk ON app.bills_mv(openstates_bill_id);
+
+-- Refresh the materialized view
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY app.bills_mv;
