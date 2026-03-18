@@ -100,7 +100,14 @@ def load_bill_events():
     bill_events['event_status'] = np.select(conditions, choices, default='event-normal')
     return bill_events
 
+################################## CSS ###################################
 
+# Load external CSS file
+def load_css(file_path):
+    with open(file_path, "r") as f:
+        return f"<style>{f.read()}</style>"
+
+######################### UTILS FOR STREAMLIT-CALENDAR PAGE ########################
 ######################### ADD FILTERS / SIDE BAR ###################################
 
 # TODO: incorporate event movement logic again (this is not being called anywhere)
@@ -398,17 +405,10 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
     
     return calendar_events, initial_date
 
-
-################################## CSS ###################################
-
-# Load external CSS file
-def load_css(file_path):
-    with open(file_path, "r") as f:
-        return f"<style>{f.read()}</style>"
-
-################## DOWNLOAD .ICS FILE ##########################
-
 def create_ics_file(events):
+    """
+    This function creates an ics file for the original streamlit-calendar calendar page.
+    """
     cal = Calendar()
 
     for event_data in events:
@@ -483,3 +483,179 @@ def create_ics_file(events):
     
     # return str(cal)  # Return the .ics content as a string
     return cal.serialize()
+
+######################### UTILS FOR NEW STREAMLIT NATIVE CALENDAR PAGE ########################
+
+# Function to render bills for each committee event
+def render_bill(bill: dict):
+    """
+    This function renders bills on the calendar page in the following fashion: 
+    - Bills are nested within a committee event (as an expander)
+    - Each bill has an associated popover button; when clicked, it displays event + bill details +
+    a button to download the event as an .ics file
+    """
+    col_text, col_btn = st.columns([7, 3])
+
+    with col_text:
+        st.markdown(f"- **{bill['bill_number']}** — {bill['bill_name']}")
+
+    with col_btn:
+        with st.popover("View event details", width="stretch", type="secondary"):
+            st.markdown(f"#### {bill['bill_number']}")
+            st.markdown(f"**{bill['bill_name']}**")
+            st.divider()
+
+            details = bill['details']
+
+            # Event info
+            st.markdown("##### Event Details")
+            st.markdown(f"""
+                - **Committee:** {details['event_text']}
+                - **Date:** {details['event_date']}
+                - **Time:** {details['event_time']}
+                - **Location:** {details['event_location']}
+                - **Room:** {details['event_room']}
+                - **Agenda Order:** {details['agenda_order']}
+                """)
+            
+            # Letter deadline
+            st.markdown("##### Letter Deadline")
+            st.markdown(details['letter_deadline'])
+            
+            # Bill info            
+            st.markdown("##### Bill Details")
+            st.markdown(f"""
+                - **Status:** {details['status']}
+                - **Date Introduced:** {details['date_introduced']}
+                """)
+            
+            # Button to download this event as .ics
+            ics_data = create_ics_single(bill, is_deadline=False)
+            st.download_button(
+                label="📥 Download hearing (.ics)",
+                data=ics_data,
+                file_name=f"{bill['bill_number'].replace(' ', '_')}_hearing.ics",
+                mime="text/calendar",
+                key=f"dl_hearing_{bill['bill_number']}_{details['event_date']}",
+            )
+
+
+# Function to apply badges to denote chamber
+def get_badge_color(chamber_id) -> str:
+    """
+    Returns color coding for st.badge() labels next to committee hearing events
+    in order to denote which chamber the committee belongs to
+    """
+    if chamber_id == 1:
+        return "green"   # Assembly
+    elif chamber_id == 2:
+        return "red"     # Senate
+
+
+def create_ics_single(bill: dict, is_deadline: bool = False) -> bytes:
+    """
+    Creates an .ics file for a single bill event or letter deadline.
+    For use on the new streamlit native calendar page.
+    """
+    cal = Calendar()
+    event = Event()
+    details = bill['details']
+
+    if is_deadline:
+        event.name = f"✉️ Letter Deadline — {bill['bill_number']} — {details['event_text']}"
+        event.description = (
+            f"Bill: {bill['bill_number']} — {bill['bill_name']}\n"
+            f"Committee: {details['event_text']}\n"
+            f"Hearing Date: {details['event_date']}\n"
+            f"Status: {details['status']}"
+        )
+        try:
+            event.begin = pd.to_datetime(details['letter_deadline']).to_pydatetime()
+            event.make_all_day()
+        except Exception as e:
+            print(f"Error parsing letter deadline date: {e}")
+            return b""
+    else:
+        event.name = f"{bill['bill_number']} — {details['event_text']}"
+        event.description = (
+            f"Bill: {bill['bill_number']} — {bill['bill_name']}\n"
+            f"Committee: {details['event_text']}\n"
+            f"Location: {details['event_location']}, {details['event_room']}\n"
+            f"Agenda Order: {details['agenda_order']}\n"
+            f"Status: {details['status']}\n"
+            f"Letter Deadline: {details['letter_deadline']}"
+        )
+        try:
+            event_time = details['event_time']
+            event_date = details['event_date']
+            if event_time and event_time not in ('N/A', '', 'nan') and 'adjourn' not in str(event_time).lower():
+                event.begin = pd.to_datetime(f"{event_date} {event_time}").to_pydatetime()
+                event.end = event.begin + pd.Timedelta(hours=2)
+            else:
+                event.begin = pd.to_datetime(event_date).to_pydatetime()
+                event.make_all_day()
+        except Exception as e:
+            print(f"Error parsing event date/time: {e}")
+            return b""
+
+    cal.events.add(event)
+    return cal.serialize().encode('utf-8')
+
+
+def create_ics_all(filtered_structured: dict, deadline_structured: dict) -> bytes:
+    """
+    Creates a single .ics file with all committee hearing and letter deadline events.
+    For use on the new streamlit native calendar page.
+    """
+    cal = Calendar()
+
+    # Add committee hearing events
+    for date_key, committees in filtered_structured.items():
+        for committee_name, committee_data in committees.items():
+            for bill in committee_data['bills']:
+                details = bill['details']
+                event = Event()
+                event.name = f"{bill['bill_number']} — {committee_name}"
+                event.description = (
+                    f"Bill: {bill['bill_number']} — {bill['bill_name']}\n"
+                    f"Committee: {committee_name}\n"
+                    f"Location: {details['event_location']}, {details['event_room']}\n"
+                    f"Agenda Order: {details['agenda_order']}\n"
+                    f"Status: {details['status']}\n"
+                    f"Letter Deadline: {details['letter_deadline']}"
+                )
+                try:
+                    event_time = details['event_time']
+                    event_date = details['event_date']
+                    if event_time and event_time not in ('N/A', '', 'nan') and 'adjourn' not in str(event_time).lower():
+                        event.begin = pd.to_datetime(f"{event_date} {event_time}").to_pydatetime()
+                        event.end = event.begin + pd.Timedelta(hours=2)
+                    else:
+                        event.begin = pd.to_datetime(event_date).to_pydatetime()
+                        event.make_all_day()
+                    cal.events.add(event)
+                except Exception as e:
+                    print(f"Error adding hearing event: {e}")
+                    continue
+
+    # Add letter deadline events
+    for deadline_date, committees in deadline_structured.items():
+        for committee_name, bills in committees.items():
+            for bill in bills:
+                event = Event()
+                event.name = f"✉️ Letter Deadline — {bill['bill_number']} — {committee_name}"
+                event.description = (
+                    f"Bill: {bill['bill_number']} — {bill['bill_name']}\n"
+                    f"Committee: {committee_name}\n"
+                    f"Hearing Date: {bill['event_date']}"
+                )
+                try:
+                    event.begin = pd.to_datetime(deadline_date).to_pydatetime()
+                    event.make_all_day()
+                    cal.events.add(event)
+                except Exception as e:
+                    print(f"Error adding deadline event: {e}")
+                    continue
+
+    return cal.serialize().encode('utf-8')
+

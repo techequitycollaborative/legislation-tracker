@@ -98,6 +98,8 @@ else:
             st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators'),
             st.Page('committees.py', title='Committees', icon='🗣', url_path='committees'),
             st.Page('calendar_page.py', title='Calendar', icon='📅', url_path='calendar'),
+            # Test with alt calendar
+            st.Page('calendar_alt.py', title='Calendar - NEW', icon='📅', url_path='calendar_new'),
         ],
         "Bill Tracking Tools": [
             st.Page('advocacy_hub.py', title='Advocacy Hub', icon='📣', url_path='advocacy_hub'),
