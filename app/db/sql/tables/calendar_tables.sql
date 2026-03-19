@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS snapshot.hearing_bills (
     id SERIAL PRIMARY KEY,
     hearing_id INT NOT NULL REFERENCES snapshot.hearings(hearing_id) ON DELETE CASCADE,
     openstates_bill_id VARCHAR(50) NOT NULL,  -- openstates_bill_id format
+    file_order INTEGER NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
