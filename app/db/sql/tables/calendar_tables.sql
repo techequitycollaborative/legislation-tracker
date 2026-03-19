@@ -17,15 +17,13 @@ VALUES
 -- hearing_id (PK), committee_id (FK), date, name, location, notes, chamber_id (FK), created_at, updated_at
 CREATE TABLE IF NOT EXISTS snapshot.hearings (
     hearing_id SERIAL PRIMARY KEY,
-    committee_id INTEGER NOT NULL,
-    FOREIGN KEY (committee_id) REFERENCES snapshot.committee(committee_id),
+    committee_id INT REFERENCES snapshot.committee(committee_id) NULL,
     date DATE NOT NULL,
     name VARCHAR(150) NOT NULL,
     location VARCHAR(100) NOT NULL, -- address
     room VARCHAR(100), -- if applicable
     notes TEXT,
-    chamber_id INTEGER NOT NULL,
-    FOREIGN KEY (chamber_id) REFERENCES snapshot.chamber(chamber_id),
+    chamber_id INTEGER REFERENCES snapshot.chamber(chamber_id),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
