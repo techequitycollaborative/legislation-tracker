@@ -363,7 +363,7 @@ with tab2:
         st.markdown("")
     with download_col2:
         st.download_button(
-            label="📥 Download All Events (.ics)",
+            label="📥 Download All Events",
             data=all_ics,
             file_name="committee_hearings.ics",
             mime="text/calendar",

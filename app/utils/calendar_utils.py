@@ -530,14 +530,14 @@ def render_bill(bill: dict):
                 """)
             
             # Button to download this event as .ics
-            ics_data = create_ics_single(bill, is_deadline=False)
-            st.download_button(
-                label="📥 Download hearing (.ics)",
-                data=ics_data,
-                file_name=f"{bill['bill_number'].replace(' ', '_')}_hearing.ics",
-                mime="text/calendar",
-                key=f"dl_hearing_{bill['bill_number']}_{details['event_date']}",
-            )
+            #ics_data = create_ics_single(bill, is_deadline=False)
+            #st.download_button(
+            #    label="📥 Download hearing",
+            #    data=ics_data,
+            #    file_name=f"{bill['bill_number'].replace(' ', '_')}_hearing.ics",
+            #    mime="text/calendar",
+            #    key=f"dl_hearing_{bill['bill_number']}_{details['event_date']}",
+            #)
 
 
 # Function to apply badges to denote chamber
