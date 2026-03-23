@@ -29,14 +29,18 @@ WITH temp_committee AS (
 
 -- Get all distinct upcoming committee hearings by partial string match of event text to committee name
 upcoming_schedule AS (
-    SELECT DISTINCT 
+    SELECT DISTINCT ON (c.committee_id)
+        c.committee_id,
         bs.chamber_id, 
         bs.event_date, 
-        bs.event_text,
-        c.committee_id
+        bs.event_text
     FROM snapshot.bill_schedule bs
     JOIN temp_committee c 
-        ON (c.committee_name LIKE CONCAT('%', event_text, '%') AND c.chamber_id = bs.chamber_id)
+        ON LOWER(bs.event_text) LIKE LOWER(CONCAT('%', c.committee_name, '%'))
+        AND c.chamber_id = bs.chamber_id
+	-- Committees can have multiple hearing dates, so only grab the one that occurs after today's date
+    WHERE bs.event_date >= CURRENT_DATE
+    ORDER BY c.committee_id, bs.event_date ASC
 ),
 
 -- Aggregate full committee membership
@@ -67,3 +71,8 @@ SELECT
 FROM temp_committee c
 LEFT JOIN upcoming_schedule us ON c.committee_id = us.committee_id
 LEFT JOIN full_membership fm ON c.committee_id = fm.committee_id;
+
+-- Create unique index
+CREATE UNIQUE INDEX ON app.committees_mv (committee_id);
+-- Refresh when needed (for manual refreshes)
+--REFRESH MATERIALIZED VIEW CONCURRENTLY app.committees_mv;
