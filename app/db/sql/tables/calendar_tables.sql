@@ -14,12 +14,14 @@ VALUES
 (3, 'Joint');
 
 -- Table: hearings
--- hearing_id (PK), committee_id (FK), date, name, location, notes, chamber_id (FK), created_at, updated_at
+-- hearing_id (PK), committee_id (FK), date, time, name, location, notes, chamber_id (FK), created_at, updated_at
 CREATE TABLE IF NOT EXISTS snapshot.hearings (
     hearing_id SERIAL PRIMARY KEY,
     committee_id INT REFERENCES snapshot.committee(committee_id) NULL,
     date DATE NOT NULL,
-    time VARCHAR(50), -- time of day
+    time_verbatim VARCHAR(50), -- verbatim string from website
+    time_normalized TIME, -- null if is_allday
+    is_allday BOOLEAN NOT NULL DEFAULT FALSE,
     name VARCHAR(150) NOT NULL,
     location VARCHAR(100) NOT NULL, -- address
     room VARCHAR(100), -- if applicable
@@ -54,9 +56,8 @@ CREATE TABLE IF NOT EXISTS snapshot.hearing_deadlines (
     hearing_id INT NOT NULL REFERENCES snapshot.hearings(hearing_id) ON DELETE CASCADE,
     deadline_date DATE NOT NULL,
     deadline_type VARCHAR(100) DEFAULT 'letter',  -- e.g. 'testimony_prep', 'analysis'
-    CONSTRAINT unique_deadline UNIQUE(hearing_id, openstates_bill_id, deadline_type)
+    CONSTRAINT unique_deadline UNIQUE(hearing_id, deadline_type)
 );
 
 CREATE INDEX idx_hearing_deadlines_hearing_id ON snapshot.hearing_deadlines(hearing_id);
-CREATE INDEX idx_hearing_deadlines_bill_id ON snapshot.hearing_deadlines(openstates_bill_id);
 CREATE INDEX idx_hearing_deadlines_deadline_date ON snapshot.hearing_deadlines(deadline_date);
