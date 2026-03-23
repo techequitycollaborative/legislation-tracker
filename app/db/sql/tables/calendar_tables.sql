@@ -11,18 +11,20 @@ INSERT INTO snapshot.chamber (chamber_id, chamber_name)
 VALUES
 (1, 'Assembly'),
 (2, 'Senate'),
-(3, 'Joint');
+(3, 'Joint Assembly'),
+(4, 'Joint Senate'),
+(5, 'Joint Chambers');
 
 -- Table: hearings
 -- hearing_id (PK), committee_id (FK), date, time, name, location, notes, chamber_id (FK), created_at, updated_at
 CREATE TABLE IF NOT EXISTS snapshot.hearings (
     hearing_id SERIAL PRIMARY KEY,
     committee_id INT REFERENCES snapshot.committee(committee_id) NULL,
+    name VARCHAR(150) NOT NULL,
     date DATE NOT NULL,
     time_verbatim VARCHAR(50), -- verbatim string from website
     time_normalized TIME, -- null if is_allday
     is_allday BOOLEAN NOT NULL DEFAULT FALSE,
-    name VARCHAR(150) NOT NULL,
     location VARCHAR(100) NOT NULL, -- address
     room VARCHAR(100), -- if applicable
     notes TEXT,

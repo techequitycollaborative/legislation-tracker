@@ -42,3 +42,4 @@ WITH DATA; -- mat view is populated immediately
 
 CREATE INDEX idx_hearing_events_bill_id ON app.calendar_mv (openstates_bill_id);
 CREATE INDEX idx_hearing_events_org ON app.calendar_mv (openstates_bill_id) INCLUDE (hearing_date, deadline_date);
+CREATE UNIQUE INDEX idx_calendar_mv_pk ON app.calendar_mv (hearing_id, openstates_bill_id);
