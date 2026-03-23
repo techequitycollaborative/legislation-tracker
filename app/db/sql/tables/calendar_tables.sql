@@ -40,9 +40,7 @@ CREATE TABLE IF NOT EXISTS snapshot.hearing_bills (
     id SERIAL PRIMARY KEY,
     hearing_id INT NOT NULL REFERENCES snapshot.hearings(hearing_id) ON DELETE CASCADE,
     openstates_bill_id VARCHAR(50) NOT NULL,  -- openstates_bill_id format
-    file_order INTEGER NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    file_order INTEGER NOT NULL
 );
 
 CREATE INDEX idx_hearing_bills_hearing_id ON snapshot.hearing_bills(hearing_id);
@@ -54,11 +52,8 @@ CREATE INDEX idx_hearing_bills_bill_id ON snapshot.hearing_bills(openstates_bill
 CREATE TABLE IF NOT EXISTS snapshot.hearing_deadlines (
     id SERIAL PRIMARY KEY,
     hearing_id INT NOT NULL REFERENCES snapshot.hearings(hearing_id) ON DELETE CASCADE,
-    openstates_bill_id VARCHAR(50) NOT NULL,
     deadline_date DATE NOT NULL,
     deadline_type VARCHAR(100) DEFAULT 'letter',  -- e.g. 'testimony_prep', 'analysis'
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_deadline UNIQUE(hearing_id, openstates_bill_id, deadline_type)
 );
 
