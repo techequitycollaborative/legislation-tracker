@@ -491,8 +491,7 @@ def render_bill(bill: dict):
     """
     This function renders bills on the calendar page in the following fashion: 
     - Bills are nested within a committee event (as an expander)
-    - Each bill has an associated popover button; when clicked, it displays event + bill details +
-    a button to download the event as an .ics file
+    - Each bill has an associated popover button; when clicked, it displays event + bill details
     """
     col_text, col_btn = st.columns([7, 3])
 
@@ -511,6 +510,7 @@ def render_bill(bill: dict):
             st.markdown("##### Event Details")
             st.markdown(f"""
                 - **Committee:** {details['event_text']}
+                - **Chamber:** {'Assembly' if details['chamber_id'] == 1 else 'Senate' if details['chamber_id'] == 2 else 'Unknown'}
                 - **Date:** {details['event_date']}
                 - **Time:** {details['event_time']}
                 - **Location:** {details['event_location']}
@@ -615,16 +615,25 @@ def create_ics_all(filtered_structured: dict, deadline_structured: dict) -> byte
             for bill in committee_data['bills']:
                 details = bill['details']
                 event = Event()
-                event.name = f"{bill['bill_number']} — {committee_name}"
+
+                # Grab chamber name for title and description
+                chamber_id = details.get('chamber_id')
+                chamber_name = 'Assembly' if chamber_id == 1 else 'Senate' if chamber_id == 2 else 'Unknown Chamber'
+                
+                # Title of the calendar event block
+                event.name = f"🏛️ Hearing: {bill['bill_number']} — {chamber_name} {committee_name} Committee"
+
+                # Build calendar event description
                 event.description = (
                     f"Bill: {bill['bill_number']} — {bill['bill_name']}\n"
-                    f"Committee: {committee_name}\n"
+                    f"Committee: {committee_name} ({chamber_name})\n"
                     f"Location: {details['event_location']}, {details['event_room']}\n"
                     f"Agenda Order: {details['agenda_order']}\n"
                     f"Status: {details['status']}\n"
                     f"Letter Deadline: {details['letter_deadline']}"
                 )
                 try:
+                    # Handle events that have a set time vs those that don't (e.g. "Upon adjournment")
                     event_time = details['event_time']
                     event_date = details['event_date']
                     if event_time and event_time not in ('N/A', '', 'nan') and 'adjourn' not in str(event_time).lower():
@@ -643,11 +652,20 @@ def create_ics_all(filtered_structured: dict, deadline_structured: dict) -> byte
         for committee_name, bills in committees.items():
             for bill in bills:
                 event = Event()
-                event.name = f"✉️ Letter Deadline — {bill['bill_number']} — {committee_name}"
+                
+                # Get chamber name for title and description
+                chamber_id = bill.get('chamber_id')
+                chamber_name = 'Assembly' if chamber_id == 1 else 'Senate' if chamber_id == 2 else 'Unknown Chamber'
+                
+                # Title of the calendar event block
+                event.name = f"✉️ Letter Deadline: {bill['bill_number']} | {chamber_name} {committee_name} Committee"
+
+                # Build cal event description
                 event.description = (
                     f"Bill: {bill['bill_number']} — {bill['bill_name']}\n"
-                    f"Committee: {committee_name}\n"
-                    f"Hearing Date: {bill['event_date']}"
+                    f"Committee: {committee_name} ({chamber_name})\n"
+                    f"Hearing Date: {bill['event_date']}\n"
+                    f"Note: Letter deadlines are generated as 7 days before the hearing date."
                 )
                 try:
                     event.begin = pd.to_datetime(deadline_date).to_pydatetime()

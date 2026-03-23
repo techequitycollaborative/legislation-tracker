@@ -41,15 +41,10 @@ st.title("📅 Calendar")
 with st.expander("About this page", icon="ℹ️", expanded=False):
     st.markdown(
         """
-        This page displays two calendars: one for overall legislative events,
-        and another for committee hearings and associated letter deadlines.
-        Committee hearings are sourced from Assembly and Senate calendar websites directly, so only available current and upcoming events are shown.
-        Letter deadlines are auto-generated for 7 days before a committee hearing.
-
-        **Notes:**
-        - **Time zone:** Events times are displayed in Pacific Time.
-        - **Downloading events:** You can download committee hearing events and letter deadlines as an .ics file to add to your personal calendar.
-        
+        - This page displays two calendars: one for committee hearings and associated letter deadlines, and one for overall legislative events.
+        - Committee hearings are sourced from Assembly and Senate calendar websites directly, so only available events are shown.
+        - Letter Deadlines are auto-generated for 7 days before a committee hearing.
+        - Event times are displayed in Pacific Time.
         """
     )
 
@@ -141,100 +136,10 @@ structured = {date_key: dict(committees) for date_key, committees in structured.
 
 ## Build the calendar display
 # Two tabs
-tab1, tab2 = st.tabs(["📅 Legislative Calendar", "📋 Committee Hearings"]) 
-
-## Legislative calendar tab
-with tab1:
-    # Normalize leg_events dates
-    leg_events['date'] = pd.to_datetime(leg_events['start']).dt.date
-
-    # Get range of months to display from leg_events
-    if not leg_events.empty:
-        min_month = leg_events['date'].min().replace(day=1)
-        max_month = leg_events['date'].max().replace(day=1)
-    else:
-        today = date.today()
-        min_month = today.replace(day=1)
-        max_month = today.replace(day=1)
-
-    # Build a lookup: {date -> [event titles]}
-    events_by_date = defaultdict(list)
-    for _, row in leg_events.iterrows():
-        events_by_date[row['date']].append(row['title'])
-
-    # Iterate through each month and render a calendar grid
-    current_month = min_month
-    while current_month <= max_month:
-        year = current_month.year
-        month = current_month.month
-        month_label = current_month.strftime("%B %Y")
-
-        st.markdown(f"### {month_label}")
-
-        # Day-of-week headers
-        day_headers = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        header_cols = st.columns(7, gap="small")
-        for i, col in enumerate(header_cols):
-            col.markdown(
-                f"<div style='text-align:right; font-weight:600; "
-                f"color:var(--text-color); opacity:0.5; "
-                f"font-size:0.8rem; padding:6px 8px 4px; "
-                f"border-bottom:2px solid var(--text-color);'>"
-                f"{day_headers[i]}</div>",
-                unsafe_allow_html=True
-            )
-
-        # Calendar weeks
-        cal = calendar.monthcalendar(year, month)
-        for week in cal:
-            week_cols = st.columns(7, gap="small")
-            for i, day_num in enumerate(week):
-                with week_cols[i]:
-                    if day_num == 0:
-                        st.markdown(
-                            "<div style='min-height:80px; "
-                            "border:1px solid var(--border-color, rgba(128,128,128,0.2)); "
-                            "background:var(--secondary-background-color);'></div>",
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        day_date = date(year, month, day_num)
-                        day_events = events_by_date.get(day_date, [])
-                        is_today = day_date == date.today()
-
-                        day_num_style = (
-                            "font-weight:700; color:#fff; background:var(--primary-color, #1A1A2E); "
-                            "border-radius:50%; width:22px; height:22px; display:inline-flex; "
-                            "align-items:center; justify-content:center; font-size:0.8rem;"
-                        ) if is_today else "font-weight:500; color:var(--text-color);"
-
-                        events_html = "".join([
-                            f"<div style='background-color:#dbeafe; color:#1e40af; border-radius:4px; "
-                            f"padding:2px 6px; font-size:0.68rem; margin-bottom:3px; "
-                            f"word-wrap:break-word; line-height:1.3;'>{title}</div>"
-                            for title in day_events
-                        ])
-
-                        st.markdown(
-                            f"<div style='min-height:80px; "
-                            f"border:1px solid var(--border-color, rgba(128,128,128,0.2)); "
-                            f"padding:6px 8px; vertical-align:top;'>"
-                            f"<div style='text-align:right; margin-bottom:4px;'>"
-                            f"<span style='{day_num_style}'>{day_num}</span></div>"
-                            f"{events_html}</div>",
-                            unsafe_allow_html=True
-                        )
-
-        st.divider()
-
-        # Advance to next month
-        if month == 12:
-            current_month = current_month.replace(year=year + 1, month=1)
-        else:
-            current_month = current_month.replace(month=month + 1)
+tab1, tab2, tab3 = st.tabs(["🏛️ Committee Hearings", "📅 Legislative Calendar","Leg Cal Alt"]) 
 
 ## Committee hearings tab
-with tab2:
+with tab1:
 
     # Inline filters for bill number, dashboard, and event type
     st.markdown("#### Filters")
@@ -247,6 +152,7 @@ with tab2:
             options=unique_bills,
             default=[],
             placeholder="Search by bill number...",
+            help="Filter events by bill number. You can select multiple bills to see hearings and letter deadlines that include any of the selected bills."
         )
 
     with filter_col2:
@@ -263,6 +169,7 @@ with tab2:
             options=dashboard_options,
             default=[],
             placeholder="Filter by dashboard...",
+            help="Filter events by dashboard. Selecting a dashboard will show hearings and letter deadlines for bills that are on that dashboard. You can select multiple dashboards to see events for bills that are on any of the selected dashboards."
         )
 
     with filter_col3:
@@ -272,6 +179,7 @@ with tab2:
             options=event_type_options,
             default=event_type_options,
             placeholder="Filter by event type...",
+            help="Filter events by type. 'Senate' and 'Assembly' correspond to committee hearings for each chamber, while 'Letter Deadline' corresponds to letter deadlines for those hearings. You can select multiple event types to see all matching events."
         )
 
     st.divider()
@@ -351,25 +259,36 @@ with tab2:
         deadline_structured[deadline_key][committee_name].append({
             'bill_number': row['bill_number'],
             'bill_name': row['bill_name'],
+            'chamber_id': int(row['chamber_id']) if pd.notna(row['chamber_id']) else None,        
+            'committee_name': row['event_text'],
             'event_date': str(row['event_date']),  # This is the event of the commmitee hearing that the letter deadline corresponds to
         })
 
     deadline_structured = {k: dict(v) for k, v in deadline_structured.items()}
 
-    # Download all events button
+    # Download all events button + total events count
     all_ics = create_ics_all(filtered_structured, deadline_structured)
     download_col1, download_col2 = st.columns([8, 2])
     with download_col1:
-        st.markdown("")
+        # Display count of events being shown based on current filters
+        total_hearings = sum(len(committees) for committees in filtered_structured.values())
+        total_deadlines = sum(len(committees) for committees in deadline_structured.values())
+        # Adjust caption to account for pluralization
+        hearing_text = "Committee Hearing" if total_hearings == 1 else "Committee Hearings"
+        deadline_text = "Letter Deadline" if total_deadlines == 1 else "Letter Deadlines"
+        st.caption(f"**Displaying:** 🏛️ {total_hearings} {hearing_text} | ✉️ {total_deadlines} {deadline_text}")
+
     with download_col2:
+        # Download button
         st.download_button(
-            label="📥 Download All Events",
+            label="📥 Download Events",
             data=all_ics,
             file_name="committee_hearings.ics",
             mime="text/calendar",
             key="download_all_button",
             width='stretch',
-            type="secondary"
+            type="secondary",
+            help="Download committee hearings and letter deadlines as an .ics file to add to an external calendar. If you have filters applied, only the events matching the current filters will be included in the download. Events are generated at the bill level."
         )
 
     # Render events
@@ -391,29 +310,197 @@ with tab2:
                     chamber_id = committee_data['chamber_id']
                     bills = committee_data['bills']
 
+                    # Grab chamber name and hearing date for expander content below
+                    chamber_name = f"{'Assembly' if chamber_id == 1 else 'Senate'}"
+
                     col1, col2 = st.columns([1, 9])
                     with col1:
+                        # Apply color-coded badge to denote chamber
                         st.badge(
                             label="Assembly" if chamber_id == 1 else "Senate",
                             color=get_badge_color(chamber_id)
                         )
                     with col2:
+                        # Build expander with content
                         with st.expander(committee_name, expanded=False):
+
+                            # Display info as captions                            
+                            st.caption(f"📝 Bills on the agenda for {chamber_name} {committee_name} Committee")
+                            st.caption(f"📅 Committee Hearing: {friendly_date}")
+                            
+                            # Display bills under the committee hearing expander
                             for bill in bills:
                                 render_bill(bill)
 
             # Letter deadline events
             if event_date in deadline_structured:
                 for committee_name, bills in deadline_structured[event_date].items():
+                    
+                    # Retrieve chamber_id, chamber name, and hearing date for expander content below
+                    chamber_id = bills[0].get('chamber_id')
+                    chamber_name = f"{'Assembly' if chamber_id == 1 else 'Senate'}"
+                    hearing_date = pd.to_datetime(bills[0]['event_date']).strftime("%A, %B %d, %Y")
+
                     col1, col2 = st.columns([1, 9])
                     with col1:
+                        # Apply color-coded badge to denote letter deadlines
                         st.badge(label="Letter Deadline", color="orange")
-                    with col2:
+
+                    with col2:                        
+                        # Build expander with content
                         with st.expander(committee_name, expanded=False):
-                            # Show the committee hearing date once at the top
-                            hearing_date = pd.to_datetime(bills[0]['event_date']).strftime("%A, %B %d, %Y")
+
+                            # Display chamber and hearing date as captions                            
+                            st.caption(f"⚠️ Letter Deadline for {chamber_name} {committee_name} Committee")
                             st.caption(f"📅 Committee Hearing: {hearing_date}")
+
+                            # Display bills under the letter deadline expander
                             for bill in bills:
                                 st.markdown(f"- **{bill['bill_number']}** — {bill['bill_name']}")
 
             st.divider()
+
+## Legislative calendar tab
+with tab2:
+    # Normalize leg_events dates
+    leg_events['date'] = pd.to_datetime(leg_events['start']).dt.date
+
+    # Get range of months to display from leg_events
+    if not leg_events.empty:
+        min_month = leg_events['date'].min().replace(day=1)
+        max_month = leg_events['date'].max().replace(day=1)
+    else:
+        today = date.today()
+        min_month = today.replace(day=1)
+        max_month = today.replace(day=1)
+
+    # Build a lookup: {date -> [event titles]}
+    events_by_date = defaultdict(list)
+    for _, row in leg_events.iterrows():
+        events_by_date[row['date']].append(row['title'])
+
+    # Iterate through each month and render a calendar grid
+    current_month = min_month
+    today = date.today()
+
+    while current_month <= max_month:
+        year = current_month.year
+        month = current_month.month
+        month_label = current_month.strftime("%B %Y")
+
+        # Collapse past months, expand current and future months
+        is_past = (year, month) < (today.year, today.month)
+        
+        with st.expander(f"**{month_label}**", expanded=not is_past):
+
+            # Day-of-week headers
+            day_headers = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            header_cols = st.columns(7, gap="small")
+            for i, col in enumerate(header_cols):
+                col.markdown(
+                    f"<div style='text-align:right; font-weight:600; "
+                    f"color:var(--text-color); opacity:0.5; "
+                    f"font-size:0.8rem; padding:6px 8px 4px; "
+                    f"border-bottom:2px solid var(--text-color);'>"
+                    f"{day_headers[i]}</div>",
+                    unsafe_allow_html=True
+                )
+
+            # Calendar weeks
+            cal = calendar.monthcalendar(year, month)
+            for week in cal:
+                week_cols = st.columns(7, gap="small")
+                for i, day_num in enumerate(week):
+                    with week_cols[i]:
+                        if day_num == 0:
+                            st.markdown(
+                                "<div style='min-height:130px; "
+                                "border:1px solid var(--border-color, rgba(128,128,128,0.2)); "
+                                "background:var(--secondary-background-color);'></div>",
+                                unsafe_allow_html=True
+                            )
+                        else:
+                            day_date = date(year, month, day_num)
+                            day_events = events_by_date.get(day_date, [])
+                            is_today = day_date == today
+
+                            day_num_style = (
+                                "font-weight:700; color:#fff; background:var(--primary-color, #1A1A2E); "
+                                "border-radius:50%; width:22px; height:22px; display:inline-flex; "
+                                "align-items:center; justify-content:center; font-size:0.8rem;"
+                            ) if is_today else "font-weight:500; color:var(--text-color);"
+
+                            events_html = "".join([
+                                f"<div style='background-color:#dbeafe; color:#1e40af; border-radius:4px; "
+                                f"padding:2px 6px; font-size:0.68rem; margin-bottom:3px; "
+                                f"word-wrap:break-word; line-height:1.3;'>{title}</div>"
+                                for title in day_events
+                            ])
+
+                            st.markdown(
+                                f"<div style='min-height:130px; "
+                                f"border:1px solid var(--border-color, rgba(128,128,128,0.2)); "
+                                f"padding:6px 8px; vertical-align:top;'>"
+                                f"<div style='text-align:right; margin-bottom:4px;'>"
+                                f"<span style='{day_num_style}'>{day_num}</span></div>"
+                                f"{events_html}</div>",
+                                unsafe_allow_html=True
+                            )
+
+        # Advance to next month
+        if month == 12:
+            current_month = current_month.replace(year=year + 1, month=1)
+        else:
+            current_month = current_month.replace(month=month + 1)
+
+## Legislative calendar tab -- LIST VIEW. TESTING/MIGHT REMOVE
+with tab3:
+    # Normalize leg_events dates
+    leg_events['date'] = pd.to_datetime(leg_events['start']).dt.date
+
+    # Get range of months to display from leg_events
+    if not leg_events.empty:
+        min_month = leg_events['date'].min().replace(day=1)
+        max_month = leg_events['date'].max().replace(day=1)
+    else:
+        today = date.today()
+        min_month = today.replace(day=1)
+        max_month = today.replace(day=1)
+
+    # Build a lookup: {date -> [event titles]}
+    events_by_date = defaultdict(list)
+    for _, row in leg_events.iterrows():
+        events_by_date[row['date']].append(row['title'])
+
+    # Iterate through each month and render a list
+    current_month = min_month
+    while current_month <= max_month:
+        year = current_month.year
+        month = current_month.month
+        month_label = current_month.strftime("%B %Y")
+
+        st.markdown(f"### {month_label}")
+
+        # Get all days in this month that have events, sorted
+        month_events = {
+            d: titles
+            for d, titles in events_by_date.items()
+            if d.year == year and d.month == month
+        }
+
+        if month_events:
+            for day_date in sorted(month_events.keys()):
+                titles = month_events[day_date]
+                date_friendly = day_date.strftime("%A, %B %d")
+                for title in titles:
+                    st.markdown(f"- **{date_friendly}:** {title}")
+        else:
+            st.caption("No legislative events this month.")
+
+        st.divider()
+
+        # Advance to next month
+        if month == 12:
+            current_month = current_month.replace(year=year + 1, month=1)
+        else:
+            current_month = current_month.replace(month=month + 1)
