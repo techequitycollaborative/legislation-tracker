@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS snapshot.hearings (
     hearing_id SERIAL PRIMARY KEY,
     committee_id INT REFERENCES snapshot.committee(committee_id) NULL,
     date DATE NOT NULL,
+    time VARCHAR(50), -- time of day
     name VARCHAR(150) NOT NULL,
     location VARCHAR(100) NOT NULL, -- address
     room VARCHAR(100), -- if applicable
@@ -55,7 +56,7 @@ CREATE TABLE IF NOT EXISTS snapshot.hearing_deadlines (
     hearing_id INT NOT NULL REFERENCES snapshot.hearings(hearing_id) ON DELETE CASCADE,
     openstates_bill_id VARCHAR(50) NOT NULL,
     deadline_date DATE NOT NULL,
-    deadline_type VARCHAR(100) DEFAULT 'letter_of_support',  -- e.g., 'letter_of_support', 'testimony_prep', 'analysis'
+    deadline_type VARCHAR(100) DEFAULT 'letter',  -- e.g. 'testimony_prep', 'analysis'
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_deadline UNIQUE(hearing_id, openstates_bill_id, deadline_type)
