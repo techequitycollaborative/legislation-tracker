@@ -13,6 +13,8 @@
 -- Output: 
 ----- schema: app
 ----- materialized view name: calendar_mv
+
+DROP MATERIALIZED VIEW IF EXISTS app.calendar_mv;
 CREATE MATERIALIZED VIEW app.calendar_mv AS
 SELECT
     hb.openstates_bill_id,
@@ -28,6 +30,7 @@ SELECT
     h.is_allday,
     h.location AS hearing_location,
     h.room AS hearing_room,
+	hb.file_order,
     h.chamber_id,
     h.committee_id,
     hd.deadline_date,
@@ -43,3 +46,6 @@ WITH DATA; -- mat view is populated immediately
 CREATE INDEX idx_hearing_events_bill_id ON app.calendar_mv (openstates_bill_id);
 CREATE INDEX idx_hearing_events_org ON app.calendar_mv (openstates_bill_id) INCLUDE (hearing_date, deadline_date);
 CREATE UNIQUE INDEX idx_calendar_mv_pk ON app.calendar_mv (hearing_id, openstates_bill_id);
+
+-- Refresh when needed (for manual refreshes)
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY app.calendar_mv;
