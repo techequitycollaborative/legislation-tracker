@@ -131,14 +131,13 @@ def build_title(row):
     if row.get('hearing_room'):
         parts.append(row['hearing_room'])
 
-    # Agenda order not in new calendar_mv
-    # TODO: remove or add agenda_order back in as a variable to this mv
-    #agenda_order = row.get('agenda_order')
-    #if agenda_order not in (None, '', float('nan')):
-    #    try:
-    #        parts.append(f"Agenda order: {int(agenda_order)}")
-    #    except (ValueError, TypeError):
-    #        pass
+    # Handle file order
+    file_order = row.get('file_order')
+    if file_order not in (None, '', float('nan')):
+        try:
+            parts.append(f"File order: {int(file_order)}")
+        except (ValueError, TypeError):
+            pass
 
     # Combine emoji prefix (if any) with rest of title
     title_body = ' | '.join(parts)
@@ -351,9 +350,8 @@ def create_ics_file(events):
         chamber_name = 'Assembly' if chamber_id == 1 else 'Senate' if chamber_id == 2 else ''
         event.name = f"{event_data['billNumber']} - {chamber_name} {event_data['hearingName']} Committee"
         
-        # Build the description with your specified format
+        # Build the description: bill name, event details (location, room), file order
         description = f"Bill Name: {event_data.get('billName', 'No name provided')}\n"
-        #description += f"Type: {event_data.get('type', 'Unknown')}\n" -- turned off for now bc it was confusing when bills went to opposite house
         description += f"Event Details: {event_data.get('title', 'No details provided')}\n"
         
         # Format the date range for the description (check if there's an 'end' date)
