@@ -45,91 +45,17 @@ def load_leg_events():
 @profile("Calendar - load bill events")
 @st.cache_data(show_spinner="Loading bill events...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 def load_bill_events():
-    if 'bills_data' not in st.session_state:
-        bills = query_table('app', 'bills_mv') # Get bill info from processed_bills table
-    else:
-        bills = st.session_state.bills_data.copy() # Make a copy to preserve original bills table
-    events = query_table('snapshot', 'bill_schedule') # Get bill events from bill_schedule table
+    bill_events = query_table('app', 'calendar_mv') # Get bill info from processed_bills table
 
-    # Subset columns we want from each table
-    bills = bills[['openstates_bill_id', 'bill_number', 'bill_name', 'status', 'date_introduced']]
-    events = events[['openstates_bill_id', 'chamber_id', 'event_date', 'event_text', 'agenda_order', 'event_time',
-                           'event_location', 'event_room', 'revised', 'event_status']]
-    
-
-    bill_events = pd.merge(bills, events, how='inner', on='openstates_bill_id') # Merge the two tables on openstates_bill_id
-    
-    # Drop rows with empty event_date, if any
-    bill_events = bill_events.dropna(subset=['event_date']) 
-    
     # Format event_date as date string without time for display purposes
-    bill_events['event_date'] = pd.to_datetime(bill_events['event_date'])
+    bill_events['hearing_date'] = pd.to_datetime(bill_events['hearing_date'])
 
-    # Set allDay column
-    bill_events['allDay'] = (
-        bill_events['event_time'].isna() | # NaN case
-        (bill_events['event_time'] == '') | # empty string case
-        (bill_events['event_time'] == 'N/A') | # placeholder case
-        bill_events['event_time'].astype(str).str.lower().str.contains(
-            RT_KEYWORDS, na=False # known relative-time keywords
-            )
-    )
-
-    # Add letter of support deadline column -- make all letter of support deadlines 7 days before the event date for now
-    bill_events['letter_deadline'] = bill_events['event_date'] - pd.Timedelta(days=7)
-
-    # Set letter_deadline to None if event_text contains certain keywords (these events are not committee events and thus don't have letter deadlines)
-    bill_events.loc[
-        bill_events['event_text'].str.contains(DE_KEYWORDS, na=False),
-        'letter_deadline'
-    ] = pd.NaT
-    
     # Format dates as strings AFTER all datetime operations
-    bill_events['event_date'] = bill_events['event_date'].dt.strftime('%Y-%m-%d')
-    bill_events['letter_deadline'] = bill_events['letter_deadline'].dt.strftime('%Y-%m-%d')
+    bill_events['hearing_date'] = bill_events['hearing_date'].dt.strftime('%Y-%m-%d')
+    bill_events['deadline_date'] = bill_events['deadline_date'].dt.strftime('%Y-%m-%d')
 
-    # Map original DB event status values as needed
-    conditions = [
-        (bill_events['event_status'] == 'active') & (bill_events['revised'] == True),
-        (bill_events['event_status'] == 'moved') & (bill_events['revised'] == False),
-        (bill_events['event_status'] == 'active') & (bill_events['revised'] == False)
-    ]
-
-    choices = ['event-revised', 'event-moved', 'event-normal']
-
-    bill_events['event_status'] = np.select(conditions, choices, default='event-normal')
     return bill_events
 
-
-######################### ADD FILTERS / SIDE BAR ###################################
-
-# TODO: incorporate event movement logic again (this is not being called anywhere)
-def get_moved_events(bill_events):
-    events_copy = bill_events.copy()
-
-    # Create a unique identifier for each event based on openstates_bill_id, chamber_id, and event_text -- DO NOT USE EVENT DATE BC THIS WILL BE DIFF FOR THE MOVED EVENT PAIR
-    unique_event_id = events_copy['openstates_bill_id'] + '_' + str(events_copy['chamber_id']) + '_' + events_copy['event_text']
-    events_copy['unique_event_id'] = unique_event_id
- 
-    # Find all duplicated unique_event_ids (must appear exactly twice)
-    dupe_groups = events_copy.groupby('unique_event_id').filter(lambda x: len(x) == 2 and x['event_status'].nunique() > 1)
-
-    # Get only the rows with status == 'active' -- this is the updated event
-    moved_to_active_events = dupe_groups[dupe_groups['event_status'] == 'active']
-
-    # Check assumption that events appear exactly twice, i.e. that events are not moved more than once
-    dg_check = len(dupe_groups)
-
-    dupe_groups = dupe_groups['unique_event_id'].value_counts() == 2
-
-    if dg_check != len(dupe_groups):
-        st.warning("Removed abnormal event data for your session; please contact administrators.")
-    # assert all(dupe_groups['unique_event_id'].value_counts() == 2), "Some IDs don't appear exactly twice!"
-
-    # Return only the 'active' event in the pair (i.e., the event it was moved to)
-    moved_to_active_events = dupe_groups[dupe_groups['event_status'] == 'active']
-
-    return moved_to_active_events
 
 ################# DATE TIME FORMATTING ###############
 
