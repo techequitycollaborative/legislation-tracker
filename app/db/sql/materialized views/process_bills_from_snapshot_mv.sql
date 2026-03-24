@@ -90,22 +90,20 @@ bill_authors AS (
     GROUP BY openstates_bill_id
 ),
 
--- Deduplicate bill_schedule: if multiple rows per bill exist, keep the event_states = 'active' one.
--- If no row has event_status = 'active' among duplicates, both event_date and event_text will be NULL.
--- If only one row exists for a bill, use it as-is regardless of event_status.
+-- Deduplicate bill_schedule: if multiple rows per bill exist, keep the soonest 
+-- If no row exists, both hearing_date and hearing_name will be NULL
 bill_schedule AS (
-    SELECT
-        openstates_bill_id,
-        CASE
-            WHEN COUNT(*) > 1 THEN MAX(CASE WHEN event_status = 'active' THEN event_date END)
-            ELSE MAX(event_date)
-        END AS event_date,
-        CASE
-            WHEN COUNT(*) > 1 THEN MAX(CASE WHEN event_status = 'active' THEN event_text END)
-            ELSE MAX(event_text)
-        END AS event_text
-    FROM snapshot.bill_schedule
-    GROUP BY openstates_bill_id
+    SELECT DISTINCT ON (hb.openstates_bill_id)
+        hb.id,
+        hb.hearing_id,
+        hb.openstates_bill_id,
+        hb.file_order,
+        h.date AS hearing_date,
+        h.name AS hearing_name,
+    FROM snapshot.hearing_bills hb
+    JOIN snapshot.hearings h ON hb.hearing_id = h.hearing_id
+    WHERE h.date >= CURRENT_DATE
+    ORDER BY hb.openstates_bill_id, h.date ASC;
 ),
 
 -- Get bill topics
