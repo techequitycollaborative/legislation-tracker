@@ -221,7 +221,7 @@ BILL_COLUMNS_WITH_DETAILS = [
 ]
 
 @profile("query.py - get_my_dashboard_bills")
-@st.cache_data(ttl=120)  #  Cache for 2 mins 
+@st.cache_data(ttl=30)  #  Cache for 30 seconds
 def get_my_dashboard_bills(user_email):
     '''
     Fetches bills from the user's dashboard in the database and returns them as a DataFrame.
@@ -356,7 +356,7 @@ def clear_all_my_dashboard_bills():
 
 # ORG DASHBOARD FUNCTIONS
 @profile("query.py - get_org_dashboard_bills")
-@st.cache_data(ttl=60)  #  Cache for 1 min
+@st.cache_data(ttl=30)  #  Cache for 30 secs
 def get_org_dashboard_bills(org_id):
     '''
     Fetches bills from the org dashboard in the database and returns them as a DataFrame.
@@ -962,7 +962,7 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     st.rerun()
 
 @profile("query.py - get_working_group_bills")
-@st.cache_data(show_spinner="Loading bills data...",ttl=120)  #  Cache for 2 mins 
+@st.cache_data(show_spinner="Loading bills data...",ttl=30)  #  Cache for 30 secs
 def get_working_group_bills():
     '''
     Fetches bills from the working_group_dashboard table in the PostgreSQL database.

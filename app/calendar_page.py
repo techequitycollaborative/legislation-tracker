@@ -15,7 +15,7 @@ That's why it's named calendar_page.py.
 import pandas as pd
 import streamlit as st
 from streamlit_calendar import calendar
-from db.query import get_my_dashboard_bills, get_org_dashboard_bills
+from db.query import get_my_dashboard_bills, get_org_dashboard_bills, get_working_group_bills
 from utils.calendar_utils import load_leg_events, load_bill_events, filter_events, load_css, create_ics_file
 from utils.profiling import profile, track_rerun
 # Show the page title and description
@@ -50,11 +50,15 @@ org_name = st.session_state['org_name']
 
 # Initialize session state for dashboard bills
 if 'dashboard_bills' not in st.session_state or not len(st.session_state.dashboard_bills):
-    st.session_state.selected_bills = get_my_dashboard_bills(user_email)
+    st.session_state.dashboard_bills = get_my_dashboard_bills(user_email)
 
 # Initialize session state for org dashboard bills
 if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None:
     st.session_state.org_dashboard_bills = get_org_dashboard_bills(org_id)
+
+# Initialize session state for working group dashboard bills
+if 'wg_dashboard_bills' not in st.session_state or st.session_state.wg_dashboard_bills is None:
+    st.session_state.wg_dashboard_bills = get_working_group_bills()
 
 # Initialize state for clicked event
 if "clicked_event" not in st.session_state:
@@ -128,7 +132,7 @@ with st.sidebar.container():
     # Option to show only bills from ORG Dashboard
     show_org_dashboard_bills = st.sidebar.checkbox(f"{org_name}'s Dashboard")
 
-    # Determine eligibility for dashboard bill checkbox
+    # Determine eligibility for org dashboard bill checkbox
     if show_org_dashboard_bills:
         if 'authenticated' not in st.session_state:
             st.sidebar.warning("User not authenticated. Login to see org dashboard bill events.")
@@ -144,10 +148,27 @@ with st.sidebar.container():
             selected_bills_for_calendar = org_dashboard_bills
             bill_filter_active = True
 
+    # Option to show only bills from WG Dashboard
+    show_wg_dashboard_bills = st.sidebar.checkbox("AI Working Group Dashboard")
+
+    if show_wg_dashboard_bills:
+        if 'authenticated' not in st.session_state:
+            st.sidebar.warning("User not authenticated. Login to see working group dashboard bill events.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        elif 'wg_dashboard_bills' not in st.session_state or st.session_state.wg_dashboard_bills is None or len(st.session_state.wg_dashboard_bills) == 0:
+            st.sidebar.info("No bills saved to the working group dashboard. Go to the Bills page to add bills to your working group's dashboard.")
+            selected_bills_for_calendar = []
+            bill_filter_active = False
+        else:
+            wg_dashboard_bills = st.session_state.wg_dashboard_bills['bill_number'].unique().tolist()
+            selected_bills_for_calendar = wg_dashboard_bills
+            bill_filter_active = True
+
     # Option to select from MY dashboard bills
     show_dashboard_bills = st.sidebar.checkbox("My Dashboard")
 
-    # Determine eligibility for dashboard bill checkbox
+    # Determine eligibility for my dashboard bill checkbox
     if show_dashboard_bills:
         if 'authenticated' not in st.session_state:
             st.sidebar.warning("User not authenticated. Login to see your dashboard bill events.")
@@ -163,8 +184,9 @@ with st.sidebar.container():
             selected_bills_for_calendar = dashboard_bills
             bill_filter_active = True
             #st.sidebar.success(f"Showing {len(selected_bills_for_calendar)} bills from dashboard")
-    elif not show_dashboard_bills and not show_org_dashboard_bills:
-        # If not eligible for dashboard bill checkbox, show a multiselect search widget for all bills that have events
+    
+    # If not eligible for dashboard bill checkbox, show a multiselect search widget for all bills that have events
+    elif not show_dashboard_bills and not show_org_dashboard_bills and not show_wg_dashboard_bills:
         unique_bills = sorted(bill_events['bill_number'].unique())
         selected_bills_for_calendar = st.sidebar.multiselect(
             "Select specific bills:",
