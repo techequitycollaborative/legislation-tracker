@@ -160,8 +160,8 @@ def create_event_start_end(row):
         row['start'] = row['event_date']
         row['end'] = row['event_date']
     else:
-        row['start'] = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['eventTime'])))
-        row['end'] = str(convert_datetime(event_date=str(row['event_date']), event_time=str(row['eventTime']), add_hours=1))
+        row['start'] = str(convert_datetime(event_date=str(row['hearing_date']), event_time=str(row['hearing_time_verbatim'])))
+        row['end'] = str(convert_datetime(event_date=str(row['hearing_date']), event_time=str(row['hearing_time_verbatim']), add_hours=1))
     return row
 
 def filter_events(bill_events, leg_events, selected_types, selected_bills_for_calendar, bill_filter_active):
@@ -177,8 +177,8 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
         columns = {
             'bill_number': 'billNumber',
             'bill_name': 'billName',
-            'event_text': 'eventText',
-            'event_time': 'eventTime'
+            'hearing_name': 'hearingName',
+            'hearing_time_verbatim': 'hearingTimeVerbatim'
         }
     )
 
@@ -206,7 +206,7 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
 
         # If user only selects one bill, then set initial date to that bill's event date in order to jump to the event date on the calendar
         if len(selected_bills_for_calendar) == 1 and len(filtered_bill_events) == 1:
-            initial_date = str(pd.to_datetime(filtered_bill_events.iloc[0]['event_date'])) # make sure its a string so its JSON compatible
+            initial_date = str(pd.to_datetime(filtered_bill_events.iloc[0]['hearing_date'])) # make sure its a string so its JSON compatible
 
         # If user selects one bill but there are multiple events for that bill:
         elif len(selected_bills_for_calendar) == 1 and len(filtered_bill_events) > 1:
@@ -247,14 +247,14 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
             calendar_events.extend(filtered_bill_events.to_dict(orient='records'))
 
         # Add letter of support deadline events for all bill events
-        letter_events = filtered_bill_events[filtered_bill_events['letter_deadline'].notnull()].copy()
+        letter_events = filtered_bill_events[filtered_bill_events['deadline_date'].notnull()].copy()
         
         # Letter event SPECIFIC columns
-        letter_events['title'] = '✉️ LETTER OF SUPPORT DUE! ' + \
+        letter_events['title'] = '✉️ LETTER DUE! ' + \
                         letter_events['billNumber'].fillna('') + ' - ' + \
-                        letter_events['eventText'].fillna('')
-        letter_events['start'] = letter_events['letter_deadline']
-        letter_events['end'] = letter_events['letter_deadline']
+                        letter_events['hearingName'].fillna('')
+        letter_events['start'] = letter_events['deadline_date']
+        letter_events['end'] = letter_events['deadline_date']
         letter_events['type'] = 'Letter Deadline'
         letter_events['className'] = 'letter-deadline'
         # Convert to list of dictonaries and add to calendar events
@@ -270,11 +270,11 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
             leg_events["type"] = "Legislative"
             leg_events["billNumber"] = "N/A"
             leg_events["billName"] = "N/A"
-            leg_events["eventText"] = "N/A"
-            leg_events["eventTime"] = "N/A"
+            leg_events["hearingName"] = "N/A"
+            leg_events["hearingTimeVerbatim"] = "N/A"
             leg_events["status"] = "N/A"
             leg_events["date_introduced"] = "N/A"
-            leg_events["letter_deadline"] = "N/A"
+            leg_events["deadline_date"] = "N/A"
             leg_events["openstates_bill_id"] = "N/A"
             leg_events["className"] = "legislative event-normal"
             calendar_events.extend(leg_events.to_dict(orient='records'))
@@ -282,14 +282,14 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
         # Add letter of support deadline events if selected
         if "Letter Deadline" in selected_types:
             # Only bills with letter deadlines need letter events
-            letter_events = bill_events[bill_events['letter_deadline'].notnull()].copy()
+            letter_events = bill_events[bill_events['deadline_date'].notnull()].copy()
             
             # Letter event SPECIFIC columns
-            letter_events['title'] = '✉️ LETTER OF SUPPORT DUE! ' + \
+            letter_events['title'] = '✉️ LETTER DUE! ' + \
                           letter_events['billNumber'].fillna('') + ' - ' + \
-                          letter_events['eventText'].fillna('')
-            letter_events['start'] = letter_events['letter_deadline']
-            letter_events['end'] = letter_events['letter_deadline']
+                          letter_events['hearingName'].fillna('')
+            letter_events['start'] = letter_events['deadline_date']
+            letter_events['end'] = letter_events['deadline_date']
             letter_events['type'] = 'Letter Deadline'
             letter_events['className'] = 'letter-deadline'
 
@@ -339,7 +339,7 @@ def create_ics_file(events):
 
     for event_data in events:
         event = Event()  # Create a new event
-        event.name = f"{event_data['billNumber']} - {event_data['eventText']}"  # Set the event title
+        event.name = f"{event_data['billNumber']} - {event_data['hearingName']}"  # Set the event title
         
         # Build the description with your specified format
         description = f"Bill Name: {event_data.get('billName', 'No name provided')}\n"
@@ -354,7 +354,7 @@ def create_ics_file(events):
         event.description = description
 
         # Logic for all day events
-        if event_data['eventTime'] == 'N/A' or event_data['eventTime'] == '' or "adjourn" in event_data['eventTime']:
+        if event_data['hearingTimeVerbatim'] == 'N/A' or event_data['hearingTimeVerbatim'] == '' or "adjourn" in event_data['hearingTimeVerbatim']:
             try:
                 event.begin = pd.to_datetime(start_date).to_pydatetime()
                 event.end = pd.to_datetime(start_date).to_pydatetime()
@@ -372,7 +372,7 @@ def create_ics_file(events):
                     event.end = pd.to_datetime(start_date).to_pydatetime()
                     event.make_all_day()
                     # Update the title
-                    event.name = f"✉️ LETTER OF SUPPORT DUE - {event_data['billNumber']} - {event_data['eventText']}"
+                    event.name = f"✉️ LETTER DUE - {event_data['billNumber']} - {event_data['hearingName']}"
                 except Exception as e:
                     # If start = N/A then skip
                     # print(event_data)
