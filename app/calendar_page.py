@@ -50,7 +50,7 @@ org_name = st.session_state['org_name']
 
 # Initialize session state for dashboard bills
 if 'dashboard_bills' not in st.session_state or not len(st.session_state.dashboard_bills):
-    st.session_state.selected_bills = get_my_dashboard_bills(user_email)
+    st.session_state.dashboard_bills = get_my_dashboard_bills(user_email)
 
 # Initialize session state for org dashboard bills
 if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboard_bills is None:
