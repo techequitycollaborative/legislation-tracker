@@ -43,7 +43,7 @@ def load_leg_events():
 
 # Load events specific to individual bills
 @profile("Calendar - load bill events")
-@st.cache_data(show_spinner="Loading bill events...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
+@st.cache_data(show_spinner="Loading bill events...",ttl=120) # Cache bills data and refresh every 2 mins
 def load_bill_events():
     bill_events = query_table('app', 'calendar_mv') # Get bill info from processed_bills table
 
