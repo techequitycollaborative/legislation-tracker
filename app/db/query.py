@@ -220,8 +220,8 @@ BILL_COLUMNS_WITH_DETAILS = [
     #'action_taken'
 ]
 
-@profile("query.py - get_my_dashboard_bills")
 @st.cache_data(ttl=30)  #  Cache for 30 seconds
+@profile("query.py - get_my_dashboard_bills")
 def get_my_dashboard_bills(user_email):
     '''
     Fetches bills from the user's dashboard in the database and returns them as a DataFrame.
@@ -326,8 +326,8 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     
         conn.commit() #TODO: do we need this?
         
-    # Clear the cache so data reloads
-    st.cache_data.clear()
+    # Clear the cache so data reloads -- clear only for this function, not the entire cache which could impact other areas of the app
+    get_my_dashboard_bills.clear()
     
     st.success(f'Bill {bill_number} removed from dashboard!')
     st.rerun()
@@ -345,8 +345,8 @@ def clear_all_my_dashboard_bills():
         
         conn.commit()
 
-    # Clear the cache so data reloads
-    st.cache_data.clear()
+    # Clear the cache so data reloads -- only for my dashboard bills, not the entire cache which could impact other areas of the app
+    get_my_dashboard_bills.clear()
     
     st.success('Your dashboard has been cleared!')
 
@@ -355,8 +355,8 @@ def clear_all_my_dashboard_bills():
 ###############################################################################
 
 # ORG DASHBOARD FUNCTIONS
-@profile("query.py - get_org_dashboard_bills")
 @st.cache_data(ttl=30)  #  Cache for 30 secs
+@profile("query.py - get_org_dashboard_bills")
 def get_org_dashboard_bills(org_id):
     '''
     Fetches bills from the org dashboard in the database and returns them as a DataFrame.
@@ -466,15 +466,15 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
         conn.commit()
     
 
-    # Clear the cache so data reloads
-    st.cache_data.clear()
+    # Clear the cache so data reloads -- only for org dashboard bills, not the entire cache which could impact other areas of the app
+    get_org_dashboard_bills.clear()
 
     st.success(f'Bill {bill_number} removed from dashboard!')
     st.rerun()
 
 ###############################################################################
+@st.cache_data(ttl=30)  #  Cache for 30 secs
 @profile("query.py - get_custom_bill_details_with_timestamp")
-@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     '''
     Fetches custom bill details for a specific openstates_bill_id from the bill_custom_details table in postgres and renders in the bill details page, 
@@ -636,6 +636,11 @@ def save_custom_bill_details_with_timestamp(bill_number, org_position, priority_
                     action_taken, user_email, org_id, org_name, today, current_timestamp))
             
             conn.commit()
+
+            # Clear cache for org dashboard bills and custom bill details to reflect updates
+            get_custom_bill_details_with_timestamp.clear()
+            get_org_dashboard_bills.clear()   
+
             print(f"Custom details for bill {bill_number} saved with change history.")
             
             return True
@@ -742,6 +747,11 @@ def add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name,
             user_name, today, current_timestamp))
             
             conn.commit()
+
+            # Clear cache for letter history and bill activity history to reflect new letter added
+            #get_letter_history.clear()          
+            get_bill_activity_history.clear()  
+
             print(f"Letter added to history for bill {bill_number}")
 
         except Exception as e:
@@ -815,8 +825,8 @@ def get_most_recent_letter(openstates_bill_id, org_id):
         return None
 
 
+@st.cache_data(ttl=10) 
 @profile("query.py - get_bill_activity_history")
-@st.cache_data(ttl=5) 
 def get_bill_activity_history(openstates_bill_id, org_id):
     '''
     Retrieves complete activity history for a bill including field changes
@@ -861,8 +871,8 @@ def get_bill_activity_history(openstates_bill_id, org_id):
         
 ##################################################################################
 # Advocacy details functions
+@st.cache_data(ttl=60)
 @profile("query.py - get_all_custom_bill_details")
-@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_all_custom_bill_details():
     """
     Fetches all custom bill details for a specific bill from all organizations.
@@ -881,8 +891,8 @@ def get_all_custom_bill_details():
 
     return [dict(row) for row in results]
 
+@st.cache_data(ttl=60) 
 @profile("query.py - get_all_custom_bill_details_for_bill")
-@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_all_custom_bill_details_for_bill(openstates_bill_id):
     """
     Fetch all custom advocacy details for a single bill across all organizations.
@@ -955,14 +965,14 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
         
         conn.commit()
 
-    # Clear the cache so data reloads
-    st.cache_data.clear()
+    # Clear the cache so data reloads -- only for working group dashboard bills, not the entire cache which could impact other areas of the app
+    get_working_group_bills.clear()
 
     st.success(f'Bill {bill_number} removed from AI Working Group dashboard!')
     st.rerun()
 
-@profile("query.py - get_working_group_bills")
 @st.cache_data(show_spinner="Loading bills data...",ttl=30)  #  Cache for 30 secs
+@profile("query.py - get_working_group_bills")
 def get_working_group_bills():
     '''
     Fetches bills from the working_group_dashboard table in the PostgreSQL database.
@@ -1003,8 +1013,8 @@ def get_working_group_bills():
             print(f"Error fetching AI Working Group bills: {e}")
             return pd.DataFrame(columns=BILL_COLUMNS)
 
+@st.cache_data(ttl=10)  # Cache for 10 seconds to allow for quick reload after adding a comment
 @profile("query.py - get_wg_comments")
-@st.cache_data(ttl=30)  # Cache comment data for 30 seconds
 def get_wg_comments(bill_number: str):
     '''
     Fetches discussion comments for a specific bill from the working_group_discussions table.
@@ -1076,8 +1086,8 @@ def save_wg_comment(bill_number: str, user_name: str, user_email: str, comment: 
         
         conn.commit()
 
-        # Clear the cache so that the comments re-load and new comment appears
-        st.cache_data.clear()
+        # Clear the cache so that the comments re-load and new comment appears -- only clear for the comments function, not the entire cache which could impact other areas of the app
+        get_wg_comments.clear()
         
         return comment_id
 
