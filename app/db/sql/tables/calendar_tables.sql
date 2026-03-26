@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS snapshot.hearings (
     time_verbatim VARCHAR(50), -- verbatim string from website
     time_normalized TIME, -- null if is_allday
     is_allday BOOLEAN NOT NULL DEFAULT FALSE,
-    location VARCHAR(100) NOT NULL, -- address
-    room VARCHAR(100), -- if applicable
+    location VARCHAR NOT NULL, -- address can be arbitrarily long if unparseable
+    room VARCHAR(10), -- if applicable
     notes TEXT,
     chamber_id INTEGER REFERENCES snapshot.chamber(chamber_id),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
