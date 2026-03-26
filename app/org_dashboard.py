@@ -111,15 +111,23 @@ if not st.session_state.org_dashboard_bills.empty:
     with timer("Org dashboard - draw streamlit df"):
         data = display_bills_table(filtered_bills)
 
-    # Assign variable to selection property
     selected = data.selection
 
-    # Access selected rows
-    if selected != None and selected.rows:
+    if selected is not None and selected.rows:
         track_event("Row selected")
-        selected_index = selected.rows[0]  # Get first selected row index
-        selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
-        display_org_dashboard_details(selected_bill_data)
+        selected_index = selected.rows[0]
+        # Persist by identity, not position
+        selected_id = filtered_bills.iloc[selected_index]['openstates_bill_id']
+        st.session_state['selected_bill_id'] = selected_id
+
+    # Look up bill by ID from session state — in order for selected bill to survives reruns
+    selected_id = st.session_state.get('selected_bill_id')
+    if selected_id is not None:
+        selected_bill_data = filtered_bills[
+            filtered_bills['openstates_bill_id'] == selected_id
+        ]
+        if not selected_bill_data.empty:
+            display_org_dashboard_details(selected_bill_data)
 
 elif st.session_state.org_dashboard_bills.empty:
     st.write('No bills added yet.')

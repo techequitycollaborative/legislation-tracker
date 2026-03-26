@@ -68,6 +68,7 @@ def display_org_dashboard_details(selected_rows):
                     remove_bill_from_org_dashboard(openstates_bill_id, bill_number)
                 
                     # Deselect the row and stop execution
+                    st.session_state.pop('selected_bill_id', None)  # ← add this
                     st.session_state.selected_rows = None
                     st.rerun()  # Refresh the app to reflect the change
 
