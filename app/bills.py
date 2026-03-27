@@ -36,19 +36,20 @@ st.markdown(" ")
 ############################ LOAD AND PROCESS BILLS DATA #############################
 track_rerun("Bills")
 
-@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 @profile("DB - Fetch bills table data")
 def load_bills_table():
     # Get data
-    bills_query = """
-        SELECT * FROM app.bills_mv
-    """
-
-    bills = Query(
-        page_name="bills",
-        query=bills_query,
-        df_columns=BILL_COLUMNS
-    ).fetch_records()
+    @st.cache_data(show_spinner="Loading bills data...", ttl=60 * 60 * 6)
+    def _fetch():
+        bills_query = "SELECT * FROM app.bills_mv"
+        bills = Query(
+            page_name="bills",
+            query=bills_query,
+            df_columns=BILL_COLUMNS
+        ).fetch_records()
+        return bills
+    
+    bills = _fetch()
 
     # Minor data processing
     # Convert to datetime (without formatting yet)
@@ -57,13 +58,6 @@ def load_bills_table():
 
     # Sort bills table by most recent date_introduced
     bills = bills.sort_values(by='last_updated_on', ascending=False)
-
-    # DON'T NEED TO FORMAT DATES FOR STREAMLIT NATIVE TABLES; THIS IS HANDLED IN COLUMN CONFIG WITH DATE COLUMN
-    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    #bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    #bills['bill_event'] = pd.to_datetime(bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    #bills['last_updated_on'] = pd.to_datetime(bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Wrangle assigned-topic string to a Python list for web app manipulation
     bills['bill_topic'] = bills['assigned_topics'].apply(lambda x: set(x.split("; ")) if x else ["Other"])
@@ -74,10 +68,10 @@ def load_bills_table():
     return bills
 
 # Load bills data
-bills = load_bills_table()
+if 'bills_data' not in st.session_state or st.session_state.bills_data is None or st.session_state.bills_data.empty:
+    st.session_state.bills_data = load_bills_table()
 
-# Store bills data in session state for access on bill details page
-st.session_state.bills_data = bills
+bills = st.session_state.bills_data
 
 ############################ ADDITIONAL PAGE ELEMENTS #############################
 
