@@ -75,7 +75,9 @@ def display_org_dashboard_details(selected_rows):
                 
                     # Deselect the row and stop execution
                     st.session_state.pop('selected_bill_id', None)
-                    #st.session_state.selected_rows = None #TODO: do we need this line?
+                    
+                    # Reset org dashboard bills session state
+                    st.session_state.org_dashboard_bills = pd.DataFrame()
 
                     # Show success message, then refresh app to reflect change
                     st.session_state['_toast'] = f"Bill {bill_number} removed from dashboard."

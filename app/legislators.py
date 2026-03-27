@@ -64,7 +64,7 @@ def get_legislator_data():
     Use query_table to load, clean, and cache legislator data
     """
     # Cache the function that retrieves the data
-    @st.cache_data(show_spinner="Loading legislator data...")#
+    @st.cache_data(show_spinner="Loading legislator data...", ttl=30)#
     def legislator_cache():
         # Get data
         legislator_query = """
