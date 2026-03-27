@@ -422,6 +422,7 @@ def display_org_dashboard_details(selected_rows):
                 filtered_feed = [item for item in filtered_feed if item['user'] == selected_user]
             
             st.caption(f"Showing {len(filtered_feed)} of {len(activity_feed)} activities")
+            st.caption("Activities are listed in reverse chronological order (most recent first). All timestamps are in Pacific Time (PT).")
             st.divider()
             
             # Display activities
@@ -449,6 +450,6 @@ def display_org_dashboard_details(selected_rows):
                     if item['date']:
                         st.markdown(f"**📅 Date:** {item['date'].strftime('%m/%d/%Y')}")
                     if item['timestamp']:
-                        st.markdown(f"**🕐 Time:** {item['timestamp'].strftime('%I:%M %p')}")
+                        st.markdown(f"**🕐 Time:** {item['timestamp'].strftime('%I:%M %p')} PT")
                 
                 st.divider()

@@ -820,9 +820,12 @@ def get_most_recent_letter(openstates_bill_id, org_id):
 @profile("query.py - get_bill_activity_history")
 def get_bill_activity_history(openstates_bill_id, org_id):
     '''
-    Retrieves complete activity history for a bill including field changes
-    and letters.
+    - Retrieves complete activity history for a bill including field changes and letters. 
+    - Timestamps are converted from UTC to Pacific time.
     '''
+    from zoneinfo import ZoneInfo
+    pacific = ZoneInfo('America/Los_Angeles')
+
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -847,14 +850,20 @@ def get_bill_activity_history(openstates_bill_id, org_id):
         
         activity_history = []
         for row in results:
+            
+            # Convert UTC timestamp to Pacific time, derive date from converted
+            # timestamp so late-night UTC entries show the correct Pacific date
+            timestamp_utc = row[6]
+            timestamp_pacific = timestamp_utc.astimezone(pacific) if timestamp_utc else None
+
             activity_history.append({
                 'activity_type': row[0],
                 'field_name': row[1],
                 'old_value': row[2],
                 'new_value': row[3],
                 'user': row[4],
-                'date': row[5],
-                'timestamp': row[6]
+                'date': timestamp_pacific.date() if timestamp_pacific else row[5],
+                'timestamp': timestamp_pacific
             })
         
         return activity_history
