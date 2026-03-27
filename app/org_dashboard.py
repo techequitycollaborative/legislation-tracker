@@ -10,11 +10,11 @@ Private dashboard for an organization, populated with bills from Bills page
 
 import streamlit as st
 import pandas as pd
-from db.query import get_org_dashboard_bills
+from db.query import get_org_dashboard_bills, get_custom_bill_details_with_timestamp
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
-from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table, filters_hash
 
 track_rerun("Org Dashboard")
 
@@ -43,6 +43,13 @@ st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 st.markdown(" ")
 st.markdown(" ")
 
+# Display any pending toast message from a previous rerun
+if '_toast' in st.session_state:
+    st.toast(st.session_state.pop('_toast'), icon='✅')
+
+if '_toast_warning' in st.session_state:
+    st.toast(st.session_state.pop('_toast_warning'), icon='⚠️')
+
 # Clear dashboard button -- DISABLED FOR NOW BC IT MIGHT GET MESSY HAVING THIS OPTION WITH MANY USERS SHARING ONE ORG DASHBOARD. but if we want to add it, the clear button on the my dashboard works.
 #col1, col2 = st.columns([4, 1])
 #with col2:
@@ -56,20 +63,9 @@ if 'org_dashboard_bills' not in st.session_state or st.session_state.org_dashboa
 
 # Load bills data for the org dashboard
 @profile("DB - Fetch ORG DASHBOARD table data")
-@st.cache_data(show_spinner="Loading your dashboard...", ttl=30) # Cache dashboard data and refresh every 30 seconds
 def load_org_dashboard_table():
     # Get data
     org_db_bills = get_org_dashboard_bills(org_id)
-
-    # Update session state with user's org's dashboard bills
-    st.session_state.org_dashboard_bills = org_db_bills
-
-    # DON'T NEED TO FORMAT DATES FOR STREAMLIT NATIVE TABLES; THIS IS HANDLED IN COLUMN CONFIG WITH DATE COLUMN
-    # Now remove timestamp from date_introduced and bill_event (for formatting purposes in other display areas)
-    # KEEP AS Y-M-D FORMAT FOR AG GRID DATE FILTERING TO WORK
-    #org_db_bills['date_introduced'] = pd.to_datetime(org_db_bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestamp from date introduced
-    #org_db_bills['bill_event'] = pd.to_datetime(org_db_bills['bill_event']).dt.strftime('%Y-%m-%d') # Remove timestamp from bill_event
-    #org_db_bills['last_updated_on'] = pd.to_datetime(org_db_bills['last_updated_on']).dt.strftime('%Y-%m-%d') # Remove timestamp from last_updated_on
 
     # Minor data processing to match bills table
     # Wrangle assigned-topic string to a Python list for web app manipulation
@@ -84,7 +80,8 @@ def load_org_dashboard_table():
     
     return org_db_bills
 
-st.session_state.org_dashboard_bills = load_org_dashboard_table()
+if st.session_state.org_dashboard_bills.empty:
+    st.session_state.org_dashboard_bills = load_org_dashboard_table()
 
 ############################ FILTERS #############################
 # Display filters and get filter values
@@ -96,6 +93,14 @@ filters = display_bill_filters(
     show_assigned_to=True
 )
 filtered_bills = apply_bill_filters(st.session_state.org_dashboard_bills, filter_dict=filters)
+
+
+# Create a hash of the filters to detect changes and reset selected bill if filters change. 
+# We use a hash here because the filter dict can be complex and contain unhashable types, so we convert it to a JSON string first (with sorted keys for consistency) and then hash that string.
+current_hash = filters_hash(filters)
+if st.session_state.get('_last_filter_hash') != current_hash:
+    st.session_state['_last_filter_hash'] = current_hash
+    st.session_state.pop('selected_bill_id', None)
 
 # Update total bills count
 col1, col2, col3 = st.columns([2, 6, 2])
@@ -111,15 +116,36 @@ if not st.session_state.org_dashboard_bills.empty:
     with timer("Org dashboard - draw streamlit df"):
         data = display_bills_table(filtered_bills)
 
-    # Assign variable to selection property
     selected = data.selection
 
-    # Access selected rows
-    if selected != None and selected.rows:
+    if selected is not None and selected.rows:
         track_event("Row selected")
-        selected_index = selected.rows[0]  # Get first selected row index
-        selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
-        display_org_dashboard_details(selected_bill_data)
+        selected_index = selected.rows[0]
+        newly_selected_id = filtered_bills.iloc[selected_index]['openstates_bill_id']
+        
+        # If user switched to a different bill, bust the custom details cache
+        # so the form loads fresh data for the new bill rather than serving
+        # the previous bill's cached response
+        if newly_selected_id != st.session_state.get('selected_bill_id'):
+            get_custom_bill_details_with_timestamp.clear()
+        
+        # Persist selection by bill ID (not row index) so it survives reruns
+        st.session_state['selected_bill_id'] = newly_selected_id
+
+    else:
+        # No row selected (deselect or initial load) — clear the details panel
+        st.session_state.pop('selected_bill_id', None)
+
+    # Look up the selected bill by ID from session state.
+    # Using ID instead of row index means the correct bill stays selected
+    # even if the table re-sorts or filters change between reruns.
+    selected_id = st.session_state.get('selected_bill_id')
+    if selected_id is not None:
+        selected_bill_data = filtered_bills[
+            filtered_bills['openstates_bill_id'] == selected_id
+        ]
+        if not selected_bill_data.empty:
+            display_org_dashboard_details(selected_bill_data)
 
 elif st.session_state.org_dashboard_bills.empty:
     st.write('No bills added yet.')

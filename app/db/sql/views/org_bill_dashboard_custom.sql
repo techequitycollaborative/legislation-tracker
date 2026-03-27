@@ -34,8 +34,9 @@ SELECT
     --bcd.priority_tier,
     --bcd.community_sponsor,
     --bcd.coalition,
-    bcd.assigned_to
+    bcd.assigned_to,
     --bcd.action_taken
+	bcd.last_updated_on AS changed_on
 FROM app.bills_mv b
 INNER JOIN app.org_bill_dashboard obd
     ON obd.openstates_bill_id = b.openstates_bill_id

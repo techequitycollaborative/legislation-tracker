@@ -15,7 +15,7 @@ from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
-from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table, filters_hash
 
 # Page title and description
 st.title('📝 Bills')
@@ -133,9 +133,31 @@ with timer("Bills - draw streamlit df"):
 # Assign variable to selection property
 selected = data.selection
 
-# Access selected rows
-if selected != None and selected.rows:
+# Detect filter changes and clear selection if filters have changed
+current_hash = filters_hash(filters)
+if st.session_state.get('_bills_filter_hash') != current_hash:
+    st.session_state['_bills_filter_hash'] = current_hash
+    st.session_state.pop('selected_bill_id_bills', None)  # note: separate key from org dashboard
+
+if selected is not None and selected.rows:
     track_event("Row selected")
-    selected_index = selected.rows[0]  # Get first selected row index
-    selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
-    display_bill_info_text(selected_bill_data)
+    selected_index = selected.rows[0] # Get first selected row index
+    # Ger newly selected based on bill_id instead of positional index
+    newly_selected_id = filtered_bills.iloc[selected_index]['openstates_bill_id'] # Double brackets to keep as DataFrame for display function
+
+    # Persist selection by bill ID (not row index) so it survives reruns
+    st.session_state['selected_bill_id_bills'] = newly_selected_id
+
+else:
+    # No row selected (deselect or initial load) — clear the details panel
+    st.session_state.pop('selected_bill_id_bills', None)
+
+# Look up the selected bill by ID from session state.
+# Using ID instead of row index means the correct bill stays selected even if the table re-sorts or filters change between reruns.
+selected_id = st.session_state.get('selected_bill_id_bills')
+if selected_id is not None:
+    selected_bill_data = filtered_bills[
+        filtered_bills['openstates_bill_id'] == selected_id
+    ]
+    if not selected_bill_data.empty:
+        display_bill_info_text(selected_bill_data)

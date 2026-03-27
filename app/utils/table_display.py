@@ -7,6 +7,15 @@ Utility functions for displaying tables and filters for Streamlit dataframes
 import streamlit as st
 import pandas as pd
 from utils.general import topic_config
+import hashlib
+import json
+
+def filters_hash(filter_dict):
+    """
+    Returns an MD5 hash of the current filter state.
+    Used to detect filter changes and clear bill selection across pages.
+    """
+    return hashlib.md5(json.dumps(filter_dict, default=str, sort_keys=True).encode()).hexdigest()
 
 
 def initialize_filter_state():
@@ -402,7 +411,7 @@ def display_bills_table(df):
         ),
 
         "last_updated_on": st.column_config.Column(
-            "Last Updated",
+            "Bill Last Updated",
             help="The date the bill data was last updated on LegInfo.",  
         ),
 
@@ -475,6 +484,12 @@ def display_bills_table(df):
             help="Team member assigned to track this bill.",
         )
 
+    if 'changed_on' in display_df.columns:
+        column_config["changed_on"] = st.column_config.Column(
+            "Details Last Updated",
+            help="The date the custom advocacy details were last updated for this bill.",
+        )
+
     # Build column order dynamically
     column_order = ['bill_number', 'author', 'bill_name', 'date_introduced', 'status', 'last_updated_on', 'bill_topic']
     
@@ -484,6 +499,9 @@ def display_bills_table(df):
     
     if 'assigned_to' in display_df.columns:
         column_order.append('assigned_to')
+
+    if 'changed_on' in display_df.columns:
+        column_order.append('changed_on')
 
     data = st.dataframe(
         display_df,
@@ -496,4 +514,5 @@ def display_bills_table(df):
         column_config=column_config,
         column_order=column_order,
     )
+    st.caption("Click a checkbox to select a bill and view its details. Click again to deselect.")
     return data
