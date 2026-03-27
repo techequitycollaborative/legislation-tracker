@@ -7,6 +7,15 @@ Utility functions for displaying tables and filters for Streamlit dataframes
 import streamlit as st
 import pandas as pd
 from utils.general import topic_config
+import hashlib
+import json
+
+def filters_hash(filter_dict):
+    """
+    Returns an MD5 hash of the current filter state.
+    Used to detect filter changes and clear bill selection across pages.
+    """
+    return hashlib.md5(json.dumps(filter_dict, default=str, sort_keys=True).encode()).hexdigest()
 
 
 def initialize_filter_state():

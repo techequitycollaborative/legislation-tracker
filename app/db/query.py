@@ -293,21 +293,10 @@ def add_bill_to_dashboard(openstates_bill_id, bill_number):
             """, (user_email, org_id, openstates_bill_id, bill_number))
 
             conn.commit()
-            st.success(f'Bill {bill_number} added to dashboard!')
-
-            # Optionally refresh dashboard state
-            #if 'selected_bills' not in st.session_state:
-            #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
-
-            # Create a new row as a dictionary
-            #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
-
-            # Append the new row to the selected_bills list
-            #st.session_state.selected_bills.append(new_row)
-
+            return 'added' # return status instead of st.success()
         else:
-            st.warning(f'Bill {bill_number} is already in your dashboard.')
-
+            return 'exists' # return status instead of st.warning()
+        
 @profile("query.py - remove_bill_from_dashboard")
 def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     '''
@@ -426,20 +415,10 @@ def add_bill_to_org_dashboard(openstates_bill_id, bill_number):
             """, (user_email, org_id, openstates_bill_id, bill_number))
 
             conn.commit()
-            st.success(f'Bill {bill_number} added to dashboard!')
-
-            # Optionally refresh dashboard state
-            #if 'selected_bills' not in st.session_state:
-            #    st.session_state.selected_bills = []  # Initialize as an empty list if it doesn't exist
-
-            # Create a new row as a dictionary
-            #new_row = {'openstates_bill_id': openstates_bill_id, 'bill_number': bill_number}
-
-            # Append the new row to the selected_bills list
-            #st.session_state.selected_bills.append(new_row)
+            return 'added' # return status instead of st.success()
 
         else:
-            st.warning(f'Bill {bill_number} is already in your dashboard.')
+            return 'exists' # return status instead of st.warning()
 
 @profile("query.py - remove_bill_from_org_dashboard")
 def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
@@ -943,9 +922,9 @@ def add_bill_to_working_group_dashboard(openstates_bill_id, bill_number):
                 """, (openstates_bill_id, bill_number, org_name, user_email))
 
                 conn.commit()
-                st.success(f'Bill {bill_number} added to Working Group Dashboard!')
+                return 'added' # return status instead of st.success()
             else:
-                st.warning(f'Bill {bill_number} is already in the Working Group Dashboard.')
+                return 'exists' # return status instead of st.warning()
 
         except Exception as e:
             st.error(f"Error adding bill to Working Group Dashboard: {e}")

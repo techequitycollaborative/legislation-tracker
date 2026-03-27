@@ -78,7 +78,7 @@ def display_org_dashboard_details(selected_rows):
                     #st.session_state.selected_rows = None #TODO: do we need this line?
 
                     # Show success message, then refresh app to reflect change
-                    st.success(f"Bill {bill_number} removed from dashboard.") 
+                    st.session_state['_toast'] = f"Bill {bill_number} removed from dashboard."
                     st.rerun()
 
     # Add empty rows of space  

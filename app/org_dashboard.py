@@ -14,7 +14,7 @@ from db.query import get_org_dashboard_bills, get_custom_bill_details_with_times
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
-from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table, filters_hash
 import hashlib, json
 
 track_rerun("Org Dashboard")
@@ -109,10 +109,7 @@ filtered_bills = apply_bill_filters(st.session_state.org_dashboard_bills, filter
 
 # Create a hash of the filters to detect changes and reset selected bill if filters change. 
 # We use a hash here because the filter dict can be complex and contain unhashable types, so we convert it to a JSON string first (with sorted keys for consistency) and then hash that string.
-def _filters_hash(f):
-    return hashlib.md5(json.dumps(f, default=str, sort_keys=True).encode()).hexdigest()
-
-current_hash = _filters_hash(filters)
+current_hash = filters_hash(filters)
 if st.session_state.get('_last_filter_hash') != current_hash:
     st.session_state['_last_filter_hash'] = current_hash
     st.session_state.pop('selected_bill_id', None)

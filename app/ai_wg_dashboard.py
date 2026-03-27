@@ -21,7 +21,7 @@ from utils.general import to_csv
 from utils.ai_working_group import display_working_group_bill_details
 from utils.css_utils import load_css_with_fallback, DEFAULT_FALLBACK_CSS
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun, track_event
-from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table, filters_hash
 
 
 track_rerun("AI Working Group Dashboard")
@@ -51,6 +51,10 @@ st.expander("ℹ️ About this page", expanded=False).markdown("""
 st.markdown(" ")
 st.markdown(" ")
 
+# Initialize session state for toast pop up messages
+if '_toast' in st.session_state:
+    st.toast(st.session_state.pop('_toast'), icon='✅')
+
 ### Authentication and user info ###
 # Ensure user info exists in the session (i.e. ensure the user is logged in)
 if 'authenticated' not in st.session_state:
@@ -66,20 +70,18 @@ first_name = user_name.split()[0] # get first name from user name
 initialize_filter_state()
 
 # Initialize session state for dashboard bills
-if 'working_group_bills' not in st.session_state or st.session_state.wg_bills is None:
-    st.session_state.wg_bills = pd.DataFrame() # Initialize as empty DataFrame
+if 'wg_bills' not in st.session_state or st.session_state.wg_bills is None:
+    st.session_state.wg_bills = pd.DataFrame()
 
 ############################# FETCH BILLS ###########################################
 
 # Load bills data for the dashboard
 @profile("DB - Fetch AI WG DASHBOARD table data")
-@st.cache_data(show_spinner="Loading your dashboard...", ttl=30) # Cache dashboard data and refresh every 30 seconds
 def load_ai_dashboard_table():
     # Fetch the user's saved bills from the database
     wg_bills = get_working_group_bills()
 
-    # Update session state with user's org's dashboard bills
-    st.session_state.wg_bills = wg_bills
+    #st.session_state.wg_bills = wg_bills -- this line was causing the multiple-click bug
 
     # Process bills data
 
@@ -102,7 +104,9 @@ def load_ai_dashboard_table():
     
     return wg_bills
 
-st.session_state.wg_bills = load_ai_dashboard_table()
+# Only load when session state is empty
+if st.session_state.wg_bills.empty:
+    st.session_state.wg_bills = load_ai_dashboard_table()
 
 ############################## HEADER SECTION ##############################
 
@@ -287,15 +291,35 @@ with st.container(key='dashboard_bills_table_container'):
         with timer("AI working group dashboard - draw streamlit df"):
             data = display_bills_table(filtered_bills)
 
-        # Assign variable to selection property
         selected = data.selection
 
-        # Access selected rows
-        if selected != None and selected.rows:
+        # Detect filter changes and clear selection if filters have changed
+        current_hash = filters_hash(filters)
+        if st.session_state.get('_wg_filter_hash') != current_hash:
+            st.session_state['_wg_filter_hash'] = current_hash
+            st.session_state.pop('selected_bill_id_wg', None)
+
+        if selected is not None and selected.rows:
             track_event("Row selected")
-            selected_index = selected.rows[0]  # Get first selected row index
-            selected_bill_data = filtered_bills.iloc[[selected_index]]  # Double brackets to keep as DataFrame for display function
-            display_working_group_bill_details(selected_bill_data)
+            selected_index = selected.rows[0]
+            newly_selected_id = filtered_bills.iloc[selected_index]['openstates_bill_id']
+
+            # Persist selection by bill ID (not row index) so it survives reruns
+            st.session_state['selected_bill_id_wg'] = newly_selected_id
+
+        else:
+            # No row selected (deselect or initial load) — clear the details panel
+            st.session_state.pop('selected_bill_id_wg', None)
+
+        # Look up the selected bill by ID from session state.
+        # Using ID instead of row index means the correct bill stays selected even if the table re-sorts or filters change between reruns.
+        selected_id = st.session_state.get('selected_bill_id_wg')
+        if selected_id is not None:
+            selected_bill_data = filtered_bills[
+                filtered_bills['openstates_bill_id'] == selected_id
+            ]
+            if not selected_bill_data.empty:
+                display_working_group_bill_details(selected_bill_data)
 
     elif st.session_state.wg_bills.empty:
         st.write('No bills added yet.')

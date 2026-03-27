@@ -15,7 +15,7 @@ from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
-from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table
+from utils.table_display import initialize_filter_state, display_bill_filters, apply_bill_filters, display_bills_table, filters_hash
 
 # Page title and description
 st.title('📝 Bills')
@@ -134,12 +134,7 @@ with timer("Bills - draw streamlit df"):
 selected = data.selection
 
 # Detect filter changes and clear selection if filters have changed
-import hashlib, json
-
-def _filters_hash(f):
-    return hashlib.md5(json.dumps(f, default=str, sort_keys=True).encode()).hexdigest()
-
-current_hash = _filters_hash(filters)
+current_hash = filters_hash(filters)
 if st.session_state.get('_bills_filter_hash') != current_hash:
     st.session_state['_bills_filter_hash'] = current_hash
     st.session_state.pop('selected_bill_id_bills', None)  # note: separate key from org dashboard
