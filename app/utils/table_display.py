@@ -411,7 +411,7 @@ def display_bills_table(df):
         ),
 
         "last_updated_on": st.column_config.Column(
-            "Last Updated",
+            "Bill Last Updated",
             help="The date the bill data was last updated on LegInfo.",  
         ),
 
@@ -484,6 +484,12 @@ def display_bills_table(df):
             help="Team member assigned to track this bill.",
         )
 
+    if 'changed_on' in display_df.columns:
+        column_config["changed_on"] = st.column_config.Column(
+            "Details Last Updated",
+            help="The date the custom advocacy details were last updated for this bill.",
+        )
+
     # Build column order dynamically
     column_order = ['bill_number', 'author', 'bill_name', 'date_introduced', 'status', 'last_updated_on', 'bill_topic']
     
@@ -493,6 +499,9 @@ def display_bills_table(df):
     
     if 'assigned_to' in display_df.columns:
         column_order.append('assigned_to')
+
+    if 'changed_on' in display_df.columns:
+        column_order.append('changed_on')
 
     data = st.dataframe(
         display_df,

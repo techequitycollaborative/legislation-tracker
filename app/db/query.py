@@ -217,6 +217,7 @@ BILL_COLUMNS_WITH_DETAILS = [
     #'community_sponsor',
     #'coalition',
     'assigned_to',
+    'changed_on',
     #'action_taken'
 ]
 
@@ -372,7 +373,8 @@ def get_org_dashboard_bills(org_id):
                     assigned_topics,
                     last_updated_on,
                     org_position,
-                    assigned_to
+                    assigned_to, 
+                    changed_on
                 FROM app.org_bill_dashboard_custom
                 WHERE org_id = %s;
             """
