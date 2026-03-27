@@ -505,4 +505,5 @@ def display_bills_table(df):
         column_config=column_config,
         column_order=column_order,
     )
+    st.caption("Click a checkbox to select a bill and view its details. Click again to deselect.")
     return data
