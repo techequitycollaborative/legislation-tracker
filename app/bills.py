@@ -36,8 +36,8 @@ st.markdown(" ")
 ############################ LOAD AND PROCESS BILLS DATA #############################
 track_rerun("Bills")
 
-@profile("DB - Fetch bills table data")
 @st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
+@profile("DB - Fetch bills table data")
 def load_bills_table():
     # Get data
     bills_query = """

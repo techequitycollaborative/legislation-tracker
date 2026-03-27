@@ -221,7 +221,7 @@ BILL_COLUMNS_WITH_DETAILS = [
     #'action_taken'
 ]
 
-@st.cache_data(ttl=30)  #  Cache for 30 seconds
+@st.cache_data(ttl=10)
 @profile("query.py - get_my_dashboard_bills")
 def get_my_dashboard_bills(user_email):
     '''
@@ -340,7 +340,7 @@ def clear_all_my_dashboard_bills():
 ###############################################################################
 
 # ORG DASHBOARD FUNCTIONS
-@st.cache_data(ttl=30)  #  Cache for 30 secs
+@st.cache_data(ttl=10)
 @profile("query.py - get_org_dashboard_bills")
 def get_org_dashboard_bills(org_id):
     '''
@@ -446,7 +446,7 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
     get_org_dashboard_bills.clear()
 
 ###############################################################################
-@st.cache_data(ttl=15)  #  Cache for 30 secs
+@st.cache_data(ttl=10) 
 @profile("query.py - get_custom_bill_details_with_timestamp")
 def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     '''
@@ -486,8 +486,8 @@ def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     else:
         return result
 
+@st.cache_data(ttl=10)
 @profile("query.py - get_custom_contact_details_with_timestamp")
-@st.cache_data(ttl=120)  #  Cache for 2 mins 
 def get_custom_contact_details_with_timestamp(openstates_people_id):
     '''
     Fetches custom contact details for a specific openstates_people_id from the contact_custom_details table in postgres
@@ -796,7 +796,7 @@ def get_most_recent_letter(openstates_bill_id, org_id):
         
         return None
     
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=10)
 @profile("query.py - get_all_most_recent_letters")
 def get_all_most_recent_letters():
     '''
@@ -893,7 +893,7 @@ def get_bill_activity_history(openstates_bill_id, org_id):
         
 ##################################################################################
 # Advocacy details functions
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=10)
 @profile("query.py - get_all_custom_bill_details")
 def get_all_custom_bill_details():
     """
@@ -913,7 +913,7 @@ def get_all_custom_bill_details():
 
     return [dict(row) for row in results]
 
-@st.cache_data(ttl=60) 
+@st.cache_data(ttl=10) 
 @profile("query.py - get_all_custom_bill_details_for_bill")
 def get_all_custom_bill_details_for_bill(openstates_bill_id):
     """
@@ -990,7 +990,7 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
     # Clear the cache so data reloads -- only for working group dashboard bills, not the entire cache which could impact other areas of the app
     get_working_group_bills.clear()
 
-@st.cache_data(show_spinner="Loading bills data...",ttl=30)  #  Cache for 30 secs
+@st.cache_data(show_spinner="Loading bills data...",ttl=10)  #  Cache for 30 secs
 @profile("query.py - get_working_group_bills")
 def get_working_group_bills():
     '''
@@ -1110,8 +1110,8 @@ def save_wg_comment(bill_number: str, user_name: str, user_email: str, comment: 
         
         return comment_id
 
+@st.cache_data(show_spinner="Loading bills data...",ttl=10)
 @profile("query.py - get_ai_members")
-@st.cache_data(show_spinner="Loading bills data...",ttl=60 * 60 * 6) # Cache name data and refresh every 6 hours
 def get_ai_members():
     '''
     Get list of names of AI Working Group members from the database.
