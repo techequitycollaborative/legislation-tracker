@@ -329,8 +329,6 @@ def remove_bill_from_dashboard(openstates_bill_id, bill_number):
     # Clear the cache so data reloads -- clear only for this function, not the entire cache which could impact other areas of the app
     get_my_dashboard_bills.clear()
     
-    st.success(f'Bill {bill_number} removed from dashboard!')
-    st.rerun()
 
 @profile("query.py - clear_all_my_dashboard_bills")
 def clear_all_my_dashboard_bills():
@@ -348,9 +346,6 @@ def clear_all_my_dashboard_bills():
     # Clear the cache so data reloads -- only for my dashboard bills, not the entire cache which could impact other areas of the app
     get_my_dashboard_bills.clear()
     
-    st.success('Your dashboard has been cleared!')
-
-    st.rerun()
 
 ###############################################################################
 
@@ -469,11 +464,8 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
     # Clear the cache so data reloads -- only for org dashboard bills, not the entire cache which could impact other areas of the app
     get_org_dashboard_bills.clear()
 
-    st.success(f'Bill {bill_number} removed from dashboard!')
-    st.rerun()
-
 ###############################################################################
-@st.cache_data(ttl=30)  #  Cache for 30 secs
+@st.cache_data(ttl=15)  #  Cache for 30 secs
 @profile("query.py - get_custom_bill_details_with_timestamp")
 def get_custom_bill_details_with_timestamp(openstates_bill_id, org_id):
     '''
@@ -759,7 +751,6 @@ def add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name,
             print(f"Error adding letter to history: {str(e)}")
             raise e
 
-    st.rerun()
     return True
         
 
@@ -967,9 +958,6 @@ def remove_bill_from_wg_dashboard(openstates_bill_id, bill_number):
 
     # Clear the cache so data reloads -- only for working group dashboard bills, not the entire cache which could impact other areas of the app
     get_working_group_bills.clear()
-
-    st.success(f'Bill {bill_number} removed from AI Working Group dashboard!')
-    st.rerun()
 
 @st.cache_data(show_spinner="Loading bills data...",ttl=30)  #  Cache for 30 secs
 @profile("query.py - get_working_group_bills")

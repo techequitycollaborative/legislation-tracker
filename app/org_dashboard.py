@@ -10,7 +10,7 @@ Private dashboard for an organization, populated with bills from Bills page
 
 import streamlit as st
 import pandas as pd
-from db.query import get_org_dashboard_bills
+from db.query import get_org_dashboard_bills, get_custom_bill_details_with_timestamp
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event
@@ -43,6 +43,13 @@ st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 # Add space between expander and main content
 st.markdown(" ")
 st.markdown(" ")
+
+# Display any pending toast message from a previous rerun
+if '_toast' in st.session_state:
+    st.toast(st.session_state.pop('_toast'), icon='✅')
+
+if '_toast_warning' in st.session_state:
+    st.toast(st.session_state.pop('_toast_warning'), icon='⚠️')
 
 # Clear dashboard button -- DISABLED FOR NOW BC IT MIGHT GET MESSY HAVING THIS OPTION WITH MANY USERS SHARING ONE ORG DASHBOARD. but if we want to add it, the clear button on the my dashboard works.
 #col1, col2 = st.columns([4, 1])
@@ -85,7 +92,8 @@ def load_org_dashboard_table():
     
     return org_db_bills
 
-st.session_state.org_dashboard_bills = load_org_dashboard_table()
+if st.session_state.org_dashboard_bills.empty:
+    st.session_state.org_dashboard_bills = load_org_dashboard_table()
 
 ############################ FILTERS #############################
 # Display filters and get filter values
@@ -128,11 +136,24 @@ if not st.session_state.org_dashboard_bills.empty:
     if selected is not None and selected.rows:
         track_event("Row selected")
         selected_index = selected.rows[0]
-        # Persist by identity, not position
-        selected_id = filtered_bills.iloc[selected_index]['openstates_bill_id']
-        st.session_state['selected_bill_id'] = selected_id
+        newly_selected_id = filtered_bills.iloc[selected_index]['openstates_bill_id']
+        
+        # If user switched to a different bill, bust the custom details cache
+        # so the form loads fresh data for the new bill rather than serving
+        # the previous bill's cached response
+        if newly_selected_id != st.session_state.get('selected_bill_id'):
+            get_custom_bill_details_with_timestamp.clear()
+        
+        # Persist selection by bill ID (not row index) so it survives reruns
+        st.session_state['selected_bill_id'] = newly_selected_id
 
-    # Look up bill by ID from session state — in order for selected bill to survives reruns
+    else:
+        # No row selected (deselect or initial load) — clear the details panel
+        st.session_state.pop('selected_bill_id', None)
+
+    # Look up the selected bill by ID from session state.
+    # Using ID instead of row index means the correct bill stays selected
+    # even if the table re-sorts or filters change between reruns.
     selected_id = st.session_state.get('selected_bill_id')
     if selected_id is not None:
         selected_bill_data = filtered_bills[

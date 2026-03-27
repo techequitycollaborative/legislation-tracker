@@ -10,7 +10,7 @@ Utility function for displaying bill details on the ORG DASHBOARD page.
 
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard, get_letter_history, add_letter_to_history, get_bill_activity_history
+from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard, get_letter_history, add_letter_to_history, get_bill_activity_history, get_org_dashboard_bills
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer
 
@@ -36,6 +36,12 @@ def display_org_dashboard_details(selected_rows):
     bill_event = selected_rows['bill_event'].iloc[0]
     event_text = selected_rows['event_text'].iloc[0]
     last_updated = selected_rows['last_updated_on'].iloc[0]
+
+    # Capture expander state for this render, then reset for next render
+    expander_custom_details_open = st.session_state.get('expander_custom_details', False)
+    expander_letter_history_open = st.session_state.get('expander_letter_history', False)
+    st.session_state['expander_custom_details'] = False  # reset immediately
+    st.session_state['expander_letter_history'] = False  # reset immediately
 
     # Format dates MM-DD-YYYY in the bill details
     date_introduced = pd.to_datetime(date_introduced).strftime('%m-%d-%Y') if date_introduced is not None else None
@@ -68,9 +74,12 @@ def display_org_dashboard_details(selected_rows):
                     remove_bill_from_org_dashboard(openstates_bill_id, bill_number)
                 
                     # Deselect the row and stop execution
-                    st.session_state.pop('selected_bill_id', None)  # ← add this
-                    st.session_state.selected_rows = None
-                    st.rerun()  # Refresh the app to reflect the change
+                    st.session_state.pop('selected_bill_id', None)
+                    #st.session_state.selected_rows = None #TODO: do we need this line?
+
+                    # Show success message, then refresh app to reflect change
+                    st.success(f"Bill {bill_number} removed from dashboard.") 
+                    st.rerun()
 
     # Add empty rows of space  
     st.write("")
@@ -182,7 +191,8 @@ def display_org_dashboard_details(selected_rows):
     st.markdown('Use this section to enter custom details for this bill. <span title="These fields are also viewable on the My Dashboard page if you add this bill to your personal dashboard, but are only editable from your Organization Dashboard." style="cursor: help;">💬</span>', unsafe_allow_html=True)
 
     # Wrap in expander
-    with st.expander('Click to view/edit custom advocacy details'):
+    with st.expander('Click to view/edit custom advocacy details',
+                     expanded=expander_custom_details_open):
         with st.form(key='custom_fields', clear_on_submit=False, enter_to_submit=True, border=True):
             # First row with 4 columns
             with st.container():
@@ -308,8 +318,15 @@ def display_org_dashboard_details(selected_rows):
                     org_id,
                     org_name
                 )
-                st.success(f"Custom details for bill {bill_number} saved successfully by {user_email} from {org_name}.")
                 
+                # When form is submitted, clear the cached org dashboard bills data so that it will be refreshed with the new custom details when the user clicks on a bill again or when the dashboard reloads. This ensures that the user sees the most up-to-date information without having to manually refresh the page.
+                st.session_state.org_dashboard_bills = pd.DataFrame()
+                get_org_dashboard_bills.clear()
+
+                # Keep expander open after submission so user can see the updated details and message
+                st.session_state['expander_custom_details'] = True 
+                st.session_state['_toast'] = f"Custom details for bill {bill_number} saved successfully by {user_email} from {org_name}."
+                st.rerun() 
             except Exception as e:
                 st.error(f"Error saving details: {str(e)}")
         
@@ -317,47 +334,59 @@ def display_org_dashboard_details(selected_rows):
     st.write("")
     
     # Letter History Section
-    st.markdown('#### Letter History')
-    st.markdown('View all previous letters for this bill.')
+    st.markdown('#### Document History')
+    st.markdown('View all documents (letters, fact sheets, etc.) for this bill.')
 
-    with st.expander('Click to view letter history'):
+    with st.expander('Click to view document history',
+                     expanded=expander_letter_history_open):
         letter_history = get_letter_history(openstates_bill_id, org_id)
     
         # Button to add new letter
         with st.form(key='add_letter_form', border=True):
-            st.markdown('##### Add New Letter')
-            new_letter_name = st.text_input('Letter Name', help='Enter a name for the letter', autocomplete="off")
-            new_letter_url = st.text_input('Letter URL', help='Enter valid URL to the letter', autocomplete="off")
-            add_letter_btn = st.form_submit_button('Add Letter to History', type='primary')
-            
-            if add_letter_btn and new_letter_url and new_letter_name:
-                try:
-                    add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name,
+            st.markdown('##### Add New Document')
+            new_letter_name = st.text_input('Document Name', help='Enter a name for the document', autocomplete="off")
+            new_letter_url = st.text_input('Document URL', help='Enter valid URL to the document', autocomplete="off")
+            add_letter_btn = st.form_submit_button('Add Document to History', type='primary')
+        
+        # Handle submission outside of the form
+        if add_letter_btn and new_letter_url and new_letter_name:
+            try:
+                add_letter_to_history(openstates_bill_id, bill_number, org_id, org_name,
                                                 new_letter_name, new_letter_url, user_name)
-                    st.success(f"Letter added to history!")
-                    st.rerun()
-                except Exception as e:
-                        st.error(f"Error adding letter: {str(e)}")
-                else:
-                    st.warning("Please enter both a letter name and URL")
+                    
+                    
+                # Keep the expander open after submission so user can see the new letter in the history and message
+                st.session_state['expander_letter_history'] = True
+                    
+                # Success message, then rerun to update letter history with the new letter
+                st.session_state['_toast'] = "Document successfully added!"
+                st.rerun()
+                
+            except Exception as e:
+                    st.error(f"Error adding letter: {str(e)}")
+        else:
+            if add_letter_btn:  # only warn if they actually clicked the button
+                st.session_state['expander_letter_history'] = True  # keep expander open to show the warning
+                st.session_state['_toast_warning'] = "Please enter both a document name and URL."
+                st.rerun()
         
         st.divider()
-        st.markdown('##### Letters')
-        st.text('View all added letters for this bill below. Letters appear in reverse chronological order (most recent first).')
+        st.markdown('##### Documents')
+        st.text('View all added documents for this bill below. Documents appear in reverse chronological order (most recent first).')
             
         # Display letter history in a table
         if letter_history:
             for idx, letter in enumerate(letter_history):
                 with st.container(border=True):
                     st.markdown(f"**{letter['letter_name']}**")
-                    st.link_button('Open Letter', letter['letter_url'])
+                    st.link_button('Open Document', letter['letter_url'])
                         
                     created_date = letter['created_on'].strftime('%m-%d-%Y')
                     st.markdown(f"**Date:** {created_date}")
                     st.markdown(f"**Added By:** {letter['created_by'].split('.')[0]}")
                     
         else:
-            st.info('No letters in history yet. Add your first letter above.')
+            st.info('No documents in history yet. Add your first document above.')
 
     # Space
     st.markdown('')
@@ -375,7 +404,7 @@ def display_org_dashboard_details(selected_rows):
             # Filter options
             col_filter1, col_filter2 = st.columns(2)
             with col_filter1:
-                activity_types = ['All', 'Field Changes', 'Letters']
+                activity_types = ['All', 'Field Changes', 'Documents']
                 selected_type = st.selectbox('Filter by type:', activity_types)
             
             with col_filter2:
@@ -386,7 +415,7 @@ def display_org_dashboard_details(selected_rows):
             filtered_feed = activity_feed
             if selected_type == 'Field Changes':
                 filtered_feed = [item for item in filtered_feed if item['activity_type'] == 'field_change']
-            elif selected_type == 'Letters':
+            elif selected_type == 'Documents':
                 filtered_feed = [item for item in filtered_feed if item['activity_type'] == 'letter']
             
             if selected_user != 'All Users':
@@ -411,9 +440,9 @@ def display_org_dashboard_details(selected_rows):
                         st.caption(f"To: **{item['new_value']}**")
                     
                     elif item['activity_type'] == 'letter':
-                        st.markdown(f"📄 **Letter Added:** {item['field_name']}")
+                        st.markdown(f"📄 **Document Added:** {item['field_name']}")
                         if item['old_value']:
-                            st.markdown(f"[View Letter]({item['old_value']})")
+                            st.markdown(f"[View Document]({item['old_value']})")
                 
                 with col2:
                     st.markdown(f"**👤 User:** {item['user']}")
