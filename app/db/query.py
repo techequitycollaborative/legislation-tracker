@@ -793,6 +793,47 @@ def get_most_recent_letter(openstates_bill_id, org_id):
             }
         
         return None
+    
+@st.cache_data(ttl=60)
+@profile("query.py - get_all_most_recent_letters")
+def get_all_most_recent_letters():
+    '''
+    Retrieves the most recent document/letter for every bill that has one,
+    across all organizations. For use on the Advocacy Hub page.
+    '''
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT DISTINCT ON (openstates_bill_id)
+                openstates_bill_id,
+                bill_number,
+                org_name,
+                letter_name,
+                letter_url,
+                created_by,
+                created_on,
+                created_at
+            FROM app.bill_letter_history
+            ORDER BY openstates_bill_id, created_at DESC
+        """)
+
+        rows = cursor.fetchall()
+
+        letters = []
+        for row in rows:
+            letters.append({
+                'openstates_bill_id': row[0],
+                'bill_number': row[1],
+                'org_name': row[2],
+                'letter_name': row[3],
+                'letter_url': row[4],
+                'created_by': row[5],
+                'created_on': row[6],
+                'created_at': row[7]
+            })
+
+        return letters
 
 
 @st.cache_data(ttl=10) 
