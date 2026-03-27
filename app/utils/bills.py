@@ -69,21 +69,26 @@ def display_bill_info_text(selected_rows):
                 with timer("utils/bills.py - add_bill_to_org_dashboard"):
                     result = add_bill_to_org_dashboard(openstates_bill_id, bill_number)
                 if result == 'added':
+                    st.session_state.org_dashboard_bills = pd.DataFrame() # force reload
                     st.toast(f"Bill {bill_number} added to {org_nickname} dashboard!", icon='✅')
                 else:
                     st.toast(f"Bill {bill_number} is already in {org_nickname} dashboard.", icon='⚠️')
 
             if st.button('Add to My Dashboard', width='stretch', type='secondary'):
-                result = add_bill_to_dashboard(openstates_bill_id, bill_number)
+                with timer("utils/bills.py - add_bill_to_dashboard"):
+                    result = add_bill_to_dashboard(openstates_bill_id, bill_number)
                 if result == 'added':
+                    st.session_state.my_dashboard_bills = pd.DataFrame()
                     st.toast(f"Bill {bill_number} added to your dashboard!", icon='✅')
                 else:
                     st.toast(f"Bill {bill_number} is already in your dashboard.", icon='⚠️')
 
             if st.session_state.get('working_group', False):
                 if st.button('Add to AI Working Group Dashboard', width='stretch', type='secondary'):
-                    result = add_bill_to_working_group_dashboard(openstates_bill_id, bill_number)
+                    with timer("utils/bills.py - add_bill_to_working_group_dashboard"):
+                        result = add_bill_to_working_group_dashboard(openstates_bill_id, bill_number)
                     if result == 'added':
+                        st.session_state.wg_bills = pd.DataFrame()
                         st.toast(f"Bill {bill_number} added to AI Working Group dashboard!", icon='✅')
                     else:
                         st.toast(f"Bill {bill_number} is already in the AI Working Group dashboard.", icon='⚠️')

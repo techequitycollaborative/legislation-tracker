@@ -34,11 +34,11 @@ st.markdown(" ")
 ############################ LOAD AND PROCESS COMMITTEE DATA #############################
 track_rerun("Committees")
 
+# Cache the function that retrieves the data
+@st.cache_data(show_spinner="Loading committee data...", ttl=30)
 # Load committee membership data
 @profile("DB - Fetch COMMITTEE table data")
 def get_committee_data():
-    # Cache the function that retrieves the data
-    @st.cache_data(show_spinner="Loading committee data...")
     def committee_cache():
         # Get data
         committee_query = """
