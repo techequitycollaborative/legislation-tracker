@@ -66,12 +66,11 @@ def display_working_group_bill_details(selected_rows):
         with col3:
             # If button is clicked: 
             if st.button('Remove Bill from Dashboard', width='stretch', type='primary'):
-                # Call the function to remove the bill from the dashboard
                 remove_bill_from_wg_dashboard(openstates_bill_id, bill_number)
-                
-                # Deselect the row and stop execution
-                st.session_state.selected_rows = None
-                st.rerun()  # Refresh the app to reflect the change
+                st.session_state.pop('selected_bill_id_wg', None)  # clear identity-based selection
+                st.session_state.wg_bills = pd.DataFrame()
+                st.session_state['_toast'] = f"Bill {bill_number} removed from dashboard."
+                st.rerun()
 
     # Add empty row of space  
     st.write("")
@@ -173,7 +172,6 @@ def display_working_group_bill_details(selected_rows):
             
             # Save comment button
             if st.button('Submit Comment', type='primary'):
-                # Save the comment to the database
                 save_wg_comment(
                     bill_number=bill_number,
                     user_name=user_name,
@@ -182,7 +180,8 @@ def display_working_group_bill_details(selected_rows):
                     org_name=org_name,
                     comment=comment,
                 )
-                st.success('Comment submitted successfully!')
+                st.session_state['_toast'] = 'Comment submitted successfully!'
+                st.rerun()  # rerun so the new comment appears immediately in the list
             
             st.markdown('---')
             

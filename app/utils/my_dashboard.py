@@ -64,11 +64,18 @@ def display_dashboard_details(selected_rows):
             # If button is clicked: 
             if st.button('Remove from My Dashboard', width='stretch', type='primary'):
                 # Call the function to remove the bill from the dashboard
-                remove_bill_from_dashboard(openstates_bill_id, bill_number)
+                with timer("utils/my_dashboard.py - remove_bill_from_dashboard"):
+                    remove_bill_from_dashboard(openstates_bill_id, bill_number)
                 
                 # Deselect the row and stop execution
-                st.session_state.selected_rows = None
-                st.rerun()  # Refresh the app to reflect the change
+                st.session_state.pop('selected_bill_id_my', None)
+
+                # Force table reload on rerun
+                st.session_state.my_dashboard_bills = pd.DataFrame()  
+
+                # Show success message, then refresh app to reflect change
+                st.session_state['_toast'] = f"Bill {bill_number} removed from dashboard."
+                st.rerun()
 
     # Add empty rows of space  
     st.write("")

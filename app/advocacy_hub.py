@@ -10,7 +10,7 @@ Page that features custom data from organizations using the Leg Tracker.
 
 import streamlit as st
 import pandas as pd
-from db.query import get_all_custom_bill_details
+from db.query import get_all_custom_bill_details, get_all_most_recent_letters
 from utils.aggrid_styler import draw_advocacy_grid
 from utils.profiling import track_rerun
 
@@ -84,8 +84,8 @@ if records:
             #draw_advocacy_grid(df)
             
             # Configure Streamlit dataframe
-            desired_order = ["last_updated_on", "last_updated_org_name", "bill_number", "org_position", "priority_tier", "assigned_to",
-                            "letter_of_support"]
+            desired_order = ["last_updated_on", "last_updated_org_name", "bill_number", "org_position", "priority_tier", "assigned_to"]
+                            #"letter_of_support"]
             
             # Display only these columns in this order
             df_display = df[desired_order]
@@ -94,7 +94,7 @@ if records:
             df_display = df_display[~(
                 is_blank(df_display["org_position"]) &
                 is_blank(df_display["priority_tier"]) &
-                is_blank(df_display["letter_of_support"]) &
+                #is_blank(df_display["letter_of_support"]) &
                 is_blank(df_display["assigned_to"])
             )]
 
@@ -109,7 +109,7 @@ if records:
                     "org_position": st.column_config.Column("Position", help="Organization's position on the bill"),
                     "priority_tier": st.column_config.Column("Priority", help="Priority tier assigned to the bill by the organization"),
                     "assigned_to": st.column_config.Column("Point of Contact", help="Organization member assigned to this bill"),
-                    "letter_of_support": st.column_config.LinkColumn("Letter", display_text="Link to Letter", help="Letter of Support or Opposition provided by the organization"),
+                    #"letter_of_support": st.column_config.LinkColumn("Letter", display_text="Link to Letter", help="Letter of Support or Opposition provided by the organization"),
                 },
                 hide_index=True,
                 disabled=True  # Table is not editable
@@ -119,22 +119,39 @@ if records:
     with col2:
         st.markdown(" ")
 
+    # Document section
     with col3:
         with st.container(border=True):
-            
-            st.subheader("📄 Letters")
+            st.subheader("📄 Documents")
+            st.caption("This section displays available documents (letters, etc.) for bills from all organizations.")
             st.markdown(" ")
-            
-            # Group letters by bill and don't display letters that are blank in the db
-            grouped = df[~is_blank(df["letter_of_support"])].groupby("bill_number")
 
-            for bill_number, group in grouped:
-                st.markdown(f"**{bill_number}**")
-                for _, row in group.iterrows():
-                    org_name = row["last_updated_org_name"]
-                    letter_link = row["letter_of_support"]
-                    st.markdown(f"- [{org_name}'s Letter]({letter_link})")
-                st.markdown("---")  # horizontal divider between bills
+            # Fetch most recent document for each bill across all orgs
+            recent_letters = get_all_most_recent_letters()
+
+            if recent_letters:
+                # Apply bill filter if active, so letters section stays in sync with the table
+                if selected_bills:
+                    recent_letters = [l for l in recent_letters if l['bill_number'] in selected_bills]
+
+                if recent_letters:
+                    # Group by bill_number for display
+                    from itertools import groupby
+                    sorted_letters = sorted(recent_letters, key=lambda x: x['bill_number'])
+
+                    for bill_number, group in groupby(sorted_letters, key=lambda x: x['bill_number']):
+                        st.markdown(f"**{bill_number}**")
+                        for letter in group:
+                            created_date = pd.to_datetime(letter['created_on']).strftime('%m-%d-%Y')
+                            st.markdown(
+                                f"- [{letter['letter_name']}]({letter['letter_url']}) "
+                                f"— {letter['org_name']} ({created_date})"
+                            )
+                        st.markdown("---")
+                else:
+                    st.info("No documents match the current filter.")
+            else:
+                st.info("No documents available yet.")
 
 
 
