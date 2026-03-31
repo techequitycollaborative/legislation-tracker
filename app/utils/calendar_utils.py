@@ -217,9 +217,10 @@ def filter_events(bill_events, leg_events, selected_types, selected_bills_for_ca
 
         # If user selects one bill but there are multiple events for that bill:
         elif len(selected_bills_for_calendar) == 1 and len(filtered_bill_events) > 1:
-            active_events = filtered_bill_events[filtered_bill_events['event_status'] == 'active']# Pick the soonest event overall, even if inactive or in the past
-            soonest_event = filtered_bill_events.loc[pd.to_datetime(filtered_bill_events['event_date']).idxmin()]
-            initial_date = str(pd.to_datetime(soonest_event['event_date']))
+            # Removing this line bc we no longer have event_status as a column
+            #active_events = filtered_bill_events[filtered_bill_events['event_status'] == 'active']# Pick the soonest event overall, even if inactive or in the past
+            soonest_event = filtered_bill_events.loc[pd.to_datetime(filtered_bill_events['hearing_date']).idxmin()]
+            initial_date = str(pd.to_datetime(soonest_event['hearing_date']))
 
         # Add each filtered bill event to the calendar event list 
         # Build title
