@@ -12,13 +12,28 @@ import streamlit as st
 import pandas as pd
 from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard, get_letter_history, add_letter_to_history, get_bill_activity_history, get_org_dashboard_bills
 from .general import bill_topic_grid, clean_markdown
-from .profiling import profile, timer
+from .profiling import profile, timer, logging
+logger = logging.getLogger(__name__)
 
 @profile("utils/org_dashboard.py - display_org_dashboard_details")
 def display_org_dashboard_details(selected_rows):
     '''
     Displays bill details on the ORG DASHBOARD page when a row is selected; features a button to remove a bill from your dashboard.
     '''
+    # Check if selected_rows is None or empty before proceeding
+    if selected_rows is None or selected_rows.empty:
+        return
+    
+    required_cols = ['openstates_bill_id', 'bill_number', 
+                        'bill_name', 'author', 'coauthors', 'status', 'date_introduced', 
+                        'leg_session', 'chamber', 'leginfo_link', 'bill_text', 
+                        'bill_history', 'bill_topic', 'bill_event', 'event_text', 'last_updated_on']
+    missing = [c for c in required_cols if c not in selected_rows.columns]
+    if missing:
+        st.warning("⚠️ Bill details unavailable. Try refreshing the page.")
+        logger.warning(f"display_org_dashboard_details: missing columns {missing}")
+        return
+
     # Extract the values from the selected row
     openstates_bill_id = selected_rows['openstates_bill_id'].iloc[0]
     bill_number = selected_rows['bill_number'].iloc[0]
