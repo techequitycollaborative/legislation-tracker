@@ -18,7 +18,7 @@ from db.query import (
 
 # Configuration
 LOCAL_TZ = pytz.timezone("America/Los_Angeles")
-API_BASE_URL = "http://10.0.0.218:5001"
+API_BASE_URL = "ADD URL"
 
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
