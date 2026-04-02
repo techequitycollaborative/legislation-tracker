@@ -6,15 +6,16 @@ Given a section string (ex: postgres), return parameters
 """
 
 from configparser import ConfigParser
+from pathlib import Path
 
 
-def config(section, filename="db/credentials.ini"):
-    # create a parser
+def config(section, filename=None):
+    if filename is None:
+        filename = Path(__file__).resolve().parent / "credentials.ini"
+
     parser = ConfigParser()
-    # read config file
     parser.read(filename)
 
-    # get section, default to postgresql
     values = {}
     if parser.has_section(section):
         params = parser.items(section)
