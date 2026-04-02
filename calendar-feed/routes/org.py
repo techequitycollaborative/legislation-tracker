@@ -11,13 +11,15 @@ def org_feed(token: str):
     org_id = resolve_org_token(token)
     if not org_id:
         abort(401)
-
+ 
     rows = get_hearings_for_org(org_id)
     return ical_response(
         rows,
         feed_title="My Organization - Legislative Hearings",
         filename="org_hearings.ics",
+        feed_label="ORG",
     )
+
 
 @bp.route("/feed/org/<token>/json")
 def user_feed_json(token: str):
