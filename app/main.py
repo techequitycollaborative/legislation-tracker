@@ -100,6 +100,7 @@ else:
             st.Page('calendar_page.py', title='Calendar', icon='📅', url_path='calendar'),
         ],
         "Bill Tracking Tools": [
+            st.Page("calendar_v2.py", title="📅 Interactive Calendar", icon="📅"),
             st.Page('advocacy_hub.py', title='Advocacy Hub', icon='📣', url_path='advocacy_hub'),
             st.Page(
                 'org_dashboard.py',
