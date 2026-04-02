@@ -27,12 +27,12 @@ Chamber and committee feeds are public. Org/user/working-group feeds require a s
 psql $DATABASE_URL -f migrations/001_add_feed_tokens.sql
 ```
 
-### 2. Generate tokens for all existing users and orgs
+### 2. Generate tokens for all existing users and orgs (admin only)
 
 Run from the monorepo root:
 
 ```bash
-python -m db.scripts.generate_tokens
+python -m db.admin.backfill_tokens
 ```
 
 Raw tokens are printed to stdout **once and never stored**. The DB stores only the sha256 hash.
@@ -41,13 +41,13 @@ Raw tokens are printed to stdout **once and never stored**. The DB stores only t
 
 ```bash
 # For a user
-python -m db.scripts.generate_tokens --regenerate user someone@example.com
+python -m db.admin.backfill_tokens --regenerate user someone@example.com
 
 # For an org
-python -m db.scripts.generate_tokens --regenerate org 42
+python -m db.admin.backfill_tokens --regenerate org 42
 
 # For all
-python -m db.scripts.generate_tokens --regenerate
+python -m db.admin.backfill_tokens --regenerate
 ```
 
 ---
