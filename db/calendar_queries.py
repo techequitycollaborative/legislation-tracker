@@ -6,7 +6,11 @@ from db.connect import get_conn
 
 # ── Shared SQL fragments ───────────────────────────────────────────────────────
 
-# Core SELECT used by all feed queries — hearing-first with bills eagerly joined
+_FUTURE_ONLY = "h.date >= CURRENT_DATE"
+_ORDER       = "ORDER BY h.date, h.time_normalized NULLS LAST"
+
+# Core SELECT for chamber/committee feeds — no dashboard context, no deadlines.
+# committee_id may be null for subcommittees and joint hearings.
 _FEED_SELECT = """
     SELECT
         h.hearing_id,
@@ -21,19 +25,53 @@ _FEED_SELECT = """
         h.chamber_id,
         h.committee_id,
         h.updated_at,
+        c.webpage_link      AS committee_webpage,
         hd.deadline_date,
         hd.deadline_type,
         b.openstates_bill_id,
         b.bill_num          AS bill_number,
         b.title             AS bill_name
     FROM snapshot.hearings h
+    LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
     LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
     LEFT JOIN snapshot.hearing_bills     hb ON hb.hearing_id = h.hearing_id
-    LEFT JOIN snapshot.bill               b  ON b.openstates_bill_id = hb.openstates_bill_id
+    LEFT JOIN snapshot.bill               b ON b.openstates_bill_id = hb.openstates_bill_id
 """
 
-_FUTURE_ONLY = "h.date >= CURRENT_DATE"
-_ORDER       = "ORDER BY h.date, h.time_normalized NULLS LAST"
+# Extended SELECT for dashboard feeds — adds on_dashboard flag per bill row.
+# on_dashboard = TRUE means this bill is tracked on the relevant dashboard,
+# which controls whether a deadline event is emitted for that bill in ics_builder.
+# The dashboard table LEFT JOIN is appended per query below.
+_DASHBOARD_SELECT = """
+    SELECT
+        h.hearing_id,
+        h.name              AS hearing_name,
+        h.date              AS hearing_date,
+        h.time_verbatim     AS hearing_time_verbatim,
+        h.time_normalized   AS hearing_time,
+        h.is_allday,
+        h.location          AS hearing_location,
+        h.room              AS hearing_room,
+        h.notes,
+        h.chamber_id,
+        h.committee_id,
+        h.updated_at,
+        c.webpage_link      AS committee_webpage,
+        hd.deadline_date,
+        hd.deadline_type,
+        b.openstates_bill_id,
+        b.bill_num          AS bill_number,
+        b.title             AS bill_name,
+        hb.file_order,
+        CASE WHEN dash.openstates_bill_id IS NOT NULL
+             THEN TRUE ELSE FALSE
+        END                 AS on_dashboard
+    FROM snapshot.hearings h
+    LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
+    LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
+    LEFT JOIN snapshot.hearing_bills     hb ON hb.hearing_id = h.hearing_id
+    LEFT JOIN snapshot.bill               b ON b.openstates_bill_id = hb.openstates_bill_id
+"""
 
 
 # ── Page queries (Streamlit) ───────────────────────────────────────────────────
@@ -56,9 +94,11 @@ def get_hearings() -> list[dict]:
             h.chamber_id,
             h.committee_id,
             h.updated_at,
+            c.webpage_link      AS committee_webpage,
             hd.deadline_date,
             hd.deadline_type
         FROM snapshot.hearings h
+        LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
         LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
         WHERE {_FUTURE_ONLY}
         {_ORDER}
@@ -97,6 +137,9 @@ def get_hearing_agenda(hearing_id: int) -> list[dict]:
 # ── Feed queries (calendar-feed service) ──────────────────────────────────────
 
 def get_hearings_for_chamber(chamber_id: int) -> list[dict]:
+    """
+    No dashboard context — on_dashboard absent, no deadline events emitted.
+    """
     sql = f"""
         {_FEED_SELECT}
         WHERE {_FUTURE_ONLY}
@@ -110,6 +153,9 @@ def get_hearings_for_chamber(chamber_id: int) -> list[dict]:
 
 
 def get_hearings_for_committee(committee_id: int) -> list[dict]:
+    """
+    No dashboard context — on_dashboard absent, no deadline events emitted.
+    """
     sql = f"""
         {_FEED_SELECT}
         WHERE {_FUTURE_ONLY}
@@ -125,60 +171,73 @@ def get_hearings_for_committee(committee_id: int) -> list[dict]:
 def get_hearings_for_org(org_id: int) -> list[dict]:
     """
     All future hearings where at least one bill on the org's dashboard is on
-    the agenda. Returns the full hearing with all associated bills, not just
-    the dashboard bills.
+    the agenda. Returns all bills on each hearing; on_dashboard=TRUE only for
+    bills tracked on this org's dashboard. Deadline events emitted for those only.
     """
     sql = f"""
-        {_FEED_SELECT}
+        {_DASHBOARD_SELECT}
+        LEFT JOIN app.org_bill_dashboard dash
+               ON dash.openstates_bill_id = b.openstates_bill_id
+              AND dash.org_id = %s
         WHERE {_FUTURE_ONLY}
           AND h.hearing_id IN (
-                SELECT DISTINCT hb.hearing_id
-                  FROM snapshot.hearing_bills  hb
-                  JOIN app.org_bill_dashboard  d ON d.openstates_bill_id = hb.openstates_bill_id
+                SELECT DISTINCT hb2.hearing_id
+                  FROM snapshot.hearing_bills hb2
+                  JOIN app.org_bill_dashboard d
+                    ON d.openstates_bill_id = hb2.openstates_bill_id
                  WHERE d.org_id = %s
           )
         {_ORDER}
     """
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (org_id,))
+            cur.execute(sql, (org_id, org_id))
             return cur.fetchall()
 
 
 def get_hearings_for_user(user_email: str) -> list[dict]:
     """
-    All future hearings where at least one bill on the user's personal
-    dashboard is on the agenda.
+    All future hearings where at least one bill on the user's personal dashboard
+    is on the agenda. on_dashboard=TRUE only for bills tracked by this user.
+    Deadline events emitted for those only.
     """
     sql = f"""
-        {_FEED_SELECT}
+        {_DASHBOARD_SELECT}
+        LEFT JOIN app.user_bill_dashboard dash
+               ON dash.openstates_bill_id = b.openstates_bill_id
+              AND dash.user_email = %s
         WHERE {_FUTURE_ONLY}
           AND h.hearing_id IN (
-                SELECT DISTINCT hb.hearing_id
-                  FROM snapshot.hearing_bills    hb
-                  JOIN app.user_bill_dashboard   d ON d.openstates_bill_id = hb.openstates_bill_id
+                SELECT DISTINCT hb2.hearing_id
+                  FROM snapshot.hearing_bills    hb2
+                  JOIN app.user_bill_dashboard   d
+                    ON d.openstates_bill_id = hb2.openstates_bill_id
                  WHERE d.user_email = %s
           )
         {_ORDER}
     """
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (user_email,))
+            cur.execute(sql, (user_email, user_email))
             return cur.fetchall()
 
 
 def get_hearings_for_wg() -> list[dict]:
     """
-    All future hearings where at least one bill on the working group
-    dashboard is on the agenda.
+    All future hearings where at least one bill on the working group dashboard
+    is on the agenda. on_dashboard=TRUE only for bills tracked by the WG.
+    Deadline events emitted for those only.
     """
     sql = f"""
-        {_FEED_SELECT}
+        {_DASHBOARD_SELECT}
+        LEFT JOIN app.working_group_dashboard dash
+               ON dash.openstates_bill_id = b.openstates_bill_id
         WHERE {_FUTURE_ONLY}
           AND h.hearing_id IN (
-                SELECT DISTINCT hb.hearing_id
-                  FROM snapshot.hearing_bills        hb
-                  JOIN app.working_group_dashboard   d ON d.openstates_bill_id = hb.openstates_bill_id
+                SELECT DISTINCT hb2.hearing_id
+                  FROM snapshot.hearing_bills      hb2
+                  JOIN app.working_group_dashboard d
+                    ON d.openstates_bill_id = hb2.openstates_bill_id
           )
         {_ORDER}
     """
