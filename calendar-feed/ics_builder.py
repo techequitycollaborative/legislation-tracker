@@ -7,6 +7,7 @@ envelope and iteration logic, not the event construction details.
 """
 
 from typing import Any
+import logging
 
 import pytz
 from icalendar import Calendar
@@ -16,6 +17,8 @@ from deadline_builder import build_deadline_event
 
 UTC = pytz.utc
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def build_ical(rows: list[dict[str, Any]], feed_title: str, feed_label: str = "") -> bytes:
     """
@@ -38,6 +41,16 @@ def build_ical(rows: list[dict[str, Any]], feed_title: str, feed_label: str = ""
     Returns:
         Raw iCal bytes (text/calendar).
     """
+    # Input validation
+    if not rows:
+        logger.warning(f"Feed has no data: {feed_title}")
+
+        # Return minimal valid calendar instead of empty bytes
+        cal = Calendar()
+        cal.add("prodid", "-//LegTracker//iCal Feed//EN")
+        cal.add("version", "2.0")
+        return cal.to_ical()    
+    
     cal = Calendar()
     cal.add("prodid", "-//LegTracker//iCal Feed//EN")
     cal.add("version", "2.0")
@@ -46,12 +59,51 @@ def build_ical(rows: list[dict[str, Any]], feed_title: str, feed_label: str = ""
     cal.add("x-wr-calname", feed_title)
     cal.add("x-wr-caldesc", "Legislative hearing schedule from LegTracker")
 
-    for hearing_id, group in group_hearings(rows):
-        cal.add_component(build_hearing_event(hearing_id, group))
+    # Log errors
+    hearing_count = 0
+    deadline_count = 0
+    error_count = 0
 
-        # Deadline events — dashboard feeds only, one per tracked bill
-        for row in group:
-            if row.get("on_dashboard") and row.get("deadline_date"):
-                cal.add_component(build_deadline_event(row, feed_label))
+    try:
+        for hearing_id, group in group_hearings(rows):
+            try:
+                hearing_event = build_hearing_event(hearing_id, group)
+                cal.add_component(hearing_event)
+                hearing_count += 1
+                # Deadline events - dashboard feeds only, one per tracked bill
+                if group: # Only try to build deadlines if group has data
+                    for row in group:
+                        if row.get("on_dashboard") and row.get("deadline_date"):
+                            try:
+                                cal.add_component(build_deadline_event(row, feed_label))
+                                deadline_count += 1
+                            except (KeyError, AttributeError, ValueError) as e:
+                                error_count += 1
+                                logger.error(
+                                    f"Failed to build hearing event for ID {hearing_id}: {e}"
+                                )
+            except (KeyError, AttributeError, ValueError) as e:
+                 error_count += 1
+                 logger.error(
+                     f"Failed to build hearing event for ID {hearing_id}: {e}"
+                 )
+                 continue # Skip, but continue to build partial calendar
+    except Exception as e:
+        error_count += 1
+        logger.error(f"Critical error building calendar: {e}")
+        # Return minimal calendar instead of failing completely
+        minimal_cal = Calendar()
+        minimal_cal.add("prodid", "-//LegTracker//iCal Feed//EN")
+        cal.add("version", "2.0")
+        cal.add("x-wr-calname", feed_title)
+        cal.add("x-wr-caldesc", f"Partial calendar - errors occurred: {str(e)}")
 
+    if error_count > 0:
+        logger.warning(
+            f"Built calendar with errors: {hearing_count} hearings, {deadline_count} deadlines, {error_count} errors"
+        )
+    else:
+        logger.info(
+            f"Build calendar: {hearing_count} hearings, {deadline_count} deadlines"
+        )
     return cal.to_ical()

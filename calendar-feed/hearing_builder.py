@@ -122,6 +122,17 @@ def build_hearing_event(hearing_id: int, group_rows: List[Dict[str, Any]]) -> Ev
     Returns:
         An icalendar Event object.
     """
+    if hearing_id is None:
+        raise ValueError("hearing_id is required")
+    
+    # Handle empty group_rows
+    if not group_rows:
+        ev = Event()
+        ev.add("uid", f"hearing-{hearing_id}@legtracker")
+        ev.add("summary", f"Hearing {hearing_id} (no data)")
+        ev.add("dtstamp", datetime.now(UTC))
+        return ev
+    
     h = group_rows[0]  # hearing-level fields are identical across all rows
 
     ev = Event()

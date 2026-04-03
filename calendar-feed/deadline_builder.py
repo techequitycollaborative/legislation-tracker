@@ -32,6 +32,12 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
 
     Summary format: "ORG LETTER DUE! [ASM] - AB 123 - Budget"
     """
+    if not row.get("hearing_id") or not row.get("openstates_bill_id"):
+        raise ValueError("Missing required fields: hearing_id or openstates_bill_id")
+    
+    if not row.get("deadline_date"):
+        raise ValueError("deadline_date is required but missing")
+    
     ev = Event()
 
     # Stable UID per bill-hearing-deadline_type combination
