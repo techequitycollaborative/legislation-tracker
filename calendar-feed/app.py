@@ -1,4 +1,5 @@
 import logging
+import os
 from flask import Flask
 from routes.chamber import bp as chamber_bp
 from routes.committee import bp as committee_bp
@@ -20,6 +21,14 @@ def create_app() -> Flask:
     app.register_blueprint(org_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(wg_bp)
+
+    @app.route("/status")
+    def status():
+        return {
+            "service": "calendar-feed",
+            "status": "operational",
+            "last_deploy": os.environ.get("HEROKU_RELEASE_CREATED_AT", "unknown")
+        }
 
     @app.route("/health")
     def health():

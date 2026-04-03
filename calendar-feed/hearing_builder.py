@@ -47,8 +47,9 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     html_parts = []
 
     if h.get("hearing_time_verbatim"):
-        parts.append(f"Time: {h['hearing_time_verbatim']}")
-        html_parts.append(f"<b>Time:</b> {h['hearing_time_verbatim']} PT")
+        hearing_time = h['hearing_time_verbatim'].replace("m.", "m. PT")
+        parts.append(f"Time: {hearing_time}")
+        html_parts.append(f"<b>Time:</b> {hearing_time}")
 
     # Committee webpage link when available (null for subcommittees/joint hearings)
     if h.get("committee_webpage"):
@@ -81,11 +82,11 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
         for bill_detail in bills_sorted:
             line = f"{bill_detail["file_order"]}. "
             if bill_detail.get("bill_name"):
-                line += f"{bill_detail['bill_name']}"
+                line += f"{bill_detail['bill_number']} - {bill_detail['bill_name']}"
 
             parts.append(line)
 
-            html_parts.append(f"<li>{bill_detail.get("bill_name", "Bill")}</li>")
+            html_parts.append(f"<li>{bill_detail['bill_number']} - {bill_detail.get("bill_name", "Bill")}</li>")
         html_parts.append("</ol>")
 
     plain = "\n".join(parts)

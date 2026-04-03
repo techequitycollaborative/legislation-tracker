@@ -41,11 +41,12 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
         f"deadline-{row['hearing_id']}-{row['openstates_bill_id']}-{deadline_type}@legtracker",
     )
 
-    # Build summary: "LETTER DUE! [ASM] [ORG] – AB 123 – Budget Hearing"
+    # Build summary: "ORG LETTER DUE! [ASM] Budget - AB 123"
     label        = (row.get("deadline_type") or "LETTER").upper()
     chamber_tag  = _chamber_prefix(row.get("chamber_id"))
     bill         = row.get("bill_number") or row.get("openstates_bill_id", "")
     hearing_name = row.get("hearing_name") or f"Hearing {row['hearing_id']}"
+    hearing_time = row.get("hearing_time_verbatim").replace("m.", "m. PT")
     summary      = ""
 
     if feed_label:
@@ -65,12 +66,14 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
     plain = (
         f"{bill}\n"
         f"Hearing: {chamber_tag} {hearing_name}\n"
+        f"Time: {hearing_time}\n"
         # f"Deadline type: {row.get('deadline_type', 'letter')}"
     )
     html = (
         f"<html><body>"
         f"<b>{bill}</b><br>"
         f"<b>Hearing:</b> {hearing_name}<br>"
+        f"<b>Time:</b> {hearing_time}<br>"
         # f"<b>Deadline type:</b> {row.get('deadline_type', 'letter')}"
         f"</body></html>"
     )
