@@ -1,6 +1,6 @@
 import logging
 import os
-from flask import Flask
+from flask import Flask, redirect
 from routes.chamber import bp as chamber_bp
 from routes.committee import bp as committee_bp
 from routes.org import bp as org_bp
@@ -22,18 +22,13 @@ def create_app() -> Flask:
     app.register_blueprint(user_bp)
     app.register_blueprint(wg_bp)
 
-    @app.route("/status")
-    def status():
-        return {
-            "service": "calendar-feed",
-            "status": "operational",
-            "last_deploy": os.environ.get("HEROKU_RELEASE_CREATED_AT", "unknown")
-        }
-
     @app.route("/health")
     def health():
         return {"status": "ok"}, 200
  
+    @app.route("/")
+    def root():
+        return redirect("/health")
     return app
 
 
