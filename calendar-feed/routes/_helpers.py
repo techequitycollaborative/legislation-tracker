@@ -13,7 +13,7 @@ def ical_response(
     payload = build_ical(rows, feed_title, feed_label)
     return Response(
         payload,
-        mimetype="text/calendar; charset=utf-8",
+        mimetype="text/calendar",
         headers={
             "Content-Disposition": f'inline; filename="{filename}"',
             "Cache-Control": "public, max-age=3600",
