@@ -15,7 +15,7 @@ def ical_response(
         payload,
         mimetype="text/calendar; charset=utf-8",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": f'inline; filename="{filename}"',
             "Cache-Control": "public, max-age=3600",
         },
     )
