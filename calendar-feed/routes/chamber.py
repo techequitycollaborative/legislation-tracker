@@ -11,7 +11,7 @@ def chamber_feed(chamber_id: int):
     current_app.logger.info(f"Feed served: chamber={chamber_id}, events={len(rows)}")
     return ical_response(
         rows,
-        feed_title=f"Chamber {chamber_id} - Legislative Hearings",
+        feed_title=f"Chamber {chamber_id} - Legislation Tracker",
         filename=f"chamber_{chamber_id}.ics",
     )
 

@@ -135,7 +135,6 @@ def get_hearing_agenda(hearing_id: int) -> list[dict]:
 
 
 # ── Feed queries (calendar-feed service) ──────────────────────────────────────
-
 def get_hearings_for_chamber(chamber_id: int) -> list[dict]:
     """
     No dashboard context — on_dashboard absent, no deadline events emitted.
@@ -167,6 +166,19 @@ def get_hearings_for_committee(committee_id: int) -> list[dict]:
             cur.execute(sql, (committee_id,))
             return cur.fetchall()
 
+def get_name_for_org(org_id: int) -> str | None:
+    """
+    Return org nickname associated with org ID to use in feed title.
+    """
+    sql = f"""
+        SELECT nickname FROM auth.approved_organizations
+        WHERE id = %s
+    """
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(sql, (org_id,))
+            result = cur.fetchone()
+            return result["nickname"] if result else None
 
 def get_hearings_for_org(org_id: int) -> list[dict]:
     """
