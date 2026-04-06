@@ -36,14 +36,14 @@ DE_KEYWORDS = re.compile(r'|'.join(r'\b' + word + r'\b' for word in deadline_eve
 ####################################### LOAD DATA ###################################
 
 # Load legislative calendar events for 2025-2026 leg session (this is in a CSV file for now)
-@st.cache_data(show_spinner="Loading legislative events...")
+#@st.cache_data(show_spinner="Loading legislative events...")
 def load_leg_events():
     leg_events = pd.read_csv('./data/20262027_leg_dates.csv')
     return leg_events
 
 # Load events specific to individual bills
 @profile("Calendar - load bill events")
-@st.cache_data(show_spinner="Loading bill events...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
+#@st.cache_data(show_spinner="Loading bill events...",ttl=60 * 60 * 6) # Cache bills data and refresh every 6 hours
 def load_bill_events():
     if 'bills_data' not in st.session_state:
         bills = query_table('app', 'bills_mv') # Get bill info from bills table

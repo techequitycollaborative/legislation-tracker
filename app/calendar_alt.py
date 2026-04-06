@@ -136,7 +136,7 @@ structured = {date_key: dict(committees) for date_key, committees in structured.
 
 ## Build the calendar display
 # Two tabs
-tab1, tab2, tab3 = st.tabs(["🏛️ Committee Hearings", "📅 Legislative Calendar","Leg Cal Alt"]) 
+tab1, tab2 = st.tabs(["🏛️ Committee Hearings", "📅 Legislative Calendar"]) 
 
 ## Committee hearings tab
 with tab1:
@@ -291,6 +291,10 @@ with tab1:
             help="Download committee hearings and letter deadlines as an .ics file to add to an external calendar. If you have filters applied, only the events matching the current filters will be included in the download. Events are generated at the bill level."
         )
 
+    # Determine if filters are active -- this will determine whether to keep expanders open
+    # or closed by default
+    filters_active = bool(selected_bills or selected_dashboards)
+
     # Render events
     all_dates = sorted(set(list(filtered_structured.keys()) + list(deadline_structured.keys())))
 
@@ -322,7 +326,7 @@ with tab1:
                         )
                     with col2:
                         # Build expander with content
-                        with st.expander(committee_name, expanded=False):
+                        with st.expander(committee_name, expanded=filters_active):
 
                             # Display info as captions                            
                             st.caption(f"📝 Bills on the agenda for {chamber_name} {committee_name} Committee")
@@ -348,7 +352,7 @@ with tab1:
 
                     with col2:                        
                         # Build expander with content
-                        with st.expander(committee_name, expanded=False):
+                        with st.expander(committee_name, expanded=filters_active):
 
                             # Display chamber and hearing date as captions                            
                             st.caption(f"⚠️ Letter Deadline for {chamber_name} {committee_name} Committee")
@@ -377,7 +381,12 @@ with tab2:
     # Build a lookup: {date -> [event titles]}
     events_by_date = defaultdict(list)
     for _, row in leg_events.iterrows():
-        events_by_date[row['date']].append(row['title'])
+        start = pd.to_datetime(row['start']).date()
+        end = pd.to_datetime(row['end']).date()
+        current = start
+        while current < end:
+            events_by_date[current].append(row['title'])
+            current += timedelta(days=1)
 
     # Iterate through each month and render a calendar grid
     current_month = min_month
@@ -392,6 +401,15 @@ with tab2:
         is_past = (year, month) < (today.year, today.month)
         
         with st.expander(f"**{month_label}**", expanded=not is_past):
+
+            # Count events for this month
+            month_event_count = sum(
+                len(titles)
+                for d, titles in events_by_date.items()
+                if d.year == year and d.month == month
+            )
+            event_text = "event" if month_event_count == 1 else "events"
+            st.caption(f"📅 {month_event_count} legislative {event_text} this month")
 
             # Day-of-week headers
             day_headers = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -446,58 +464,6 @@ with tab2:
                                 f"{events_html}</div>",
                                 unsafe_allow_html=True
                             )
-
-        # Advance to next month
-        if month == 12:
-            current_month = current_month.replace(year=year + 1, month=1)
-        else:
-            current_month = current_month.replace(month=month + 1)
-
-## Legislative calendar tab -- LIST VIEW. TESTING/MIGHT REMOVE
-with tab3:
-    # Normalize leg_events dates
-    leg_events['date'] = pd.to_datetime(leg_events['start']).dt.date
-
-    # Get range of months to display from leg_events
-    if not leg_events.empty:
-        min_month = leg_events['date'].min().replace(day=1)
-        max_month = leg_events['date'].max().replace(day=1)
-    else:
-        today = date.today()
-        min_month = today.replace(day=1)
-        max_month = today.replace(day=1)
-
-    # Build a lookup: {date -> [event titles]}
-    events_by_date = defaultdict(list)
-    for _, row in leg_events.iterrows():
-        events_by_date[row['date']].append(row['title'])
-
-    # Iterate through each month and render a list
-    current_month = min_month
-    while current_month <= max_month:
-        year = current_month.year
-        month = current_month.month
-        month_label = current_month.strftime("%B %Y")
-
-        st.markdown(f"### {month_label}")
-
-        # Get all days in this month that have events, sorted
-        month_events = {
-            d: titles
-            for d, titles in events_by_date.items()
-            if d.year == year and d.month == month
-        }
-
-        if month_events:
-            for day_date in sorted(month_events.keys()):
-                titles = month_events[day_date]
-                date_friendly = day_date.strftime("%A, %B %d")
-                for title in titles:
-                    st.markdown(f"- **{date_friendly}:** {title}")
-        else:
-            st.caption("No legislative events this month.")
-
-        st.divider()
 
         # Advance to next month
         if month == 12:
