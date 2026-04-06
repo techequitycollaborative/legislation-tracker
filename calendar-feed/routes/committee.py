@@ -13,7 +13,7 @@ def committee_feed(committee_id: int):
     current_app.logger.info(f"Feed served: chamber={committee_id}, events={len(rows)}")
     return ical_response(
         rows,
-        feed_title=f"Committee {committee_id} - Legislative Hearings",
+        feed_title=f"Committee {committee_id} - Legislation Tracker",
         filename=f"committee_{committee_id}.ics",
     )
 

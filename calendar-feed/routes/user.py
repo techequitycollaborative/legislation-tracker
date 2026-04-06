@@ -17,7 +17,7 @@ def user_feed(token: str):
     current_app.logger.info(f"Feed served: user={user["email"]}, events={len(rows)}")
     return ical_response(
         rows,
-        feed_title="My Dashboard - Legislative Hearings",
+        feed_title="My Dashboard - Legislation Tracker",
         filename="my_hearings.ics"
     )
 

@@ -20,7 +20,7 @@ def working_group_feed(token: str):
     current_app.logger.info(f"Feed served: user={user["email"]}, events={len(rows)}")
     return ical_response(
         rows,
-        feed_title="Working Group - Legislative Hearings",
+        feed_title="AI Working Group - Legislation Tracker",
         filename="working_group_hearings.ics",
         feed_label="AI-WG",
     )
