@@ -1,0 +1,20 @@
+# calendar-feed/compose.yaml
+#
+# Run from the monorepo root:
+#   docker compose -f calendar-feed/compose.yaml up --build
+
+services:
+  calendar-feed:
+    build:
+      context: ..                               # monorepo root — required for COPY db/
+      dockerfile: calendar-feed/Dockerfile
+    ports:
+      - "5001:5000"
+    volumes:
+      - ../db/credentials.ini:/app/db/credentials.ini:ro   # never baked into image
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

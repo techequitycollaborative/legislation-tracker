@@ -1,0 +1,5 @@
+gunicorn
+flask
+psycopg2-binary
+icalendar
+pytz
