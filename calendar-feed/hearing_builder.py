@@ -69,25 +69,37 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     if h.get("notes"):
         parts.append(f"\nNotes: {h['notes']}")
         html_parts.append(f"<br><b>Notes:</b> {h['notes']}")
+    else:
+        parts.append(f"\nNotes: N/A")
+        html_parts.append(f"<br><b>Notes:</b> N/A")
 
     # Bills — skip rows where bill data is entirely null (hearing with no bills)
     bills = [r for r in rows if r.get("bill_number")]
+    agenda_length = len(bills)
     if bills:
-        # Ensure bills are sorted in file order
-        bills_sorted = sorted(bills, key=lambda r: r.get("file_order", float('inf')))
+        # Filter only for tracked bills
+        tracked_bills = sorted(
+            filter(
+                lambda r: r.get("on_dashboard", False),
+                bills
+            ),
+            key=lambda r: r.get("file_order", float('inf'))
+        )
+        # Add header
+        parts.append("\n**Tracked bills on the agenda**")
+        html_parts.append("<br><b>**Tracked bills on the agenda**</b><ul>")
 
-        parts.append("\nBills in file order:")
-        html_parts.append("<br><b>Bills in file order:</b><ol>")
+        # Only format content for tracked bills
+        for bill_detail in tracked_bills:
+            # Ex: AB 123 - Titile (File order: 4/5)
+            line = f"""
+                {bill_detail['bill_number']} - {bill_detail['bill_name']} (File order: {bill_detail['file_order']}/{agenda_length})
+            """
 
-        for bill_detail in bills_sorted:
-            line = f"{bill_detail["file_order"]}. "
-            if bill_detail.get("bill_name"):
-                line += f"{bill_detail['bill_number']} - {bill_detail['bill_name']}"
-
-            parts.append(line)
-
-            html_parts.append(f"<li>{bill_detail['bill_number']} - {bill_detail.get("bill_name", "Bill")}</li>")
-        html_parts.append("</ol>")
+            # Add content to description parts, stripping excess whitespace
+            parts.append(line.strip())
+            html_parts.append(f"<li>{line.strip()}</li>")
+        html_parts.append("</ul>")
 
     plain = "\n".join(parts)
     html  = f'<html><body>{"".join(html_parts)}</body></html>'

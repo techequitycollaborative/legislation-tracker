@@ -50,8 +50,10 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
     # Build summary: "ORG LETTER DUE! [ASM] Budget - AB 123"
     label        = (row.get("deadline_type") or "LETTER").upper()
     chamber_tag  = _chamber_prefix(row.get("chamber_id"))
-    bill         = row.get("bill_number") or row.get("openstates_bill_id", "")
-    hearing_name = row.get("hearing_name") or f"Hearing {row['hearing_id']}"
+    bill_number  = row.get("bill_number")
+    bill_name    = row.get("bill_name")
+    hearing_name = row.get("hearing_name")
+    hearing_note = row.get("notes") if len(row.get("notes")) else "N/A"
     hearing_time = row.get("hearing_time_verbatim").replace("m.", "m. PT")
     summary      = ""
 
@@ -59,7 +61,7 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
         summary += f"{feed_label} "
     summary += f"{label} DUE!"
     summary += f" {chamber_tag}"
-    summary += f" - {hearing_name} - {bill}"
+    summary += f" - {hearing_name} - {bill_number}"
     ev.add("summary", summary)
 
     # All-day event; dtend is exclusive next day per RFC 5545
@@ -70,15 +72,17 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
 
     # Plain + HTML description
     plain = (
-        f"{bill}\n"
+        f"{bill_number} - {bill_name}\n\n"
         f"Hearing: {chamber_tag} {hearing_name}\n"
+        f"Notes: {hearing_note}\n"
         f"Time: {hearing_time}\n"
         # f"Deadline type: {row.get('deadline_type', 'letter')}"
     )
     html = (
         f"<html><body>"
-        f"<b>{bill}</b><br>"
+        f"<b>{bill_number} - {bill_name}</b><br><br>"
         f"<b>Hearing:</b> {hearing_name}<br>"
+        f"<b>Notes:</b> {hearing_note}<br>"
         f"<b>Time:</b> {hearing_time}<br>"
         # f"<b>Deadline type:</b> {row.get('deadline_type', 'letter')}"
         f"</body></html>"
