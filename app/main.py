@@ -100,7 +100,8 @@ else:
             st.Page('calendar_page.py', title='Calendar', icon='📅', url_path='calendar'),
             # Test with alt calendar
             st.Page('calendar_alt.py', title='Calendar - NEW #1', icon='📅', url_path='calendar_new'),
-            st.Page('calendar_alt2.py', title='Calendar - NEW #2', icon='📅', url_path='calendar_new_2')
+            st.Page('calendar_alt2.py', title='Calendar - NEW #2', icon='📅', url_path='calendar_new_2'),
+            st.Page('calendar_alt3.py', title='Calendar - NEW #3', icon='📅', url_path='calendar_new_3')
         ],
         "Bill Tracking Tools": [
             st.Page('advocacy_hub.py', title='Advocacy Hub', icon='📣', url_path='advocacy_hub'),
