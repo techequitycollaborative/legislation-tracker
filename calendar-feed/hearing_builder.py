@@ -86,19 +86,19 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
             key=lambda r: r.get("file_order", float('inf'))
         )
         # Add header
-        parts.append("\n**Tracked bills on the agenda**")
-        html_parts.append("<br><b>**Tracked bills on the agenda**</b><ul>")
+        parts.append("\n**Tracked bills on the agenda**\n")
+        html_parts.append("<br><b>Tracked bills on the agenda</b><ul>")
 
         # Only format content for tracked bills
         for bill_detail in tracked_bills:
             # Ex: AB 123 - Titile (File order: 4/5)
             line = f"""
-                {bill_detail['bill_number']} - {bill_detail['bill_name']} (File order: {bill_detail['file_order']}/{agenda_length})
+                 - {bill_detail['bill_number']} | {bill_detail['bill_name']} | File order: {bill_detail['file_order']}/{agenda_length}
             """
 
             # Add content to description parts, stripping excess whitespace
             parts.append(line.strip())
-            html_parts.append(f"<li>{line.strip()}</li>")
+            html_parts.append(f"<li>{line.strip("-").strip()}</li>")
         html_parts.append("</ul>")
 
     plain = "\n".join(parts)
