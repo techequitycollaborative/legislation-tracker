@@ -48,6 +48,7 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
     )
 
     # Build summary: "ORG LETTER DUE! [ASM] Budget - AB 123"
+    
     label        = (row.get("deadline_type") or "LETTER").upper()
     chamber_tag  = _chamber_prefix(row.get("chamber_id"))
     bill_number  = row.get("bill_number")
@@ -55,13 +56,17 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
     hearing_name = row.get("hearing_name")
     hearing_note = row.get("notes") if len(row.get("notes")) else "N/A"
     hearing_time = row.get("hearing_time_verbatim").replace("m.", "m. PT")
+    hearing_date = row.get("hearing_date")
     summary      = ""
 
+    # Build summary example: AB 1864 ORG LETTER DUE! [ASM] Judiciary 
+    summary += bill_number
+
     if feed_label:
-        summary += f"{feed_label} "
-    summary += f"{label} DUE!"
+        summary += f" {feed_label}"
+    summary += f" {label} DUE!"
     summary += f" {chamber_tag}"
-    summary += f" - {hearing_name} - {bill_number}"
+    summary += f" {hearing_name}"
     ev.add("summary", summary)
 
     # All-day event; dtend is exclusive next day per RFC 5545
@@ -72,18 +77,28 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
 
     # Plain + HTML description
     plain = (
-        f"{bill_number} - {bill_name}\n\n"
-        f"Hearing: {chamber_tag} {hearing_name}\n"
-        f"Notes: {hearing_note}\n"
+        "**Bill Details**\n"
+        f"Bill: {bill_number} | {bill_name}\n"
+        f"Author: \n" #TODO
+        f"Org Position: \n\n" #TODO
+        f"**Hearing Details**\n"
+        f"Committee: {chamber_tag} {hearing_name}\n"
+        f"Hearing date: {hearing_date}\n"
         f"Time: {hearing_time}\n"
+        f"Notes: {hearing_note}\n"
         # f"Deadline type: {row.get('deadline_type', 'letter')}"
     )
     html = (
         f"<html><body>"
-        f"<b>{bill_number} - {bill_name}</b><br><br>"
-        f"<b>Hearing:</b> {hearing_name}<br>"
-        f"<b>Notes:</b> {hearing_note}<br>"
+        f"<b>Bill Details:</b><br>"
+        f"Bill: {bill_number} | {bill_name}<br>"
+        f"Author: <br>"
+        f"Org Position: <br><br>"
+        f"<b>Hearing Details:</b><br>"
+        f"Committee: {chamber_tag} {hearing_name}<br>"
+        f"Hearing date: {hearing_date}<br>"
         f"<b>Time:</b> {hearing_time}<br>"
+        f"<b>Notes:</b> {hearing_note}<br>"
         # f"<b>Deadline type:</b> {row.get('deadline_type', 'letter')}"
         f"</body></html>"
     )
