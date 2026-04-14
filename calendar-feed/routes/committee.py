@@ -17,6 +17,7 @@ def committee_feed(committee_id: int):
         filename=f"committee_{committee_id}.ics",
     )
 
+
 @bp.route("/feed/committee/<int:committee_id>/json")
 def committee_feed_json(committee_id: int):
     rows = get_hearings_for_committee(committee_id)

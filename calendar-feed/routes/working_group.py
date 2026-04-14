@@ -25,6 +25,7 @@ def working_group_feed(token: str):
         feed_label="AI-WG",
     )
 
+
 @bp.route("/feed/working-group/<token>/json")
 def working_group_feed_json(token: str):
     user = resolve_user_token(token)

@@ -20,7 +20,10 @@ UTC = pytz.utc
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def build_ical(rows: list[dict[str, Any]], feed_title: str, feed_label: str = "") -> bytes:
+
+def build_ical(
+    rows: list[dict[str, Any]], feed_title: str, feed_label: str = ""
+) -> bytes:
     """
     Build an iCal calendar from calendar_queries feed result rows.
 
@@ -49,8 +52,8 @@ def build_ical(rows: list[dict[str, Any]], feed_title: str, feed_label: str = ""
         cal = Calendar()
         cal.add("prodid", "-//LegTracker//iCal Feed//EN")
         cal.add("version", "2.0")
-        return cal.to_ical()    
-    
+        return cal.to_ical()
+
     cal = Calendar()
     cal.add("prodid", "-//LegTracker//iCal Feed//EN")
     cal.add("version", "2.0")
@@ -71,7 +74,7 @@ def build_ical(rows: list[dict[str, Any]], feed_title: str, feed_label: str = ""
                 cal.add_component(hearing_event)
                 hearing_count += 1
                 # Deadline events - dashboard feeds only, one per tracked bill
-                if group: # Only try to build deadlines if group has data
+                if group:  # Only try to build deadlines if group has data
                     for row in group:
                         if row.get("on_dashboard") and row.get("deadline_date"):
                             try:
@@ -83,11 +86,9 @@ def build_ical(rows: list[dict[str, Any]], feed_title: str, feed_label: str = ""
                                     f"Failed to build hearing event for ID {hearing_id}: {e}"
                                 )
             except (KeyError, AttributeError, ValueError) as e:
-                 error_count += 1
-                 logger.error(
-                     f"Failed to build hearing event for ID {hearing_id}: {e}"
-                 )
-                 continue # Skip, but continue to build partial calendar
+                error_count += 1
+                logger.error(f"Failed to build hearing event for ID {hearing_id}: {e}")
+                continue  # Skip, but continue to build partial calendar
     except Exception as e:
         error_count += 1
         logger.error(f"Critical error building calendar: {e}")

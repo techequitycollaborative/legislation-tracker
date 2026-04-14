@@ -27,13 +27,13 @@ def create_app() -> Flask:
         return {
             "service": "calendar-feed",
             "status": "operational",
-            "last_deploy": os.environ.get("HEROKU_RELEASE_CREATED_AT", "unknown")
+            "last_deploy": os.environ.get("HEROKU_RELEASE_CREATED_AT", "unknown"),
         }
 
     @app.route("/health")
     def health():
         return {"status": "ok"}, 200
- 
+
     return app
 
 

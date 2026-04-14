@@ -12,7 +12,7 @@ def org_feed(token: str):
     if not org_id:
         current_app.logger.warning(f"Auth failed: token={token[:8]}...")
         abort(401)
- 
+
     rows = get_hearings_for_org(org_id)
     org_name = get_name_for_org(org_id)
     current_app.logger.info(org_name)

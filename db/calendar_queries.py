@@ -3,11 +3,10 @@
 from psycopg2.extras import RealDictCursor
 from db.connect import get_conn
 
-
 # ── Shared SQL fragments ───────────────────────────────────────────────────────
 
 _FUTURE_ONLY = "h.date >= CURRENT_DATE"
-_ORDER       = "ORDER BY h.date, h.time_normalized NULLS LAST"
+_ORDER = "ORDER BY h.date, h.time_normalized NULLS LAST"
 
 # Core SELECT for chamber/committee feeds — no dashboard context, no deadlines.
 # committee_id may be null for subcommittees and joint hearings.
@@ -116,6 +115,7 @@ _DASHBOARD_SELECT_WITH_CUSTOM = """
 
 # ── Page queries (Streamlit) ───────────────────────────────────────────────────
 
+
 def get_hearings() -> list[dict]:
     """
     All future hearings with no bill data — for the calendar page list view.
@@ -206,6 +206,7 @@ def get_hearings_for_committee(committee_id: int) -> list[dict]:
             cur.execute(sql, (committee_id,))
             return cur.fetchall()
 
+
 def get_name_for_org(org_id: int) -> str | None:
     """
     Return org nickname associated with org ID to use in feed title.
@@ -219,6 +220,7 @@ def get_name_for_org(org_id: int) -> str | None:
             cur.execute(sql, (org_id,))
             result = cur.fetchone()
             return result["nickname"] if result else None
+
 
 def get_hearings_for_org(org_id: int) -> list[dict]:
     """
@@ -243,7 +245,9 @@ def get_hearings_for_org(org_id: int) -> list[dict]:
     """
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (org_id, org_id, org_id)) # All three org_id placeholders need to be resolved
+            cur.execute(
+                sql, (org_id, org_id, org_id)
+            )  # All three org_id placeholders need to be resolved
             return cur.fetchall()
 
 
