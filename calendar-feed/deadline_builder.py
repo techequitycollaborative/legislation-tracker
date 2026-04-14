@@ -18,7 +18,7 @@ from hearing_builder import CHAMBER_ABBREV, _chamber_prefix
 UTC = pytz.utc
 
 
-def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
+def build_deadline_event(row: dict[str, Any], feed_label: str = None) -> Event:
     """
     Build one all-day deadline event for a single dashboard bill-hearing row.
 
@@ -34,10 +34,10 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
     """
     if not row.get("hearing_id") or not row.get("openstates_bill_id"):
         raise ValueError("Missing required fields: hearing_id or openstates_bill_id")
-    
+
     if not row.get("deadline_date"):
         raise ValueError("deadline_date is required but missing")
-    
+
     ev = Event()
 
     # Stable UID per bill-hearing-deadline_type combination
@@ -47,19 +47,22 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
         f"deadline-{row['hearing_id']}-{row['openstates_bill_id']}-{deadline_type}@legtracker",
     )
 
-    # Build summary: "ORG LETTER DUE! [ASM] Budget - AB 123"
-    
-    label        = (row.get("deadline_type") or "LETTER").upper()
-    chamber_tag  = _chamber_prefix(row.get("chamber_id"))
-    bill_number  = row.get("bill_number")
-    bill_name    = row.get("bill_name")
+    label = (row.get("deadline_type") or "LETTER").upper()
+    chamber_tag = _chamber_prefix(row.get("chamber_id"))
+    bill_number = row.get("bill_number")
+    bill_name = row.get("bill_name")
+    bill_author = (
+        row.get("bill_author") or "N/A"
+    )  # empty string or None both treated as false
     hearing_name = row.get("hearing_name")
-    hearing_note = row.get("notes") if len(row.get("notes")) else "N/A"
+    hearing_note = row.get("notes") or "N/A"
     hearing_time = row.get("hearing_time_verbatim").replace("m.", "m. PT")
     hearing_date = row.get("hearing_date")
-    summary      = ""
+    summary = ""
+    org_section_plain = ""
+    org_section_html = ""
 
-    # Build summary example: AB 1864 ORG LETTER DUE! [ASM] Judiciary 
+    # Build summary example: AB 1864 ORG LETTER DUE! [ASM] Judiciary
     summary += bill_number
 
     if feed_label:
@@ -69,18 +72,23 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
     summary += f" {hearing_name}"
     ev.add("summary", summary)
 
+    if feed_label == "ORG":
+        org_position = row.get("org_position") or "N/A"
+        org_section_plain += f"Org Position: {org_position}\n"
+        org_section_html += f"Org Position: {org_position}<br>"
+
     # All-day event; dtend is exclusive next day per RFC 5545
     ev.add("dtstart", row["deadline_date"])
-    ev.add("dtend",   row["deadline_date"] + timedelta(days=1))
+    ev.add("dtend", row["deadline_date"] + timedelta(days=1))
 
     ev.add("dtstamp", datetime.now(UTC))
 
-    # Plain + HTML description
+    # # Plain + HTML description
     plain = (
         "**Bill Details**\n"
         f"Bill: {bill_number} | {bill_name}\n"
-        f"Author: \n" #TODO
-        f"Org Position: \n\n" #TODO
+        f"Author: {bill_author}\n"
+        f"{org_section_plain}\n"  # Double newline
         f"**Hearing Details**\n"
         f"Committee: {chamber_tag} {hearing_name}\n"
         f"Hearing date: {hearing_date}\n"
@@ -91,9 +99,9 @@ def build_deadline_event(row: dict[str, Any], feed_label: str=None) -> Event:
     html = (
         f"<html><body>"
         f"<b>Bill Details:</b><br>"
-        f"Bill: {bill_number} | {bill_name}<br>"
+        f"Bill: {bill_number} | {bill_name}<br><br>"
         f"Author: <br>"
-        f"Org Position: <br><br>"
+        f"{org_section_html}<br>"  # Double newline
         f"<b>Hearing Details:</b><br>"
         f"Committee: {chamber_tag} {hearing_name}<br>"
         f"Hearing date: {hearing_date}<br>"
