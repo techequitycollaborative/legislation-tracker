@@ -15,6 +15,7 @@ def chamber_feed(chamber_id: int):
         filename=f"chamber_{chamber_id}.ics",
     )
 
+
 @bp.route("/feed/chamber/<int:chamber_id>/json")
 def chamber_feed_json(chamber_id: int):
     rows = get_hearings_for_chamber(chamber_id)
