@@ -47,14 +47,16 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     html_parts = []
 
     if h.get("hearing_time_verbatim"):
-        hearing_time = h['hearing_time_verbatim'].replace("m.", "m. PT")
+        hearing_time = h["hearing_time_verbatim"].replace("m.", "m. PT")
         parts.append(f"Time: {hearing_time}")
         html_parts.append(f"<b>Time:</b> {hearing_time}")
 
     # Committee webpage link when available (null for subcommittees/joint hearings)
     if h.get("committee_webpage"):
         parts.append(f"Committee info: {h['committee_webpage']}")
-        html_parts.append(f"<br><b>Committee info:</b> <a href=\"{h['committee_webpage']}\">{h['committee_webpage']}</a>")
+        html_parts.append(
+            f"<br><b>Committee info:</b> <a href=\"{h['committee_webpage']}\">{h['committee_webpage']}</a>"
+        )
 
     # Collect unique deadlines across rows (future-proof for multiple types)
     seen_deadlines = set()
@@ -62,8 +64,12 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
         if row.get("deadline_date") and row.get("deadline_type"):
             key = (row["deadline_date"], row["deadline_type"])
             if key not in seen_deadlines:
-                parts.append(f"{row['deadline_type'].title()} deadline: {row['deadline_date']}")
-                html_parts.append(f"<br><b>{row['deadline_type'].title()} deadline:</b> {row['deadline_date']}")
+                parts.append(
+                    f"{row['deadline_type'].title()} deadline: {row['deadline_date']}"
+                )
+                html_parts.append(
+                    f"<br><b>{row['deadline_type'].title()} deadline:</b> {row['deadline_date']}"
+                )
                 seen_deadlines.add(key)
 
     if h.get("notes"):
@@ -79,34 +85,36 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     if bills:
         # Filter only for tracked bills
         tracked_bills = sorted(
-            filter(
-                lambda r: r.get("on_dashboard", False),
-                bills
-            ),
-            key=lambda r: r.get("file_order", float('inf'))
+            filter(lambda r: r.get("on_dashboard", False), bills),
+            key=lambda r: r.get("file_order", float("inf")),
         )
         # Add header
         parts.append("\n**Tracked bills on the agenda**")
-        html_parts.append("<br><b>**Tracked bills on the agenda**</b><ul>")
+        html_parts.append("<br><b>Tracked bills on the agenda</b><ul>")
 
         # Only format content for tracked bills
         for bill_detail in tracked_bills:
             # Ex: AB 123 - Titile (File order: 4/5)
-            line = f"""
-                {bill_detail['bill_number']} - {bill_detail['bill_name']} (File order: {bill_detail['file_order']}/{agenda_length})
-            """
+            line = (
+                "-"
+                f" {bill_detail['bill_number']} |"
+                f" {bill_detail['bill_name']} |"
+                f" File order: {bill_detail['file_order']}/{agenda_length}"
+            )
 
             # Add content to description parts, stripping excess whitespace
             parts.append(line.strip())
-            html_parts.append(f"<li>{line.strip()}</li>")
+            html_parts.append(f"<li>{line[2:]}</li>")
         html_parts.append("</ul>")
 
     plain = "\n".join(parts)
-    html  = f'<html><body>{"".join(html_parts)}</body></html>'
+    html = f'<html><body>{"".join(html_parts)}</body></html>'
     return plain, html
 
 
-def group_hearings(rows: List[Dict[str, Any]]) -> List[Tuple[int, List[Dict[str, Any]]]]:
+def group_hearings(
+    rows: List[Dict[str, Any]],
+) -> List[Tuple[int, List[Dict[str, Any]]]]:
     """
     Group rows by hearing_id.
 
@@ -136,7 +144,7 @@ def build_hearing_event(hearing_id: int, group_rows: List[Dict[str, Any]]) -> Ev
     """
     if hearing_id is None:
         raise ValueError("hearing_id is required")
-    
+
     # Handle empty group_rows
     if not group_rows:
         ev = Event()
@@ -144,28 +152,32 @@ def build_hearing_event(hearing_id: int, group_rows: List[Dict[str, Any]]) -> Ev
         ev.add("summary", f"Hearing {hearing_id} (no data)")
         ev.add("dtstamp", datetime.now(UTC))
         return ev
-    
+
     h = group_rows[0]  # hearing-level fields are identical across all rows
 
     ev = Event()
     ev.add("uid", f"hearing-{hearing_id}@legtracker")
 
-    prefix       = _chamber_prefix(h.get("chamber_id"))
+    # Build event summary (title) from hearing-level fields
+    prefix = _chamber_prefix(h.get("chamber_id"))
     hearing_name = h.get("hearing_name") or f"Hearing {hearing_id}"
-    summary      = f"{prefix} {hearing_name}".strip() if prefix else hearing_name
+    summary = f"{prefix} {hearing_name}".strip() if prefix else hearing_name
     ev.add("summary", summary)
 
+    # Build description from all rows in the group
     plain, html = _build_description(h, group_rows)
     ev.add("description", plain)
     alt = vText(html)
     alt.params["fmttype"] = "text/html"
     ev.add("x-alt-desc", alt)
 
+    # Build event location from hearing location + room
     location_parts = [
         p for p in [h.get("hearing_location"), h.get("hearing_room")] if p
     ]
     ev.add("location", ", ".join(location_parts))
 
+    # Build event time from relevant columns
     if h.get("is_allday") or not h.get("hearing_time"):
         ev.add("dtstart", h["hearing_date"])
         ev.add("dtend", h["hearing_date"] + timedelta(days=1))
@@ -179,6 +191,7 @@ def build_hearing_event(hearing_id: int, group_rows: List[Dict[str, Any]]) -> Ev
 
     ev.add("dtstamp", datetime.now(UTC))
 
+    # Add last modified value which may differ for each bill in the group
     updated_at_values = [r["updated_at"] for r in group_rows if r.get("updated_at")]
     if updated_at_values:
         ev.add("last-modified", max(updated_at_values))

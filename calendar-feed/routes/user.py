@@ -12,14 +12,15 @@ def user_feed(token: str):
     if not user:
         current_app.logger.warning(f"Auth failed: token={token[:8]}...")
         abort(401)
- 
+
     rows = get_hearings_for_user(user["email"])
     current_app.logger.info(f"Feed served: user={user["email"]}, events={len(rows)}")
     return ical_response(
         rows,
         feed_title="My Dashboard - Legislation Tracker",
-        filename="my_hearings.ics"
+        filename="my_hearings.ics",
     )
+
 
 @bp.route("/feed/user/<token>/json")
 def user_feed_json(token: str):

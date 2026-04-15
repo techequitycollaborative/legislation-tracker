@@ -3,11 +3,10 @@
 from psycopg2.extras import RealDictCursor
 from db.connect import get_conn
 
-
 # ── Shared SQL fragments ───────────────────────────────────────────────────────
 
 _FUTURE_ONLY = "h.date >= CURRENT_DATE"
-_ORDER       = "ORDER BY h.date, h.time_normalized NULLS LAST"
+_ORDER = "ORDER BY h.date, h.time_normalized NULLS LAST"
 
 # Core SELECT for chamber/committee feeds — no dashboard context, no deadlines.
 # committee_id may be null for subcommittees and joint hearings.
@@ -42,7 +41,7 @@ _FEED_SELECT = """
 # on_dashboard = TRUE means this bill is tracked on the relevant dashboard,
 # which controls whether a deadline event is emitted for that bill in ics_builder.
 # The dashboard table LEFT JOIN is appended per query below.
-_DASHBOARD_SELECT = """
+_DASHBOARD_SELECT_BASE = """
     SELECT
         h.hearing_id,
         h.name              AS hearing_name,
@@ -65,16 +64,57 @@ _DASHBOARD_SELECT = """
         hb.file_order,
         CASE WHEN dash.openstates_bill_id IS NOT NULL
              THEN TRUE ELSE FALSE
-        END                 AS on_dashboard
+        END                 AS on_dashboard,
+        -- Author from bills materialized view
+        bmv.author          AS bill_author
     FROM snapshot.hearings h
     LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
     LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
     LEFT JOIN snapshot.hearing_bills     hb ON hb.hearing_id = h.hearing_id
     LEFT JOIN snapshot.bill               b ON b.openstates_bill_id = hb.openstates_bill_id
+    LEFT JOIN app.bills_mv              bmv ON bmv.openstates_bill_id = b.openstates_bill_id
 """
 
+# Extended template with org_position (for org feeds only)
+# NOTE: placeholder for org_id included at the end of the template, needs to be resolved
+_DASHBOARD_SELECT_WITH_CUSTOM = """
+    SELECT
+        h.hearing_id,
+        h.name              AS hearing_name,
+        h.date              AS hearing_date,
+        h.time_verbatim     AS hearing_time_verbatim,
+        h.time_normalized   AS hearing_time,
+        h.is_allday,
+        h.location          AS hearing_location,
+        h.room              AS hearing_room,
+        h.notes,
+        h.chamber_id,
+        h.committee_id,
+        h.updated_at,
+        c.webpage_link      AS committee_webpage,
+        hd.deadline_date,
+        hd.deadline_type,
+        b.openstates_bill_id,
+        b.bill_num          AS bill_number,
+        b.title             AS bill_name,
+        hb.file_order,
+        CASE WHEN dash.openstates_bill_id IS NOT NULL
+             THEN TRUE ELSE FALSE
+        END                 AS on_dashboard,
+        bmv.author          AS bill_author,
+        bcd.org_position
+    FROM snapshot.hearings h
+    LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
+    LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
+    LEFT JOIN snapshot.hearing_bills     hb ON hb.hearing_id = h.hearing_id
+    LEFT JOIN snapshot.bill               b ON b.openstates_bill_id = hb.openstates_bill_id
+    LEFT JOIN app.bills_mv              bmv ON bmv.openstates_bill_id = b.openstates_bill_id
+    LEFT JOIN app.bill_custom_details    bcd ON bcd.openstates_bill_id = b.openstates_bill_id
+                                            AND bcd.last_updated_org_id = %s
+"""
 
 # ── Page queries (Streamlit) ───────────────────────────────────────────────────
+
 
 def get_hearings() -> list[dict]:
     """
@@ -166,6 +206,7 @@ def get_hearings_for_committee(committee_id: int) -> list[dict]:
             cur.execute(sql, (committee_id,))
             return cur.fetchall()
 
+
 def get_name_for_org(org_id: int) -> str | None:
     """
     Return org nickname associated with org ID to use in feed title.
@@ -180,6 +221,7 @@ def get_name_for_org(org_id: int) -> str | None:
             result = cur.fetchone()
             return result["nickname"] if result else None
 
+
 def get_hearings_for_org(org_id: int) -> list[dict]:
     """
     All future hearings where at least one bill on the org's dashboard is on
@@ -187,7 +229,7 @@ def get_hearings_for_org(org_id: int) -> list[dict]:
     bills tracked on this org's dashboard. Deadline events emitted for those only.
     """
     sql = f"""
-        {_DASHBOARD_SELECT}
+        {_DASHBOARD_SELECT_WITH_CUSTOM}
         LEFT JOIN app.org_bill_dashboard dash
                ON dash.openstates_bill_id = b.openstates_bill_id
               AND dash.org_id = %s
@@ -203,7 +245,9 @@ def get_hearings_for_org(org_id: int) -> list[dict]:
     """
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (org_id, org_id))
+            cur.execute(
+                sql, (org_id, org_id, org_id)
+            )  # All three org_id placeholders need to be resolved
             return cur.fetchall()
 
 
@@ -214,7 +258,7 @@ def get_hearings_for_user(user_email: str) -> list[dict]:
     Deadline events emitted for those only.
     """
     sql = f"""
-        {_DASHBOARD_SELECT}
+        {_DASHBOARD_SELECT_BASE}
         LEFT JOIN app.user_bill_dashboard dash
                ON dash.openstates_bill_id = b.openstates_bill_id
               AND dash.user_email = %s
@@ -241,7 +285,7 @@ def get_hearings_for_wg() -> list[dict]:
     Deadline events emitted for those only.
     """
     sql = f"""
-        {_DASHBOARD_SELECT}
+        {_DASHBOARD_SELECT_BASE}
         LEFT JOIN app.working_group_dashboard dash
                ON dash.openstates_bill_id = b.openstates_bill_id
         WHERE {_FUTURE_ONLY}
