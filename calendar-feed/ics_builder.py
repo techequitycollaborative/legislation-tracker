@@ -76,15 +76,24 @@ def build_ical(
                 # Deadline events - dashboard feeds only, one per tracked bill
                 if group:  # Only try to build deadlines if group has data
                     for row in group:
-                        if row.get("on_dashboard") and row.get("deadline_date"):
-                            try:
-                                cal.add_component(build_deadline_event(row, feed_label))
-                                deadline_count += 1
-                            except (KeyError, AttributeError, ValueError) as e:
-                                error_count += 1
-                                logger.error(
-                                    f"Failed to build hearing event for ID {hearing_id}: {e}"
-                                )
+                        # Check for missing data; continue to next bill if invalid
+                        if not row.get("on_dashboard") or not row.get("deadline_date"):
+                            continue
+                        
+                        # Check if org position warrants building a deadline; continue to next bill if invalid
+                        if feed_label == "ORG":
+                            org_pos = row.get("org_position")
+                            if not org_pos or org_pos == "Neutral/No Position":
+                                continue
+                                
+                        try:
+                            cal.add_component(build_deadline_event(row, feed_label))
+                            deadline_count += 1
+                        except (KeyError, AttributeError, ValueError) as e:
+                            error_count += 1
+                            logger.error(
+                                f"Failed to build deadline event for bill {row.get("bill_number")}: {e}"
+                            )
             except (KeyError, AttributeError, ValueError) as e:
                 error_count += 1
                 logger.error(f"Failed to build hearing event for ID {hearing_id}: {e}")
