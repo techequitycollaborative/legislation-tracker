@@ -6,8 +6,10 @@ Orchestrates hearing_builder and deadline_builder — owns the Calendar
 envelope and iteration logic, not the event construction details.
 """
 
-from typing import Any
+from typing import Any, Dict
 import logging
+import time
+from datetime import datetime
 
 import pytz
 from icalendar import Calendar
@@ -29,7 +31,9 @@ def build_ical(
 
     Each hearing produces one hearing event. Dashboard feeds additionally
     produce one all-day deadline event per bill row where on_dashboard=TRUE
-    and deadline_date is not null.
+    and deadline_date is not null. For ORG dashboard feeds specifically,
+    bill rows are also filtered for org position (not empty or "Neutral/No
+    Position") before all-day deadline events are generated.
 
     Chamber and committee feeds omit deadline events entirely since rows
     from those queries carry no on_dashboard field.
@@ -38,8 +42,10 @@ def build_ical(
         rows:        List of dicts from any get_hearings_for_* query.
         feed_title:  Human-readable calendar name surfaced in calendar apps.
         feed_label:  Short dashboard tag included in deadline summaries,
-                     e.g. '[ORG]', '[PERSONAL]', '[WG]'. Empty string for
-                     chamber/committee feeds which emit no deadline events.
+                     e.g. '[ORG]', '[WG]'. Empty string for personal as well as
+                     chamber/committee feeds. Personal feeds emit events but do
+                     not need a feed label. Chamber/committee feeds do not emit
+                     deadline events.
 
     Returns:
         Raw iCal bytes (text/calendar).
@@ -67,10 +73,13 @@ def build_ical(
     deadline_count = 0
     error_count = 0
 
+    # Get current time once for all events to reduce syscalls
+    now_utc = datetime.now(UTC)
+
     try:
         for hearing_id, group in group_hearings(rows):
             try:
-                hearing_event = build_hearing_event(hearing_id, group)
+                hearing_event = build_hearing_event(now_utc, hearing_id, group)
                 cal.add_component(hearing_event)
                 hearing_count += 1
                 # Deadline events - dashboard feeds only, one per tracked bill
@@ -79,15 +88,17 @@ def build_ical(
                         # Check for missing data; continue to next bill if invalid
                         if not row.get("on_dashboard") or not row.get("deadline_date"):
                             continue
-                        
+
                         # Check if org position warrants building a deadline; continue to next bill if invalid
                         if feed_label == "ORG":
                             org_pos = row.get("org_position")
                             if not org_pos or org_pos == "Neutral/No Position":
                                 continue
-                                
+
                         try:
-                            cal.add_component(build_deadline_event(row, feed_label))
+                            cal.add_component(
+                                build_deadline_event(now_utc, row, feed_label)
+                            )
                             deadline_count += 1
                         except (KeyError, AttributeError, ValueError) as e:
                             error_count += 1
@@ -110,10 +121,19 @@ def build_ical(
 
     if error_count > 0:
         logger.warning(
-            f"Built calendar with errors: {hearing_count} hearings, {deadline_count} deadlines, {error_count} errors"
+            (
+                "Building calendar with errors:"
+                f"{hearing_count} hearings, "
+                f"{deadline_count} deadlines, "
+                f"{error_count} errors"
+            )
         )
     else:
         logger.info(
-            f"Build calendar: {hearing_count} hearings, {deadline_count} deadlines"
+            (
+                "Building calendar:"
+                f"{hearing_count} hearings, "
+                f"{deadline_count} deadlines"
+            )
         )
     return cal.to_ical()

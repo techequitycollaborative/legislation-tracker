@@ -1,4 +1,5 @@
 from flask import Blueprint, current_app
+from extensions import cache
 from db.calendar_queries import get_hearings_for_chamber
 from routes._helpers import ical_response, json_response
 
@@ -6,6 +7,7 @@ bp = Blueprint("chamber", __name__)
 
 
 @bp.route("/feed/chamber/<int:chamber_id>")
+@cache.cached(query_string=True)
 def chamber_feed(chamber_id: int):
     rows = get_hearings_for_chamber(chamber_id)
     current_app.logger.info(f"Feed served: chamber={chamber_id}, events={len(rows)}")
