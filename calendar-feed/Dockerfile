@@ -20,9 +20,11 @@ COPY calendar-feed/ ./
 
 EXPOSE 5000
 
+
 CMD ["gunicorn", "app:create_app()", \
      "--bind", "0.0.0.0:5000", \
      "--workers", "4", \
      "--timeout", "30", \
      "--access-logfile", "-", \
      "--error-logfile", "-"]
+# CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:create_app()"]

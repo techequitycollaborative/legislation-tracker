@@ -6,9 +6,13 @@ Builds iCalendar hearing events from grouped query rows.
 from datetime import datetime, timedelta
 from itertools import groupby
 from typing import Any, List, Tuple, Dict
+import logging
 
 import pytz
 from icalendar import Event, vText
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 LOCAL_TZ = pytz.timezone("America/Los_Angeles")
 UTC = pytz.utc
@@ -46,6 +50,9 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     parts = []
     html_parts = []
 
+    NOTES_NA = "\nNotes: N/A"
+    NOTES_NA_HTML = "<br><b>Notes:</b> N/A"
+
     if h.get("hearing_time_verbatim"):
         hearing_time = h["hearing_time_verbatim"].replace("m.", "m. PT")
         parts.append(f"Time: {hearing_time}")
@@ -76,18 +83,17 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
         parts.append(f"\nNotes: {h['notes']}")
         html_parts.append(f"<br><b>Notes:</b> {h['notes']}")
     else:
-        parts.append(f"\nNotes: N/A")
-        html_parts.append(f"<br><b>Notes:</b> N/A")
+        parts.append(NOTES_NA)
+        html_parts.append(NOTES_NA_HTML)
 
     # Bills — skip rows where bill data is entirely null (hearing with no bills)
     bills = [r for r in rows if r.get("bill_number")]
     agenda_length = len(bills)
     if bills:
         # Filter only for tracked bills
-        tracked_bills = sorted(
-            filter(lambda r: r.get("on_dashboard", False), bills),
-            key=lambda r: r.get("file_order", float("inf")),
-        )
+        tracked_bills = [r for r in bills if r.get("on_dashboard", False)]
+        tracked_bills.sort(key=lambda r: r.get("file_order", float("inf")))
+
         # Add header
         parts.append("\n**Tracked bills on the agenda**")
         html_parts.append("<br><b>Tracked bills on the agenda</b><ul>")
@@ -103,7 +109,7 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
             )
 
             # Add content to description parts, stripping excess whitespace
-            parts.append(line.strip())
+            parts.append(line)
             html_parts.append(f"<li>{line[2:]}</li>")
         html_parts.append("</ul>")
 
@@ -128,7 +134,9 @@ def group_hearings(
     ]
 
 
-def build_hearing_event(hearing_id: int, group_rows: List[Dict[str, Any]]) -> Event:
+def build_hearing_event(
+    now_utc: datetime, hearing_id: int, group_rows: List[Dict[str, Any]]
+) -> Event:
     """
     Build a single iCalendar Event from a grouped hearing.
 
@@ -150,7 +158,7 @@ def build_hearing_event(hearing_id: int, group_rows: List[Dict[str, Any]]) -> Ev
         ev = Event()
         ev.add("uid", f"hearing-{hearing_id}@legtracker")
         ev.add("summary", f"Hearing {hearing_id} (no data)")
-        ev.add("dtstamp", datetime.now(UTC))
+        ev.add("dtstamp", now_utc)
         return ev
 
     h = group_rows[0]  # hearing-level fields are identical across all rows
@@ -189,7 +197,7 @@ def build_hearing_event(hearing_id: int, group_rows: List[Dict[str, Any]]) -> Ev
         ev.add("dtstart", dt_utc)
         ev.add("dtend", dt_utc + timedelta(hours=2))
 
-    ev.add("dtstamp", datetime.now(UTC))
+    ev.add("dtstamp", now_utc)
 
     # Add last modified value which may differ for each bill in the group
     updated_at_values = [r["updated_at"] for r in group_rows if r.get("updated_at")]

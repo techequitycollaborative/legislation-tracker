@@ -10,15 +10,14 @@ bill gets its own reminder.
 from datetime import datetime, timedelta
 from typing import Any
 
-import pytz
 from icalendar import Event, vText
 
 from hearing_builder import CHAMBER_ABBREV, _chamber_prefix
 
-UTC = pytz.utc
 
-
-def build_deadline_event(row: dict[str, Any], feed_label: str = None) -> Event:
+def build_deadline_event(
+    now_utc: datetime, row: dict[str, Any], feed_label: str = None
+) -> Event:
     """
     Build one all-day deadline event for a single dashboard bill-hearing row.
 
@@ -81,7 +80,7 @@ def build_deadline_event(row: dict[str, Any], feed_label: str = None) -> Event:
     ev.add("dtstart", row["deadline_date"])
     ev.add("dtend", row["deadline_date"] + timedelta(days=1))
 
-    ev.add("dtstamp", datetime.now(UTC))
+    ev.add("dtstamp", now_utc)
 
     # # Plain + HTML description
     plain = (
