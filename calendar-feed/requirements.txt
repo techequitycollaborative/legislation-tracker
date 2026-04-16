@@ -5,3 +5,5 @@ flask-caching
 psycopg2-binary
 icalendar
 pytz
+requests
+python-dotenv
