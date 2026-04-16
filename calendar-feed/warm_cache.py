@@ -3,8 +3,6 @@ import time
 import psycopg2
 from datetime import datetime
 from db.config import config
-from dotenv import load_dotenv
-import os
 
 
 def get_all_tokens():
@@ -62,9 +60,7 @@ def warm_cache():
     start = time.time()
     warmed = 0
 
-    load_dotenv()
-    base_url = os.getenv("FLASK_URL")
-
+    base_url = "http://localhost:5000"
     # Build URLs for EVERY user and org
     urls = []
 
