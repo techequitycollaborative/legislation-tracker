@@ -15,7 +15,7 @@ services:
       - ../calendar-feed:/app          # overwrites /app for local continous builds
       - ../db:/app/db                  # keeps db/ in sync too
     # now override prod command in compose.yaml
-    command: gunicorn "app:create_app()" --bind 0.0.0.0:5000 --workers 1 --reload --timeout 30 --access-logfile - --error-logfile -
+    command: gunicorn "app:create_app()" --bind 0.0.0.0:5000 --workers 2 --worker-class gevent --timeout 30 --access-logfile - --error-logfile -    
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]

@@ -1,5 +1,7 @@
 gunicorn
+gevent
 flask
+flask-caching
 psycopg2-binary
 icalendar
 pytz
