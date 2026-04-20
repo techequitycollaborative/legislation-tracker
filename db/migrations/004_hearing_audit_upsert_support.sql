@@ -69,7 +69,18 @@ FOR EACH ROW EXECUTE FUNCTION snapshot.touch_hearing_on_bill_change();
 COMMIT;
 
 -- =============================================================================
--- NOTE: This migration intentionally does NOT backfill tokens.
--- Run scripts/generate_tokens.py after applying this migration.
--- That script prints raw tokens to stdout (once) and stores only the hash here.
+-- ROLLBACK
+-- BEGIN;
+
+-- DROP TRIGGER IF EXISTS trg_hearing_bills_touch_parent ON snapshot.hearing_bills;
+-- DROP FUNCTION IF EXISTS snapshot.touch_hearing_on_bill_change();
+-- DROP TRIGGER IF EXISTS trg_hearings_updated_at ON snapshot.hearings;
+-- DROP FUNCTION IF EXISTS snapshot.update_hearing_updated_at();
+-- ALTER TABLE snapshot.hearings DROP COLUMN IF EXISTS canceled_at;
+-- ALTER TABLE snapshot.hearing_bills DROP CONSTRAINT IF EXISTS uq_hearing_bills_hearing_bill;
+-- ALTER TABLE snapshot.hearings DROP CONSTRAINT IF EXISTS uq_hearings_chamber_name_date;
+
+-- -- Don't restore rows - just note they were deleted
+-- -- You may want to log this for audit purposes
+-- COMMIT;
 -- =============================================================================
