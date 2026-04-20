@@ -52,6 +52,19 @@ FOR EACH ROW EXECUTE FUNCTION snapshot.update_hearing_updated_at();
 -- Trigger function: update hearings.updated_at when any child hearing_bills row
 -- is inserted, updated, or deleted
 -- COALESCE handles the null NEW (on DELETE) and null OLD (on INSERT) cases
+CREATE OR REPLACE FUNCTION snapshot.touch_hearing_on_bill_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE snapshot.hearings
+    SET updated_at = CURRENT_TIMESTAMP
+    WHERE hearing_id = COALESCE(NEW.hearing_id, OLD.hearing_id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+ 
+CREATE TRIGGER trg_hearing_bills_touch_parent
+AFTER INSERT OR UPDATE OR DELETE ON snapshot.hearing_bills
+FOR EACH ROW EXECUTE FUNCTION snapshot.touch_hearing_on_bill_change();
 
 COMMIT;
 
