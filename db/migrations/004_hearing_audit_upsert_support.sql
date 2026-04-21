@@ -80,7 +80,5 @@ COMMIT;
 -- ALTER TABLE snapshot.hearing_bills DROP CONSTRAINT IF EXISTS uq_hearing_bills_hearing_bill;
 -- ALTER TABLE snapshot.hearings DROP CONSTRAINT IF EXISTS uq_hearings_chamber_name_date;
 
--- -- Don't restore rows - just note they were deleted
--- -- You may want to log this for audit purposes
 -- COMMIT;
 -- =============================================================================

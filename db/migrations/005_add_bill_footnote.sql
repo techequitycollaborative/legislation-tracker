@@ -13,6 +13,7 @@ ALTER TABLE snapshot.hearing_bills
 COMMIT;
 
 -- =============================================================================
--- ROLLBACK
+-- -- ROLLBACK
 -- ALTER TABLE snapshot.hearing_bills DROP COLUMN IF EXISTS footnote;
+-- ALTER TABLE snapshot.hearing_bills DROP COLUMN IF EXISTS footnote_symbol;
 -- =============================================================================
