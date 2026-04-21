@@ -24,17 +24,19 @@ _FEED_SELECT = """
         h.chamber_id,
         h.committee_id,
         h.updated_at,
+        h.canceled_at,
         c.webpage_link      AS committee_webpage,
         hd.deadline_date,
         hd.deadline_type,
         b.openstates_bill_id,
-        b.bill_num          AS bill_number,
-        b.title             AS bill_name
+        b.bill_number,
+        b.bill_name,
+        b.author            AS bill_author
     FROM snapshot.hearings h
     LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
     LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
     LEFT JOIN snapshot.hearing_bills     hb ON hb.hearing_id = h.hearing_id
-    LEFT JOIN snapshot.bill               b ON b.openstates_bill_id = hb.openstates_bill_id
+    LEFT JOIN app.bills_mv               b ON b.openstates_bill_id = hb.openstates_bill_id
 """
 
 # Extended SELECT for dashboard feeds — adds on_dashboard flag per bill row.
@@ -55,24 +57,26 @@ _DASHBOARD_SELECT_BASE = """
         h.chamber_id,
         h.committee_id,
         h.updated_at,
+        h.canceled_at,
         c.webpage_link      AS committee_webpage,
         hd.deadline_date,
         hd.deadline_type,
         b.openstates_bill_id,
-        b.bill_num          AS bill_number,
-        b.title             AS bill_name,
+        b.bill_number,
+        b.bill_name,
         hb.file_order,
+        hb.footnote,
+        hb.footnote_symbol,
         CASE WHEN dash.openstates_bill_id IS NOT NULL
              THEN TRUE ELSE FALSE
         END                 AS on_dashboard,
         -- Author from bills materialized view
-        bmv.author          AS bill_author
+        b.author          AS bill_author
     FROM snapshot.hearings h
     LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
     LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
     LEFT JOIN snapshot.hearing_bills     hb ON hb.hearing_id = h.hearing_id
-    LEFT JOIN snapshot.bill               b ON b.openstates_bill_id = hb.openstates_bill_id
-    LEFT JOIN app.bills_mv              bmv ON bmv.openstates_bill_id = b.openstates_bill_id
+    LEFT JOIN app.bills_mv               b ON b.openstates_bill_id = hb.openstates_bill_id
 """
 
 # Extended template with org_position (for org feeds only)
@@ -91,25 +95,27 @@ _DASHBOARD_SELECT_WITH_CUSTOM = """
         h.chamber_id,
         h.committee_id,
         h.updated_at,
+        h.canceled_at,
         c.webpage_link      AS committee_webpage,
         hd.deadline_date,
         hd.deadline_type,
         b.openstates_bill_id,
-        b.bill_num          AS bill_number,
-        b.title             AS bill_name,
+        b.bill_number,
+        b.bill_name,
         hb.file_order,
+        hb.footnote,
+        hb.footnote_symbol,
         CASE WHEN dash.openstates_bill_id IS NOT NULL
              THEN TRUE ELSE FALSE
         END                 AS on_dashboard,
-        bmv.author          AS bill_author,
+        b.author          AS bill_author,
         bcd.org_position
     FROM snapshot.hearings h
     LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
     LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
     LEFT JOIN snapshot.hearing_bills     hb ON hb.hearing_id = h.hearing_id
-    LEFT JOIN snapshot.bill               b ON b.openstates_bill_id = hb.openstates_bill_id
-    LEFT JOIN app.bills_mv              bmv ON bmv.openstates_bill_id = b.openstates_bill_id
-    LEFT JOIN app.bill_custom_details    bcd ON bcd.openstates_bill_id = b.openstates_bill_id
+    LEFT JOIN app.bills_mv               b ON b.openstates_bill_id = hb.openstates_bill_id
+    LEFT JOIN app.bill_custom_details    bcd ON bcd.openstates_bill_id = hb.openstates_bill_id
                                             AND bcd.last_updated_org_id = %s
 """
 
