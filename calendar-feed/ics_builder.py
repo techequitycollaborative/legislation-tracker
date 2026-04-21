@@ -79,6 +79,8 @@ def build_ical(
     try:
         for hearing_id, group in group_hearings(rows):
             try:
+                if group[0].get("canceled_at"):
+                    continue
                 hearing_event = build_hearing_event(now_utc, hearing_id, group)
                 cal.add_component(hearing_event)
                 hearing_count += 1
@@ -86,7 +88,7 @@ def build_ical(
                 if group:  # Only try to build deadlines if group has data
                     for row in group:
                         # Check for missing data; continue to next bill if invalid
-                        if not row.get("on_dashboard") or not row.get("deadline_date"):
+                        if not row.get("on_dashboard") or not row.get("deadline_date") and not row.get("canceled_at"):
                             continue
 
                         # Check if org position warrants building a deadline; continue to next bill if invalid

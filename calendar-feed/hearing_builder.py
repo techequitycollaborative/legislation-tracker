@@ -50,9 +50,7 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     parts = []
     html_parts = []
 
-    NOTES_NA = "\nNotes: N/A"
-    NOTES_NA_HTML = "<br><b>Notes:</b> N/A"
-
+    # -- Step 1: get core details
     if h.get("hearing_time_verbatim"):
         hearing_time = h["hearing_time_verbatim"].replace("m.", "m. PT")
         parts.append(f"Time: {hearing_time}")
@@ -65,7 +63,7 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
             f"<br><b>Committee info:</b> <a href=\"{h['committee_webpage']}\">{h['committee_webpage']}</a>"
         )
 
-    # Collect unique deadlines across rows (future-proof for multiple types)
+    # -- Step 2: collect unique deadlines across rows (future-proof for multiple types)
     seen_deadlines = set()
     for row in rows:
         if row.get("deadline_date") and row.get("deadline_type"):
@@ -79,6 +77,10 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
                 )
                 seen_deadlines.add(key)
 
+    # -- Step 3: get optional hearing_notes
+    NOTES_NA = "\nNotes: N/A"
+    NOTES_NA_HTML = "<br><b>Notes:</b> N/A"
+
     if h.get("notes"):
         parts.append(f"\nNotes: {h['notes']}")
         html_parts.append(f"<br><b>Notes:</b> {h['notes']}")
@@ -86,9 +88,11 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
         parts.append(NOTES_NA)
         html_parts.append(NOTES_NA_HTML)
 
-    # Bills — skip rows where bill data is entirely null (hearing with no bills)
+    # -- Step 4: bills — skip rows if no bill-related data present
     bills = [r for r in rows if r.get("bill_number")]
     agenda_length = len(bills)
+    footnote_content = dict()
+
     if bills:
         # Filter only for tracked bills
         tracked_bills = [r for r in bills if r.get("on_dashboard", False)]
@@ -100,21 +104,46 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
 
         # Only format content for tracked bills
         for bill_detail in tracked_bills:
+            if bill_detail['footnote_symbol']:
+                symbol = bill_detail['footnote_symbol']
+                footnote = bill_detail['footnote']
+                logger.info(f"Found footnote and symbol: {symbol} - {footnote}")
+                footnote_content[symbol] = footnote
+            else:
+                symbol = ""
+
             # Ex: AB 123 - Titile (File order: 4/5)
             line = (
                 "-"
-                f" {bill_detail['bill_number']} |"
+                f" {bill_detail['bill_number']}{symbol} |" # Add footnote symbol if exists
                 f" {bill_detail['bill_name']} |"
                 f" File order: {bill_detail['file_order']}/{agenda_length}"
             )
-
+            logger.info(line)
             # Add content to description parts, stripping excess whitespace
             parts.append(line)
             html_parts.append(f"<li>{line[2:]}</li>")
         html_parts.append("</ul>")
 
+    # -- Step 5: optionally, join footnote description to the bottom if exists
+    if footnote_content:
+        logger.info("description step 5")
+        footnote_description = "\n\n----------\n"
+        footnote_description_html = "<br><br>----------<br>"
+
+        for symbol, footnote in footnote_content.items():
+            line = f"{symbol}{footnote}"
+            footnote_description += f"{line}\n"
+            footnote_description_html += f"<p>{line}</p>"
+
+        logger.info(footnote_description)
+        parts.append(footnote_description)
+        html_parts.append(footnote_description_html)
+
+    # -- Step 6: Join parts
     plain = "\n".join(parts)
     html = f'<html><body>{"".join(html_parts)}</body></html>'
+    
     return plain, html
 
 
@@ -169,9 +198,9 @@ def build_hearing_event(
     # Build event summary (title) from hearing-level fields
     prefix = _chamber_prefix(h.get("chamber_id"))
     hearing_name = h.get("hearing_name") or f"Hearing {hearing_id}"
-    summary = f"{prefix} {hearing_name}".strip() if prefix else hearing_name
+    summary = f"{prefix} {hearing_name}"
     ev.add("summary", summary)
-
+    logger.info(f"Building {summary}")
     # Build description from all rows in the group
     plain, html = _build_description(h, group_rows)
     ev.add("description", plain)
