@@ -1,38 +1,36 @@
 import requests
 import time
-import psycopg2
 from datetime import datetime
-from db.config import config
+from db.connect import get_conn
 
 
 def get_all_tokens():
     """Fetch ALL user and org feed tokens from database with debug info"""
-    params = config("postgres")
-    conn = psycopg2.connect(**params)
-    cur = conn.cursor()
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # Get all users with their dashboard status
+        cur.execute(
+            """
+            SELECT u.feed_token, u.email, u.ai_working_group
+            FROM auth.approved_users u
+            LEFT JOIN app.user_bill_dashboard ub ON u.email = ub.user_email
+            WHERE u.feed_token IS NOT NULL
+            GROUP BY u.email, u.ai_working_group, u.feed_token
+        """
+        )
+        users = [(row[0], row[1], row[2]) for row in cur.fetchall()]
 
-    # Get all users with their dashboard status
-    cur.execute("""
-        SELECT u.feed_token, u.email, u.ai_working_group
-        FROM auth.approved_users u
-        LEFT JOIN app.user_bill_dashboard ub ON u.email = ub.user_email
-        WHERE u.feed_token IS NOT NULL
-        GROUP BY u.email, u.ai_working_group, u.feed_token
-    """)
-    users = [(row[0], row[1], row[2]) for row in cur.fetchall()]
-
-    # Get all orgs with their dashboard status
-    cur.execute("""
-        SELECT o.feed_token, o.name
-        FROM auth.approved_organizations o
-        LEFT JOIN app.org_bill_dashboard ob ON o.id = ob.org_id
-        WHERE o.feed_token IS NOT NULL
-        GROUP BY o.id, o.name, o.feed_token
-    """)
-    orgs = [(row[0], row[1]) for row in cur.fetchall()]
-
-    cur.close()
-    conn.close()
+        # Get all orgs with their dashboard status
+        cur.execute(
+            """
+            SELECT o.feed_token, o.name
+            FROM auth.approved_organizations o
+            LEFT JOIN app.org_bill_dashboard ob ON o.id = ob.org_id
+            WHERE o.feed_token IS NOT NULL
+            GROUP BY o.id, o.name, o.feed_token
+        """
+        )
+        orgs = [(row[0], row[1]) for row in cur.fetchall()]
 
     return users, orgs
 
@@ -53,7 +51,6 @@ def warm_endpoint(endpoint_type, name, url):
 def warm_cache():
     print("Fetching ALL feed tokens from database...")
     users, orgs = get_all_tokens()
-
     print(f"Warming cache for {len(users)} users and {len(orgs)} orgs")
     print(f"Started at: {datetime.now().strftime('%H:%M:%S')}")
 

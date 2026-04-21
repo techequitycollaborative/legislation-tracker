@@ -45,7 +45,6 @@ def build_deadline_event(
         "uid",
         f"deadline-{row['hearing_id']}-{row['openstates_bill_id']}-{deadline_type}@legtracker",
     )
-
     label = (row.get("deadline_type") or "LETTER").upper()
     chamber_tag = _chamber_prefix(row.get("chamber_id"))
     bill_number = row.get("bill_number")
@@ -87,6 +86,7 @@ def build_deadline_event(
         "**Bill Details**\n"
         f"Bill: {bill_number} | {bill_name}\n"
         f"Author: {bill_author}\n"
+        f"Footnotes: {row.get('footnote') or 'N/A'}\n"
         f"{org_section_plain}\n"  # Double newline
         f"**Hearing Details**\n"
         f"Committee: {chamber_tag} {hearing_name}\n"
@@ -100,6 +100,7 @@ def build_deadline_event(
         f"<b>Bill Details:</b><br>"
         f"Bill: {bill_number} | {bill_name}<br><br>"
         f"Author: <br>"
+        f"Footnotes: {row.get('footnote') or 'N/A'}<br>"
         f"{org_section_html}<br>"  # Double newline
         f"<b>Hearing Details:</b><br>"
         f"Committee: {chamber_tag} {hearing_name}<br>"
