@@ -104,9 +104,9 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
 
         # Only format content for tracked bills
         for bill_detail in tracked_bills:
-            if bill_detail['footnote_symbol']:
-                symbol = bill_detail['footnote_symbol']
-                footnote = bill_detail['footnote']
+            if bill_detail["footnote_symbol"]:
+                symbol = bill_detail["footnote_symbol"]
+                footnote = bill_detail["footnote"]
                 logger.info(f"Found footnote and symbol: {symbol} - {footnote}")
                 footnote_content[symbol] = footnote
             else:
@@ -115,7 +115,7 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
             # Ex: AB 123 - Titile (File order: 4/5)
             line = (
                 "-"
-                f" {bill_detail['bill_number']}{symbol} |" # Add footnote symbol if exists
+                f" {bill_detail['bill_number']}{symbol} |"  # Add footnote symbol if exists
                 f" {bill_detail['bill_name']} |"
                 f" File order: {bill_detail['file_order']}/{agenda_length}"
             )
@@ -143,7 +143,7 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     # -- Step 6: Join parts
     plain = "\n".join(parts)
     html = f'<html><body>{"".join(html_parts)}</body></html>'
-    
+
     return plain, html
 
 

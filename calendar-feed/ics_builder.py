@@ -88,7 +88,11 @@ def build_ical(
                 if group:  # Only try to build deadlines if group has data
                     for row in group:
                         # Check for missing data; continue to next bill if invalid
-                        if not row.get("on_dashboard") or not row.get("deadline_date") and not row.get("canceled_at"):
+                        if (
+                            not row.get("on_dashboard")
+                            or not row.get("deadline_date")
+                            and not row.get("canceled_at")
+                        ):
                             continue
 
                         # Check if org position warrants building a deadline; continue to next bill if invalid
