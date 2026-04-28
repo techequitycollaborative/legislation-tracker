@@ -33,7 +33,6 @@ from db.query import get_my_dashboard_bills, get_org_dashboard_bills, get_workin
 from utils.calendar_utils import load_leg_events, load_committee_events, load_css, render_bill, get_badge_color, get_user_token, get_org_token
 from utils.profiling import track_rerun
 from collections import defaultdict
-from st_copy import copy_button # Streamlit component to make copy buttons
 track_rerun("Calendar")
 
 
@@ -501,54 +500,15 @@ with tab3:
 
     with outer_col1: 
         st.markdown(f"##### 🏢 {org_nickname} Dashboard")
-        with st.container(border=True):
-            st.code(org_url, language=None)
-
-            org_col1, org_col2 = st.columns([8, 2])    
-            with org_col1: 
-                st.markdown("**Copy URL:**")
-            with org_col2: 
-                copy_button(
-                    org_url,
-                    icon='material_symbols',  # default, use 'st' as alternative
-                    #tooltip='Any tooltip text',  # defaults to 'Copy'
-                    #copied_label='Copied!',  # defaults to 'Copied!'
-                    key='org_dash_url_copy',  # If omitted, a random key will be generated
-                )
+        st.code(org_url, language=None)
     
     with outer_col2:
         st.markdown("##### 📌 My Dashboard")
-        with st.container(border=True):
-            st.code(user_url, language=None)
-
-            user_col1, user_col2 = st.columns([8, 2])    
-            with user_col1: 
-                st.markdown("**Copy URL:**")
-            with user_col2: 
-                copy_button(
-                    user_url,
-                    icon='material_symbols',  # default, use 'st' as alternative
-                    #tooltip='Any tooltip text',  # defaults to 'Copy'
-                    #copied_label='Copied!',  # defaults to 'Copied!'
-                    key='my_dash_url_copy',  # If omitted, a random key will be generated
-                )
+        st.code(user_url, language=None)
 
     with outer_col3:
         st.markdown("##### 🤝 AI Working Group Dashboard")
-        with st.container(border=True):
-            st.code(wg_url, language=None)
-
-            wg_col1, wg_col2 = st.columns([8, 2])
-            with wg_col1: 
-                st.markdown("**Copy URL:**")
-            with wg_col2: 
-                copy_button(
-                    wg_url,
-                    icon='material_symbols',  # default, use 'st' as alternative
-                    #tooltip='Any tooltip text',  # defaults to 'Copy'
-                    #copied_label='Copied!',  # defaults to 'Copied!'
-                    key='wg_dash_url_copy',  # If omitted, a random key will be generated
-                )
+        st.code(wg_url, language=None)
 
     # Instructions for adding calendar feed to external calendar apps
     st.markdown('')
