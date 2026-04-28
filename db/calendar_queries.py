@@ -5,7 +5,8 @@ from db.connect import get_conn
 
 # ── Shared SQL fragments ───────────────────────────────────────────────────────
 
-_FUTURE_ONLY = "h.date >= CURRENT_DATE"
+_FUTURE_ONLY = "h.date >= CURRENT_DATE" # For getting future only events
+_ALL_TIME = "h.date >= 2026-04-01" # For getting all events from this season, including past ones (but starting from specific date)
 _ORDER = "ORDER BY h.date, h.time_normalized NULLS LAST"
 
 # Core SELECT for chamber/committee feeds — no dashboard context, no deadlines.
@@ -184,10 +185,12 @@ def get_hearing_agenda(hearing_id: int) -> list[dict]:
 def get_hearings_for_chamber(chamber_id: int) -> list[dict]:
     """
     No dashboard context — on_dashboard absent, no deadline events emitted.
+
+    Replace _ALL_TIME with _FUTURE_ONLY to exclude past hearings from chamber feeds.
     """
     sql = f"""
         {_FEED_SELECT}
-        WHERE {_FUTURE_ONLY}
+        WHERE {_ALL_TIME}
           AND h.chamber_id = %s
         {_ORDER}
     """
@@ -200,10 +203,12 @@ def get_hearings_for_chamber(chamber_id: int) -> list[dict]:
 def get_hearings_for_committee(committee_id: int) -> list[dict]:
     """
     No dashboard context — on_dashboard absent, no deadline events emitted.
+
+    Replace _ALL_TIME with _FUTURE_ONLY to exclude past hearings from committee feeds.
     """
     sql = f"""
         {_FEED_SELECT}
-        WHERE {_FUTURE_ONLY}
+        WHERE {_ALL_TIME}
           AND h.committee_id = %s
         {_ORDER}
     """
@@ -230,7 +235,7 @@ def get_name_for_org(org_id: int) -> str | None:
 
 def get_hearings_for_org(org_id: int) -> list[dict]:
     """
-    All future hearings where at least one bill on the org's dashboard is on
+    All hearings where at least one bill on the org's dashboard is on
     the agenda. Returns all bills on each hearing; on_dashboard=TRUE only for
     bills tracked on this org's dashboard. Deadline events emitted for those only.
     """
@@ -259,7 +264,7 @@ def get_hearings_for_org(org_id: int) -> list[dict]:
 
 def get_hearings_for_user(user_email: str) -> list[dict]:
     """
-    All future hearings where at least one bill on the user's personal dashboard
+    All hearings where at least one bill on the user's personal dashboard
     is on the agenda. on_dashboard=TRUE only for bills tracked by this user.
     Deadline events emitted for those only.
     """
