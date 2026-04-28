@@ -311,10 +311,24 @@ with tab1:
                         )
                     with col2:
                         with st.expander(committee_name, expanded=filters_active):
-                            st.caption(f"📝 Bills on the agenda for {chamber_name} {committee_name} Committee")
-                            st.caption(f"📅 Committee Hearing: {friendly_date}")
+                            expander_col1, expander_col2 = st.columns([5, 5])
+                            with expander_col1:
+                                st.caption(f"🏛️ {chamber_name} {committee_name} Committee")
+                                st.caption(f"📅 {friendly_date}")
+                            with expander_col2:
+                                # Render notes if exists
+                                if h_row.get('notes'):
+                                    # But if notes indicate hearing is canceled, show that prominently instead of the notes content
+                                    if h_row.get('notes').strip().lower() == 'hearing canceled':
+                                        st.caption("⚠️ This hearing has been canceled.")
+                                    else:
+                                        st.caption(f"📌 Notes: {h_row.get('notes')}")
+                                # Render webpage link if exists
+                                if h_row.get('committee_webpage'):
+                                    st.caption(f"🔗 [Committee Webpage]({h_row.get('committee_webpage')})")
 
                             if bills:
+                                st.caption(f"📝 Bills on the agenda:")
                                 for bill_row in bills:
                                     render_bill(
                                         bill_number=bill_row.get('bill_number', 'N/A'),
@@ -324,7 +338,7 @@ with tab1:
                                         deadline_row=deadline_row,
                                     )
                             else:
-                                st.caption("No bills on the agenda yet.")
+                                st.caption("*There are no bills on the agenda for this hearing.*")
 
             # Letter deadline events
             if event_date in deadline_structured:
