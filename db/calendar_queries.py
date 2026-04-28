@@ -6,7 +6,7 @@ from db.connect import get_conn
 # ── Shared SQL fragments ───────────────────────────────────────────────────────
 
 _FUTURE_ONLY = "h.date >= CURRENT_DATE" # For getting future only events
-_ALL_TIME = "h.date >= 2026-04-01" # For getting all events from this season, including past ones (but starting from specific date)
+_ALL_TIME = "h.date >= '2026-04-01'" # For getting all events from this season, including past ones (but starting from specific date)
 _ORDER = "ORDER BY h.date, h.time_normalized NULLS LAST"
 
 # Core SELECT for chamber/committee feeds — no dashboard context, no deadlines.
