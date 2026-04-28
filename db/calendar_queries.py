@@ -238,13 +238,15 @@ def get_hearings_for_org(org_id: int) -> list[dict]:
     All hearings where at least one bill on the org's dashboard is on
     the agenda. Returns all bills on each hearing; on_dashboard=TRUE only for
     bills tracked on this org's dashboard. Deadline events emitted for those only.
+
+    Replace _ALL_TIME with _FUTURE_ONLY to exclude past hearings from org feeds.
     """
     sql = f"""
         {_DASHBOARD_SELECT_WITH_CUSTOM}
         LEFT JOIN app.org_bill_dashboard dash
                ON dash.openstates_bill_id = b.openstates_bill_id
               AND dash.org_id = %s
-        WHERE {_FUTURE_ONLY}
+        WHERE {_ALL_TIME}
           AND h.hearing_id IN (
                 SELECT DISTINCT hb2.hearing_id
                   FROM snapshot.hearing_bills hb2
@@ -267,13 +269,15 @@ def get_hearings_for_user(user_email: str) -> list[dict]:
     All hearings where at least one bill on the user's personal dashboard
     is on the agenda. on_dashboard=TRUE only for bills tracked by this user.
     Deadline events emitted for those only.
+
+    Replace _ALL_TIME with _FUTURE_ONLY to exclude past hearings from user feeds.
     """
     sql = f"""
         {_DASHBOARD_SELECT_BASE}
         LEFT JOIN app.user_bill_dashboard dash
                ON dash.openstates_bill_id = b.openstates_bill_id
               AND dash.user_email = %s
-        WHERE {_FUTURE_ONLY}
+        WHERE {_ALL_TIME}
           AND h.hearing_id IN (
                 SELECT DISTINCT hb2.hearing_id
                   FROM snapshot.hearing_bills    hb2
@@ -294,12 +298,14 @@ def get_hearings_for_wg() -> list[dict]:
     All future hearings where at least one bill on the working group dashboard
     is on the agenda. on_dashboard=TRUE only for bills tracked by the WG.
     Deadline events emitted for those only.
+
+    Replace _ALL_TIME with _FUTURE_ONLY to exclude past hearings from WG feeds.
     """
     sql = f"""
         {_DASHBOARD_SELECT_BASE}
         LEFT JOIN app.working_group_dashboard dash
                ON dash.openstates_bill_id = b.openstates_bill_id
-        WHERE {_FUTURE_ONLY}
+        WHERE {_ALL_TIME}
           AND h.hearing_id IN (
                 SELECT DISTINCT hb2.hearing_id
                   FROM snapshot.hearing_bills      hb2
