@@ -37,7 +37,7 @@ DE_KEYWORDS = re.compile(r'|'.join(r'\b' + word + r'\b' for word in deadline_eve
 ####################################### LOAD DATA ###################################
 
 # Load legislative calendar events for 2025-2026 leg session (this is in a CSV file for now)
-@st.cache_data(show_spinner="Loading legislative events...")
+# Do not cache since this is only a static CSV file and we want to be able to update it easily without having to clear cache
 def load_leg_events():
     leg_events = pd.read_csv('./data/20262027_leg_dates.csv')
     return leg_events

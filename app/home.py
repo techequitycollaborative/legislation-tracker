@@ -85,8 +85,25 @@ st.markdown(" ")
 # Access user info
 org_id = st.session_state.get('org_id')
 org_name = st.session_state['org_name']
+user_email = st.session_state['user_email']
+
+# Check WG membership
+from db.query import get_ai_members
+ai_members = get_ai_members()
+is_wg_member = not ai_members.empty and user_email in ai_members['email'].values
 
 # Grouped pages
+bill_tracking_pages = [
+    {"label": "Advocacy Hub", "icon": "📣", "description": "View custom advocacy information from fellow organizations.", "page": "advocacy_hub.py"},
+    {"label": f"{org_name}'s Dashboard", "icon": "🏢", "description": "Collaborate with your team to track bills together on a shared organizational dashboard.", "page": "org_dashboard.py"},
+    {"label": "My Dashboard", "icon": "📌", "description": "Manage and track bills you care about on your personal dashboard.", "page": "my_dashboard.py"},
+]
+
+if is_wg_member:
+    bill_tracking_pages.append(
+        {"label": "AI Working Group Dashboard", "icon": "🤝", "description": "Track bills with the California AI Working Group.", "page": "ai_wg_dashboard.py"}
+    )
+
 grouped_pages = {
     "Legislative Info": {
         "description": "Access legislative data, all in one place.",
@@ -94,18 +111,16 @@ grouped_pages = {
             {"label": "Bills", "icon": "📝", "description": "Search, sort, and filter all bills, and add them to your dashboards for detailed tracking.", "page": "bills.py"},
             {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their staff.", "page": "legislators.py"},
             {"label": "Committees", "icon": "🗣", "description": "View information about committees, their members, and upcoming hearing dates.", "page": "committees.py"},
-            {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming legislative deadlines and bill-specific events.", "page": "calendar_page.py"},
+            {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming legislative deadlines and bill-specific events.", "page": "calendar_page_v2.py"},
         ]
     },
+
     "Bill Tracking Tools": {
         "description": "Keep track of bills and collaborate across organizations.",
-        "pages": [
-            {"label": "Advocacy Hub", "icon": "📣", "description": "View custom advocacy information from fellow organizations.", "page": "advocacy_hub.py"},
-            {"label": f"{org_name}'s Dashboard", "icon": "🏢", "description": "Collaborate with your team to track bills together on a shared organizational dashboard.", "page": "org_dashboard.py"},
-            {"label": "My Dashboard", "icon": "📌", "description": "Manage and track bills you care about on your personal dashboard.", "page": "my_dashboard.py"},
-        ]
+        "pages": bill_tracking_pages
     }
 }
+
 
 # Render grouped page links
 for group, content in grouped_pages.items():
