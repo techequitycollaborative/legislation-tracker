@@ -17,6 +17,9 @@
     height: 100%;
     position: relative;
     overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    height: 100%;  /* ensures equal height within the column */
 }
 
 .feature-card::before {
