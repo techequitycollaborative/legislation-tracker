@@ -6,7 +6,7 @@ Created on March 16, 2026
 @author: danyasherbini
 
 Alternative calendar page using native Streamlit widgets only (not using third-party streamlit-calendar library).
-Calendar is structured in two tabs: 
+Calendar is structured in 3 tabs: 
 - Tab 1 contains committee hearings and letter deadlines, displayed in the following format: 
     - Date headers
     - Under each date, are expanders for each committee hearing. 
@@ -20,8 +20,7 @@ Calendar is structured in two tabs:
     - Each event is rendered as an event pill/block using html.
     - Today's date is denoted with a colored circle around the date number.
     - There are no filters or clickable event buttons on this tab.
-
-Additionally, in Tab 1, there are buttons and instructions for users to access their calendar URLs 
+- Tab 3 contains buttons and instructions for users to access their calendar URLs 
 in order to add their calendars to an external calendar app (Google Calendar, Apple Calendar, Outlook, etc.).
 
 """
