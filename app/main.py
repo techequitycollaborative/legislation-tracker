@@ -97,7 +97,7 @@ else:
             st.Page('bills.py', title='Bills', icon='📝', url_path='bills'),
             st.Page('legislators.py', title='Legislators', icon='💼', url_path='legislators'),
             st.Page('committees.py', title='Committees', icon='🗣', url_path='committees'),
-            st.Page('calendar_page.py', title='Calendar', icon='📅', url_path='calendar'),
+            st.Page('calendar_page_v2.py', title='Calendar', icon='📅', url_path='calendar'),
         ],
         "Bill Tracking Tools": [
             st.Page('advocacy_hub.py', title='Advocacy Hub', icon='📣', url_path='advocacy_hub'),

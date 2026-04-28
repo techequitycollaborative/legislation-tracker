@@ -85,8 +85,25 @@ st.markdown(" ")
 # Access user info
 org_id = st.session_state.get('org_id')
 org_name = st.session_state['org_name']
+user_email = st.session_state['user_email']
+
+# Check WG membership
+from db.query import get_ai_members
+ai_members = get_ai_members()
+is_wg_member = not ai_members.empty and user_email in ai_members['email'].values
 
 # Grouped pages
+bill_tracking_pages = [
+    {"label": "Advocacy Hub", "icon": "📣", "description": "View custom advocacy information from fellow organizations.", "page": "advocacy_hub.py"},
+    {"label": f"{org_name}'s Dashboard", "icon": "🏢", "description": "Collaborate with your team to track bills together on a shared organizational dashboard.", "page": "org_dashboard.py"},
+    {"label": "My Dashboard", "icon": "📌", "description": "Manage and track bills you care about on your personal dashboard.", "page": "my_dashboard.py"},
+]
+
+if is_wg_member:
+    bill_tracking_pages.append(
+        {"label": "AI Working Group Dashboard", "icon": "🤝", "description": "Track bills with the California AI Working Group.", "page": "ai_wg_dashboard.py"}
+    )
+
 grouped_pages = {
     "Legislative Info": {
         "description": "Access legislative data, all in one place.",
@@ -94,18 +111,16 @@ grouped_pages = {
             {"label": "Bills", "icon": "📝", "description": "Search, sort, and filter all bills, and add them to your dashboards for detailed tracking.", "page": "bills.py"},
             {"label": "Legislators", "icon": "💼", "description": "View information about legislators and their staff.", "page": "legislators.py"},
             {"label": "Committees", "icon": "🗣", "description": "View information about committees, their members, and upcoming hearing dates.", "page": "committees.py"},
-            {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming legislative deadlines and bill-specific events.", "page": "calendar_page.py"},
+            {"label": "Calendar", "icon": "📅", "description": "Check the legislative calendar for upcoming legislative deadlines and bill-specific events.", "page": "calendar_page_v2.py"},
         ]
     },
+
     "Bill Tracking Tools": {
         "description": "Keep track of bills and collaborate across organizations.",
-        "pages": [
-            {"label": "Advocacy Hub", "icon": "📣", "description": "View custom advocacy information from fellow organizations.", "page": "advocacy_hub.py"},
-            {"label": f"{org_name}'s Dashboard", "icon": "🏢", "description": "Collaborate with your team to track bills together on a shared organizational dashboard.", "page": "org_dashboard.py"},
-            {"label": "My Dashboard", "icon": "📌", "description": "Manage and track bills you care about on your personal dashboard.", "page": "my_dashboard.py"},
-        ]
+        "pages": bill_tracking_pages
     }
 }
+
 
 # Render grouped page links
 for group, content in grouped_pages.items():
@@ -128,11 +143,11 @@ st.markdown(" ")
 st.markdown('<h3 class="section-header">FAQs</h3>', unsafe_allow_html=True)
 st.markdown(" ")
 
-st.expander("Where is the data in the CA Legislation Tracker sourced from?", expanded=False).markdown("We source data from the OpenStates REST API and directly from the California LegInfo websites.")
+st.expander("Where is the data in the CA Legislation Tracker sourced from?", expanded=False).markdown("We source data from the OpenStates REST API (which pulls from California LegInfo) and directly from California Assembly and Senate websites.")
 
 st.expander("How often is the CA Legislation Tracker updated?", expanded=False).markdown("""
                                                                                          
-The main legislative data (i.e., Bills, Legislators, Committees) is updated twice per day: first between 2-3 AM Pacific Time and again between 2-3 PM Pacific Time. Freshness of data pulled from legislative sources such as LegInfo are subject to the update cadence of those sources, which may vary. Please refer to the "Last Updated" date on the Bills page for the best indication of when the original data was last refreshed.
+The main legislative data (i.e., Bills, Legislators, Committees, Calendar) is updated twice per day: at 6 AM Pacific Time and again at 11 PM Pacific Time. Freshness of data pulled from legislative sources such as LegInfo are subject to the update cadence of those sources, which may vary. Please refer to the "Last Updated" date on the Bills page for the best indication of when the original data was last refreshed.
 """)
                                                                                          
 st.expander("I noticed some data was incorrect or outdated.", expanded=False).markdown("This is possible. The California legislative websites may contain errors, or may not be updated on a timely basis, so there may be discrepencies from time to time. We do our best to ensure accuracy. We encourage advocacy professionals to double check information such as timing and location of Assembly and Senate meetings and hearings, or other time-sensitive information. If you notice recurring issues, please contact us.")
