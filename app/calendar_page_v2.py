@@ -31,10 +31,9 @@ import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
 from db.query import get_my_dashboard_bills, get_org_dashboard_bills, get_working_group_bills
-from utils.calendar_utils import load_leg_events, load_bill_events, create_ics_file, load_css, render_bill, get_badge_color, create_ics_all, create_ics_single
+from utils.calendar_utils import load_leg_events, load_bill_events, load_css, render_bill, get_badge_color, get_user_token, get_org_token
 from utils.profiling import track_rerun
 from collections import defaultdict
-from db.query import get_user_token, get_org_token
 track_rerun("Calendar")
 
 
@@ -177,15 +176,15 @@ span[data-baseweb="tag"]:has(span[title="Letter Deadline"]) {
 """, unsafe_allow_html=True)
 
 
-# Group bills by event_text and event_date; store event details in a dict for easy access in the popover
-bill_events_sorted = bill_events.sort_values(['event_date', 'agenda_order'])
+# Group bills by hearing_name and hearing_date; store event details in a dict for easy access in the popover
+bill_events_sorted = bill_events.sort_values(['hearing_date', 'file_order'])
 
 # Convert to nested dict: {date -> {committee -> {'chamber_id': ..., 'bills': [...]}}}
 structured = defaultdict(lambda: defaultdict(lambda: {'chamber_id': None, 'bills': []}))
 
 for _, row in bill_events_sorted.iterrows():
-    date_key = str(row['event_date'])
-    committee_name = row['event_text']
+    date_key = str(row['hearing_date'])
+    committee_name = row['hearing_name']
 
     bill = {
         'bill_number': row['bill_number'],
@@ -194,15 +193,13 @@ for _, row in bill_events_sorted.iterrows():
             'status': row['status'],
             'date_introduced': str(row['date_introduced']),
             'chamber_id': row['chamber_id'],
-            'agenda_order': row['agenda_order'],
-            'event_text': row['event_text'],
-            'event_date': str(row['event_date']),
-            'event_time': str(row['event_time']),
-            'event_location': row['event_location'],
-            'event_room': row['event_room'],
-            'revised': row['revised'],
-            'event_status': row['event_status'],
-            'letter_deadline': str(row['letter_deadline']),
+            'file_order': row['file_order'],
+            'hearing_name': row['hearing_name'],
+            'hearing_date': str(row['hearing_date']),
+            'hearing_time': str(row['hearing_time']),
+            'hearing_location': row['hearing_location'],
+            'hearing_room': row['hearing_room'],
+            'deadline_date': str(row['deadline_date']),
         }
     }
 
@@ -223,7 +220,7 @@ with tab1:
     filter_col1, filter_col2, filter_col3 = st.columns(3)
 
     with filter_col1:
-        unique_bills = sorted(bill_events['bill_number'].unique())
+        unique_bills = sorted(bill_events['bill_number'].dropna().unique())
         selected_bills = st.multiselect(
             "Bill Number",
             options=unique_bills,
@@ -259,6 +256,7 @@ with tab1:
             help="Filter events by type. 'Senate' and 'Assembly' correspond to committee hearings for each chamber, while 'Letter Deadline' corresponds to letter deadlines for those hearings. You can select multiple event types to see all matching events."
         )
 
+    st.markdown('')
     st.divider()
 
     # Apply filters
@@ -292,18 +290,18 @@ with tab1:
 
     if "Letter Deadline" in selected_event_types:
         deadline_events = filtered_events[
-            filtered_events['letter_deadline'].notna() &
-            (filtered_events['letter_deadline'] != '') &
-            (filtered_events['letter_deadline'] != 'nan')
+            filtered_events['deadline_date'].notna() &
+            (filtered_events['deadline_date'] != '') &
+            (filtered_events['deadline_date'] != 'nan')
         ].copy()
 
     # Build filtered_structured from hearing_events only
-    filtered_sorted = hearing_events.sort_values(['event_date', 'agenda_order']) if not hearing_events.empty else pd.DataFrame()
+    filtered_sorted = hearing_events.sort_values(['hearing_date', 'file_order']) if not hearing_events.empty else pd.DataFrame()
     filtered_structured = defaultdict(lambda: defaultdict(lambda: {'chamber_id': None, 'bills': []}))
 
     for _, row in filtered_sorted.iterrows():
-        date_key = str(row['event_date'])
-        committee_name = row['event_text']
+        date_key = str(row['hearing_date'])
+        committee_name = row['hearing_name']
         bill = {
             'bill_number': row['bill_number'],
             'bill_name': row['bill_name'],
@@ -311,15 +309,13 @@ with tab1:
                 'status': row['status'],
                 'date_introduced': str(row['date_introduced']),
                 'chamber_id': row['chamber_id'],
-                'agenda_order': row['agenda_order'],
-                'event_text': row['event_text'],
-                'event_date': str(row['event_date']),
-                'event_time': str(row['event_time']),
-                'event_location': row['event_location'],
-                'event_room': row['event_room'],
-                'revised': row['revised'],
-                'event_status': row['event_status'],
-                'letter_deadline': str(row['letter_deadline']),
+                'file_order': row['file_order'],
+                'hearing_name': row['hearing_name'],
+                'hearing_date': str(row['hearing_date']),
+                'hearing_time': str(row['hearing_time']),
+                'hearing_location': row['hearing_location'],
+                'hearing_room': row['hearing_room'],
+                'deadline_date': str(row['deadline_date']),
             }
         }
         filtered_structured[date_key][committee_name]['chamber_id'] = row['chamber_id']
@@ -331,60 +327,53 @@ with tab1:
     deadline_structured = defaultdict(lambda: defaultdict(list))
     
     for _, row in deadline_events.iterrows():
-        deadline_key = str(row['letter_deadline'])
-        committee_name = row['event_text']
+        deadline_key = str(row['deadline_date'])
+        committee_name = row['hearing_name']
         deadline_structured[deadline_key][committee_name].append({
             'bill_number': row['bill_number'],
             'bill_name': row['bill_name'],
             'chamber_id': int(row['chamber_id']) if pd.notna(row['chamber_id']) else None,        
-            'committee_name': row['event_text'],
-            'event_date': str(row['event_date']),  # This is the event of the commmitee hearing that the letter deadline corresponds to
+            'committee_name': row['hearing_name'],
+            'hearing_date': str(row['hearing_date']),  # This is the event of the commmitee hearing that the letter deadline corresponds to
         })
 
     deadline_structured = {k: dict(v) for k, v in deadline_structured.items()}
 
     # Download all events button + total events count
-    all_ics = create_ics_all(filtered_structured, deadline_structured)
-    download_col1, download_col2 = st.columns([8, 2])
-    with download_col1:
+    col1, col2 = st.columns([8, 2])
+    with col1:
         # Display count of events being shown based on current filters
-        total_hearings = sum(len(committees) for committees in filtered_structured.values())
-        total_deadlines = sum(len(committees) for committees in deadline_structured.values())
+        today_str = date.today().isoformat()
+        total_hearings = sum(len(committees) for d, committees in filtered_structured.items() if d >= today_str)
+        total_deadlines = sum(len(committees) for d, committees in deadline_structured.items() if d >= today_str)
         # Adjust caption to account for pluralization
         hearing_text = "Committee Hearing" if total_hearings == 1 else "Committee Hearings"
         deadline_text = "Letter Deadline" if total_deadlines == 1 else "Letter Deadlines"
         st.caption(f"**Displaying:** 🏛️ {total_hearings} {hearing_text} | ✉️ {total_deadlines} {deadline_text}")
 
-    with download_col2:
-        # Download button
-        st.download_button(
-            label="📥 Download Events",
-            data=all_ics,
-            file_name="committee_hearings.ics",
-            mime="text/calendar",
-            key="download_all_button",
-            width='stretch',
-            type="secondary",
-            help="Download committee hearings and letter deadlines as an .ics file to add to an external calendar. If you have filters applied, only the events matching the current filters will be included in the download. Events are generated at the bill level."
-        )
+    with col2:
+        st.markdown('')
 
     # Determine if filters are active -- this will determine whether to keep expanders open
     # or closed by default
     filters_active = bool(selected_bills or selected_dashboards)
 
-    # Render events
-    all_dates = sorted(set(list(filtered_structured.keys()) + list(deadline_structured.keys())))
+    # Render events -- ONLY SHOW EVENTS TODAY OR AFTER
+    all_dates = sorted(
+        d for d in set(list(filtered_structured.keys()) + list(deadline_structured.keys()))
+        if d >= today_str
+    )
 
     if not all_dates:
         st.info("No committee hearings match the current filters.")
     else:
-        for event_date in all_dates:
-            friendly_date = pd.to_datetime(event_date).strftime("%A, %B %d, %Y")
+        for hearing_date in all_dates:
+            friendly_date = pd.to_datetime(hearing_date).strftime("%A, %B %d, %Y")
             st.markdown(f"#### 📅 {friendly_date}")
 
             # Committee hearing events
-            if event_date in filtered_structured:
-                committees = filtered_structured[event_date]
+            if hearing_date in filtered_structured:
+                committees = filtered_structured[hearing_date]
                 committees = dict(sorted(committees.items(), key=lambda x: x[1]['chamber_id']))
 
                 for committee_name, committee_data in committees.items():
@@ -414,13 +403,13 @@ with tab1:
                                 render_bill(bill)
 
             # Letter deadline events
-            if event_date in deadline_structured:
-                for committee_name, bills in deadline_structured[event_date].items():
+            if hearing_date in deadline_structured:
+                for committee_name, bills in deadline_structured[hearing_date].items():
                     
                     # Retrieve chamber_id, chamber name, and hearing date for expander content below
                     chamber_id = bills[0].get('chamber_id')
                     chamber_name = f"{'Assembly' if chamber_id == 1 else 'Senate'}"
-                    hearing_date = pd.to_datetime(bills[0]['event_date']).strftime("%A, %B %d, %Y")
+                    hearing_date = pd.to_datetime(bills[0]['hearing_date']).strftime("%A, %B %d, %Y")
 
                     col1, col2 = st.columns([1, 9])
                     with col1:
@@ -485,8 +474,8 @@ with tab2:
                 for d, titles in events_by_date.items()
                 if d.year == year and d.month == month
             )
-            event_text = "event" if month_event_count == 1 else "events"
-            st.caption(f"📅 {month_event_count} legislative {event_text} this month")
+            hearing_name = "event" if month_event_count == 1 else "events"
+            st.caption(f"📅 {month_event_count} legislative {hearing_name} this month")
 
             # Day-of-week headers
             day_headers = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]

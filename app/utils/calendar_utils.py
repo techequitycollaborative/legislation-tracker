@@ -17,6 +17,7 @@ import numpy as np
 from ics import Calendar, Event
 from .profiling import profile
 import re
+from db.connect import get_connection
 
 ##################################### HELPER FUNCTIONS #############################
 # Control for events that don't have an actual time (e.g. "Upon adjournment")
@@ -418,3 +419,89 @@ def create_ics_file(events):
     
     # return str(cal)  # Return the .ics content as a string
     return cal.serialize()
+
+######################### UTILS FOR NEW STREAMLIT NATIVE CALENDAR PAGE ########################
+
+# Function to render bills for each committee event
+def render_bill(bill: dict):
+    """
+    This function renders bills on the calendar page in the following fashion: 
+    - Bills are nested within a committee event (as an expander)
+    - Each bill has an associated popover button; when clicked, it displays event + bill details
+    """
+    col_text, col_btn = st.columns([7, 3])
+
+    with col_text:
+        st.markdown(f"- **{bill['bill_number']}** — {bill['bill_name']}")
+
+    with col_btn:
+        with st.popover("View event details", width="stretch", type="secondary"):
+            st.markdown(f"#### {bill['bill_number']}")
+            st.markdown(f"**{bill['bill_name']}**")
+            st.divider()
+
+            details = bill['details']
+
+            # Event info
+            st.markdown("##### Event Details")
+            st.markdown(f"""
+                - **Committee:** {details['hearing_name']}
+                - **Chamber:** {'Assembly' if details['chamber_id'] == 1 else 'Senate' if details['chamber_id'] == 2 else 'Unknown'}
+                - **Date:** {details['hearing_date']}
+                - **Time:** {details['hearing_time']}
+                - **Location:** {details['hearing_location']}
+                - **Room:** {details['hearing_room']}
+                - **Agenda Order:** {details['file_order']}
+                """)
+            
+            # Letter deadline
+            st.markdown("##### Letter Deadline")
+            st.markdown(details['deadline_date'])
+            
+            # Bill info            
+            st.markdown("##### Bill Details")
+            st.markdown(f"""
+                - **Status:** {details['status']}
+                - **Date Introduced:** {details['date_introduced']}
+                """)
+
+
+# Function to apply badges to denote chamber
+def get_badge_color(chamber_id) -> str:
+    """
+    Returns color coding for st.badge() labels next to committee hearing events
+    in order to denote which chamber the committee belongs to
+    """
+    if chamber_id == 1:
+        return "green"   # Assembly
+    elif chamber_id == 2:
+        return "red"     # Senate
+    
+def get_user_token(email: str) -> str | None:
+    """
+    Return the stored raw token for a user, or None if not yet generated.
+    Used by the Streamlit UI to display the feed URL without regenerating.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT feed_token FROM auth.approved_users WHERE email = %s",
+                (email,),
+            )
+            row = cur.fetchone()
+    return row[0] if row else None
+
+
+def get_org_token(org_id: int) -> str | None:
+    """
+    Return the stored raw token for an org, or None if not yet generated.
+    Used by the Streamlit UI to display the feed URL without regenerating.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT feed_token FROM auth.approved_organizations WHERE id = %s",
+                (org_id,),
+            )
+            row = cur.fetchone()
+    return row[0] if row else None
