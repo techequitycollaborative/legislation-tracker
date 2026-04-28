@@ -17,6 +17,7 @@ import numpy as np
 from ics import Calendar, Event
 from .profiling import profile
 import re
+from db.connect import get_connection
 
 ##################################### HELPER FUNCTIONS #############################
 # Control for events that don't have an actual time (e.g. "Upon adjournment")
@@ -36,7 +37,7 @@ DE_KEYWORDS = re.compile(r'|'.join(r'\b' + word + r'\b' for word in deadline_eve
 ####################################### LOAD DATA ###################################
 
 # Load legislative calendar events for 2025-2026 leg session (this is in a CSV file for now)
-@st.cache_data(show_spinner="Loading legislative events...")
+# Do not cache since this is only a static CSV file and we want to be able to update it easily without having to clear cache
 def load_leg_events():
     leg_events = pd.read_csv('./data/20262027_leg_dates.csv')
     return leg_events
@@ -418,3 +419,117 @@ def create_ics_file(events):
     
     # return str(cal)  # Return the .ics content as a string
     return cal.serialize()
+
+######################### UTILS FOR NEW STREAMLIT NATIVE CALENDAR PAGE ########################
+
+@st.cache_data(show_spinner="Loading committee events and deadlines...",ttl=120) # Cache data and refresh every 2 mins
+@profile("Calendar - load committee events and deadlines")
+def load_committee_events():
+    hearings = query_table('app', 'hearings_mv')
+    hearing_bills = query_table('app', 'hearing_bills_mv')
+    hearing_deadlines = query_table('app', 'hearing_deadlines_mv')
+
+    # Format date cols as date string without time for display purposes
+    hearings['hearing_date'] = pd.to_datetime(hearings['hearing_date'])
+    hearings['hearing_date'] = hearings['hearing_date'].dt.strftime('%Y-%m-%d')
+
+    hearing_deadlines['deadline_date'] = pd.to_datetime(hearing_deadlines['deadline_date'])
+    hearing_deadlines['deadline_date'] = hearing_deadlines['deadline_date'].dt.strftime('%Y-%m-%d')
+
+    return hearings, hearing_bills, hearing_deadlines
+
+# Function to render bills for each committee event         
+def render_bill(bill_number: str, bill_name: str, hearing_row: pd.Series, bill_row: pd.Series, deadline_row: pd.Series | None):
+    """
+    This function renders bills on the calendar page in the following fashion: 
+    - Bills are nested within a committee event (as an expander)
+    - Each bill has an associated popover button; when clicked, it displays event + bill details
+
+    Args:
+        bill_number: bill number string
+        bill_name: bill name string  
+        hearing_row: row from hearings df (hearing_date, hearing_name, chamber_id, hearing_time, hearing_location, hearing_room)
+        bill_row: row from hearing_bills df (file_order, status, date_introduced)
+        deadline_row: row from hearing_deadlines df, or None if no deadline exists
+    """
+    col_text, col_btn = st.columns([7, 3])
+
+    with col_text:
+        st.markdown(f"- **{bill_number}** — {bill_name}")
+
+    with col_btn:
+        with st.popover("View event details", width="stretch", type="secondary"):
+            st.markdown(f"#### {bill_number}")
+            st.markdown(f"**{bill_name}**")
+            st.divider()
+
+            chamber_id = hearing_row.get('chamber_id')
+            chamber_name = 'Assembly' if chamber_id == 1 else 'Senate' if chamber_id == 2 else 'Unknown'
+
+            # Event info
+            st.markdown("##### Event Details")
+            st.markdown(f"""
+                - **Committee:** {hearing_row.get('hearing_name')}
+                - **Chamber:** {chamber_name}
+                - **Date:** {hearing_row.get('hearing_date')}
+                - **Time:** {hearing_row.get('hearing_time')}
+                - **Location:** {hearing_row.get('hearing_location')}
+                - **Room:** {hearing_row.get('hearing_room')}
+                - **Agenda Order:** {bill_row.get('file_order') if bill_row is not None else 'N/A'}
+            """)
+
+            # Letter deadline
+            st.markdown("##### Letter Deadline")
+            if deadline_row is not None and pd.notna(deadline_row.get('deadline_date')):
+                st.markdown(str(deadline_row.get('deadline_date')))
+            else:
+                st.markdown("No deadline set.")
+
+            # Bill info
+            st.markdown("##### Bill Details")
+            st.markdown(f"""
+                - **Status:** {bill_row.get('status') if bill_row is not None else 'N/A'}
+                - **Date Introduced:** {bill_row.get('date_introduced') if bill_row is not None else 'N/A'}
+            """)
+
+
+# Function to apply badges to denote chamber
+def get_badge_color(chamber_id) -> str:
+    """
+    Returns color coding for st.badge() labels next to committee hearing events
+    in order to denote which chamber the committee belongs to
+    """
+    if chamber_id == 1:
+        return "green"   # Assembly
+    elif chamber_id == 2:
+        return "red"     # Senate
+    
+def get_user_token(email: str) -> str | None:
+    """
+    Return the stored raw token for a user, or None if not yet generated.
+    Used by the Streamlit UI to display the feed URL without regenerating.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT feed_token FROM auth.approved_users WHERE email = %s",
+                (email,),
+            )
+            row = cur.fetchone()
+    return row[0] if row else None
+
+
+def get_org_token(org_id: int) -> str | None:
+    """
+    Return the stored raw token for an org, or None if not yet generated.
+    Used by the Streamlit UI to display the feed URL without regenerating.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT feed_token FROM auth.approved_organizations WHERE id = %s",
+                (org_id,),
+            )
+            row = cur.fetchone()
+    return row[0] if row else None
+
