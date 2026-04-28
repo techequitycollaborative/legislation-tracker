@@ -422,48 +422,75 @@ def create_ics_file(events):
 
 ######################### UTILS FOR NEW STREAMLIT NATIVE CALENDAR PAGE ########################
 
-# Function to render bills for each committee event
-def render_bill(bill: dict):
+@st.cache_data(show_spinner="Loading committee events and deadlines...",ttl=120) # Cache data and refresh every 2 mins
+@profile("Calendar - load committee events and deadlines")
+def load_committee_events():
+    hearings = query_table('app', 'hearings_mv')
+    hearing_bills = query_table('app', 'hearing_bills_mv')
+    hearing_deadlines = query_table('app', 'hearing_deadlines_mv')
+
+    # Format date cols as date string without time for display purposes
+    hearings['hearing_date'] = pd.to_datetime(hearings['hearing_date'])
+    hearings['hearing_date'] = hearings['hearing_date'].dt.strftime('%Y-%m-%d')
+
+    hearing_deadlines['deadline_date'] = pd.to_datetime(hearing_deadlines['deadline_date'])
+    hearing_deadlines['deadline_date'] = hearing_deadlines['deadline_date'].dt.strftime('%Y-%m-%d')
+
+    return hearings, hearing_bills, hearing_deadlines
+
+# Function to render bills for each committee event         
+def render_bill(bill_number: str, bill_name: str, hearing_row: pd.Series, bill_row: pd.Series, deadline_row: pd.Series | None):
     """
     This function renders bills on the calendar page in the following fashion: 
     - Bills are nested within a committee event (as an expander)
     - Each bill has an associated popover button; when clicked, it displays event + bill details
+
+    Args:
+        bill_number: bill number string
+        bill_name: bill name string  
+        hearing_row: row from hearings df (hearing_date, hearing_name, chamber_id, hearing_time, hearing_location, hearing_room)
+        bill_row: row from hearing_bills df (file_order, status, date_introduced)
+        deadline_row: row from hearing_deadlines df, or None if no deadline exists
     """
     col_text, col_btn = st.columns([7, 3])
 
     with col_text:
-        st.markdown(f"- **{bill['bill_number']}** — {bill['bill_name']}")
+        st.markdown(f"- **{bill_number}** — {bill_name}")
 
     with col_btn:
         with st.popover("View event details", width="stretch", type="secondary"):
-            st.markdown(f"#### {bill['bill_number']}")
-            st.markdown(f"**{bill['bill_name']}**")
+            st.markdown(f"#### {bill_number}")
+            st.markdown(f"**{bill_name}**")
             st.divider()
 
-            details = bill['details']
+            chamber_id = hearing_row.get('chamber_id')
+            chamber_name = 'Assembly' if chamber_id == 1 else 'Senate' if chamber_id == 2 else 'Unknown'
 
             # Event info
             st.markdown("##### Event Details")
             st.markdown(f"""
-                - **Committee:** {details['hearing_name']}
-                - **Chamber:** {'Assembly' if details['chamber_id'] == 1 else 'Senate' if details['chamber_id'] == 2 else 'Unknown'}
-                - **Date:** {details['hearing_date']}
-                - **Time:** {details['hearing_time']}
-                - **Location:** {details['hearing_location']}
-                - **Room:** {details['hearing_room']}
-                - **Agenda Order:** {details['file_order']}
-                """)
-            
+                - **Committee:** {hearing_row.get('hearing_name')}
+                - **Chamber:** {chamber_name}
+                - **Date:** {hearing_row.get('hearing_date')}
+                - **Time:** {hearing_row.get('hearing_time')}
+                - **Location:** {hearing_row.get('hearing_location')}
+                - **Room:** {hearing_row.get('hearing_room')}
+                - **Agenda Order:** {bill_row.get('file_order') if bill_row is not None else 'N/A'}
+            """)
+
             # Letter deadline
             st.markdown("##### Letter Deadline")
-            st.markdown(details['deadline_date'])
-            
-            # Bill info            
+            if deadline_row is not None and pd.notna(deadline_row.get('deadline_date')):
+                st.markdown(str(deadline_row.get('deadline_date')))
+            else:
+                st.markdown("No deadline set.")
+
+            # Bill info
             st.markdown("##### Bill Details")
             st.markdown(f"""
-                - **Status:** {details['status']}
-                - **Date Introduced:** {details['date_introduced']}
-                """)
+                - **Status:** {bill_row.get('status') if bill_row is not None else 'N/A'}
+                - **Date Introduced:** {bill_row.get('date_introduced') if bill_row is not None else 'N/A'}
+            """)
 
 
 # Function to apply badges to denote chamber
@@ -505,3 +532,4 @@ def get_org_token(org_id: int) -> str | None:
             )
             row = cur.fetchone()
     return row[0] if row else None
+

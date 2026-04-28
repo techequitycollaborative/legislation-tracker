@@ -31,9 +31,10 @@ import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
 from db.query import get_my_dashboard_bills, get_org_dashboard_bills, get_working_group_bills
-from utils.calendar_utils import load_leg_events, load_bill_events, load_css, render_bill, get_badge_color, get_user_token, get_org_token
+from utils.calendar_utils import load_leg_events, load_committee_events, load_css, render_bill, get_badge_color, get_user_token, get_org_token
 from utils.profiling import track_rerun
 from collections import defaultdict
+from st_copy import copy_button # Streamlit component to make copy buttons
 track_rerun("Calendar")
 
 
@@ -44,10 +45,23 @@ st.title("📅 Calendar")
 with st.expander("About this page", icon="ℹ️", expanded=False):
     st.markdown(
         """
-        - This page displays two calendars: one for committee hearings and associated letter deadlines, and one for overall legislative events.
+        This page displays three tabs: 
+
+        **Tab 1: Committee Hearings & Deadlines**
+        - This tab displays upcoming committee hearings and letter deadlines.
         - Committee hearings are sourced from Assembly and Senate calendar websites directly, so only available events are shown.
-        - Letter Deadlines are auto-generated for 7 days before a committee hearing.
+        - Only events today or in the future are displayed.
+        - Letter Deadlines are auto-generated for 7 days before a committee hearing, and are only generated for hearings that have bills on the agenda.
+        - Some committee hearings do not have any bills on their public agenda yet.
         - Event times are displayed in Pacific Time.
+
+        **Tab 2: Legislative Event Calendar**
+        - This tab displays a calendar view of legislative events sourced from this legislative cycle's public calendar.
+        - Past months are collapsed by default.
+
+        **Tab 3: My Calendar URLs**
+        - This tab displays your custom URLs for calendar feeds that you can add to any external calendar app (Google Calendar, Apple Calendar, Outlook, etc.).
+        - Copy your URLs and follow the instructions to add them to an external calendar app.
         """
     )
 
@@ -62,74 +76,6 @@ org_name = st.session_state['org_name']
 org_nickname = st.session_state.get('nickname')
 user_email = st.session_state['user_email']
 
-# Get user's calendar tokens and URLs
-def get_cal_URLs(org_id, user_email):
-    try:
-        user_token = get_user_token(user_email)
-        org_token = get_org_token(org_id)
-
-        user_url = f"http://leg-calendar-feed-btmit.ondigitalocean.app/feed/user/{user_token}"
-        org_url = f"http://leg-calendar-feed-btmit.ondigitalocean.app/feed/org/{org_token}"
-        wg_url = "http://leg-calendar-feed-btmit.ondigitalocean.app/feed/working-group/gFrfnhaAQGTWyiAfWjLh_dZG4Sh1jihbdHKNzJkqYF8"
-
-        return user_url, org_url, wg_url
-    except Exception as e:
-        st.error(f"Error fetching calendar tokens: {e}")
-        return None, None, None
-    
-user_url, org_url, wg_url = get_cal_URLs(org_id, user_email)
-
-# Build user workflow to retrieve calendar URLs
-st.markdown("### Get Your Calendar URLs")
-st.caption(
-    """
-    Add your personalized calendar feed to your calendar app of choice (Google Calendar, Apple Calendar, Outlook, etc.). 
-    Copy the URLs below and follow the instructions for your calendar app.
-    """
-)
-
-col1, col2, col3 = st.columns(3)
-
-def copy_button_html(url, label):
-    return f"""
-    <div style="margin-bottom: 8px;">
-        <div style="
-            background: #f0f2f6;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 10px 12px;
-            font-family: monospace;
-            font-size: 12px;
-            word-break: break-all;
-            color: #1f2937;
-            margin-bottom: 8px;
-        ">{url}</div>
-        <button onclick="
-            navigator.clipboard.writeText('{url}');
-            this.textContent = '✓ Copied!';
-            this.style.background = '#16a34a';
-            this.style.borderColor = '#16a34a';
-            setTimeout(() => {{
-                this.textContent = '⎘ Copy URL';
-                this.style.background = '#FF4B4B';
-                this.style.borderColor = '#FF4B4B';
-            }}, 2000);
-        " style="
-            width: 100%;
-            padding: 0.25rem 0.75rem;
-            background: #FF4B4B;
-            color: white;
-            border: 1px solid #FF4B4B;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 400;
-            font-family: 'Source Sans Pro', sans-serif;
-            height: 2.5rem;
-        ">⎘ Copy URL</button>
-    </div>
-    """
-
 # Get dashboard bills
 if "dashboard_bills" not in st.session_state or not len(st.session_state.dashboard_bills):
     st.session_state.dashboard_bills = get_my_dashboard_bills(user_email)
@@ -142,7 +88,7 @@ if "wg_dashboard_bills" not in st.session_state or st.session_state.wg_dashboard
 
 # Load data
 leg_events  = load_leg_events()
-bill_events = load_bill_events()
+hearings, hearing_bills, hearing_deadlines = load_committee_events()
 
 # Load css
 custom_css = load_css('styles/calendar.css')
@@ -176,51 +122,51 @@ span[data-baseweb="tag"]:has(span[title="Letter Deadline"]) {
 """, unsafe_allow_html=True)
 
 
-# Group bills by hearing_name and hearing_date; store event details in a dict for easy access in the popover
-bill_events_sorted = bill_events.sort_values(['hearing_date', 'file_order'])
+# Convert hearing_date to string for consistent keying
+hearings['hearing_date'] = hearings['hearing_date'].astype(str)
+hearing_deadlines['deadline_date'] = hearing_deadlines['deadline_date'].astype(str)
 
-# Convert to nested dict: {date -> {committee -> {'chamber_id': ..., 'bills': [...]}}}
-structured = defaultdict(lambda: defaultdict(lambda: {'chamber_id': None, 'bills': []}))
+# Build lookup dicts for fast access
+# {hearing_id -> [bill rows]}
+bills_by_hearing = hearing_bills.groupby('hearing_id')
 
-for _, row in bill_events_sorted.iterrows():
-    date_key = str(row['hearing_date'])
-    committee_name = row['hearing_name']
+# {hearing_id -> deadline row}
+deadlines_by_hearing = hearing_deadlines.set_index('hearing_id').to_dict('index') if not hearing_deadlines.empty else {}
 
-    bill = {
-        'bill_number': row['bill_number'],
-        'bill_name': row['bill_name'],
-        'details': {
-            'status': row['status'],
-            'date_introduced': str(row['date_introduced']),
-            'chamber_id': row['chamber_id'],
-            'file_order': row['file_order'],
-            'hearing_name': row['hearing_name'],
-            'hearing_date': str(row['hearing_date']),
-            'hearing_time': str(row['hearing_time']),
-            'hearing_location': row['hearing_location'],
-            'hearing_room': row['hearing_room'],
-            'deadline_date': str(row['deadline_date']),
-        }
+# Build structured dict: {date -> {committee_name -> {'hearing_row': ..., 'bills': [...]}}}
+structured = defaultdict(dict)
+for _, h_row in hearings.iterrows():
+    date_key = h_row['hearing_date']
+    committee_name = h_row['hearing_name']
+    hearing_id = h_row['hearing_id']
+
+    # Get bills for this hearing (empty list if none)
+    if hearing_id in bills_by_hearing.groups:
+        bills = [row for _, row in bills_by_hearing.get_group(hearing_id).iterrows()]
+    else:
+        bills = []
+
+    # Get deadline for this hearing (None if none)
+    deadline_row = deadlines_by_hearing.get(hearing_id)
+
+    structured[date_key][committee_name] = {
+        'hearing_row': h_row,
+        'bills': bills,
+        'deadline_row': deadline_row,
     }
 
-    structured[date_key][committee_name]['chamber_id'] = row['chamber_id']
-    structured[date_key][committee_name]['bills'].append(bill)
-
-structured = {date_key: dict(committees) for date_key, committees in structured.items()}
+structured = dict(structured)
 
 ## Build the calendar display
-# Two tabs
-tab1, tab2 = st.tabs(["🏛️ Committee Hearings", "📅 Legislative Calendar"]) 
+tab1, tab2, tab3 = st.tabs(["🏛️ Committee Hearings", "📅 Legislative Calendar", "🔗 My Calendar URLs"])
 
-## Committee hearings tab
 with tab1:
 
-    # Inline filters for bill number, dashboard, and event type
     st.markdown("#### Filters")
     filter_col1, filter_col2, filter_col3 = st.columns(3)
 
     with filter_col1:
-        unique_bills = sorted(bill_events['bill_number'].dropna().unique())
+        unique_bills = sorted(hearing_bills['bill_number'].dropna().unique())
         selected_bills = st.multiselect(
             "Bill Number",
             options=unique_bills,
@@ -259,106 +205,82 @@ with tab1:
     st.markdown('')
     st.divider()
 
-    # Apply filters
-    filtered_events = bill_events.copy()
-
-    # Apply bill number filter
-    if selected_bills:
-        filtered_events = filtered_events[filtered_events['bill_number'].isin(selected_bills)]
-
-    # Apply dashboard filter
+    # Build dashboard bill number sets for filtering
+    dashboard_bill_numbers = set()
     if selected_dashboards:
-        dashboard_bill_numbers = set()
         if "My Dashboard" in selected_dashboards and st.session_state.get('dashboard_bills') is not None:
             dashboard_bill_numbers.update(st.session_state.dashboard_bills['bill_number'].tolist())
         if f"{org_name}'s Dashboard" in selected_dashboards and st.session_state.get('org_dashboard_bills') is not None:
             dashboard_bill_numbers.update(st.session_state.org_dashboard_bills['bill_number'].tolist())
         if "AI Working Group Dashboard" in selected_dashboards and st.session_state.get('wg_dashboard_bills') is not None:
             dashboard_bill_numbers.update(st.session_state.wg_dashboard_bills['bill_number'].tolist())
-        filtered_events = filtered_events[filtered_events['bill_number'].isin(dashboard_bill_numbers)]
 
-    # Split into hearing events and deadline events based on selected event types
-    hearing_events = pd.DataFrame()
-    deadline_events = pd.DataFrame()
+    def filter_bills(bills: list, selected_bills: list, dashboard_bill_numbers: set) -> list:
+        """Filter a list of bill rows by bill number and/or dashboard membership."""
+        if selected_bills:
+            bills = [b for b in bills if b.get('bill_number') in selected_bills]
+        if dashboard_bill_numbers:
+            bills = [b for b in bills if b.get('bill_number') in dashboard_bill_numbers]
+        return bills
 
-    if "Assembly" in selected_event_types and "Senate" in selected_event_types:
-        hearing_events = filtered_events
-    elif "Assembly" in selected_event_types:
-        hearing_events = filtered_events[filtered_events['chamber_id'] == 1]
-    elif "Senate" in selected_event_types:
-        hearing_events = filtered_events[filtered_events['chamber_id'] == 2]
+    # Apply filters and build filtered_structured and deadline_structured
+    today_str = date.today().isoformat()
+    filtered_structured = defaultdict(dict)
+    deadline_structured = defaultdict(dict)  # {deadline_date -> {committee_name -> {hearing_row, bills, deadline_row}}}
 
-    if "Letter Deadline" in selected_event_types:
-        deadline_events = filtered_events[
-            filtered_events['deadline_date'].notna() &
-            (filtered_events['deadline_date'] != '') &
-            (filtered_events['deadline_date'] != 'nan')
-        ].copy()
+    for date_key, committees in structured.items():
+        for committee_name, data in committees.items():
+            h_row = data['hearing_row']
+            bills = data['bills']
+            deadline_row = data['deadline_row']
+            chamber_id = h_row.get('chamber_id')
 
-    # Build filtered_structured from hearing_events only
-    filtered_sorted = hearing_events.sort_values(['hearing_date', 'file_order']) if not hearing_events.empty else pd.DataFrame()
-    filtered_structured = defaultdict(lambda: defaultdict(lambda: {'chamber_id': None, 'bills': []}))
+            # Filter bills
+            filtered_bills = filter_bills(bills, selected_bills, dashboard_bill_numbers)
 
-    for _, row in filtered_sorted.iterrows():
-        date_key = str(row['hearing_date'])
-        committee_name = row['hearing_name']
-        bill = {
-            'bill_number': row['bill_number'],
-            'bill_name': row['bill_name'],
-            'details': {
-                'status': row['status'],
-                'date_introduced': str(row['date_introduced']),
-                'chamber_id': row['chamber_id'],
-                'file_order': row['file_order'],
-                'hearing_name': row['hearing_name'],
-                'hearing_date': str(row['hearing_date']),
-                'hearing_time': str(row['hearing_time']),
-                'hearing_location': row['hearing_location'],
-                'hearing_room': row['hearing_room'],
-                'deadline_date': str(row['deadline_date']),
-            }
-        }
-        filtered_structured[date_key][committee_name]['chamber_id'] = row['chamber_id']
-        filtered_structured[date_key][committee_name]['bills'].append(bill)
+            # If dashboard or bill filter is active, skip hearings with no matching bills
+            if (selected_bills or selected_dashboards) and not filtered_bills:
+                continue
 
-    filtered_structured = {date_key: dict(committees) for date_key, committees in filtered_structured.items()}
+            # Apply event type filter for hearings
+            include_hearing = (
+                ("Assembly" in selected_event_types and chamber_id == 1) or
+                ("Senate" in selected_event_types and chamber_id == 2)
+            )
+            if include_hearing:
+                filtered_structured[date_key][committee_name] = {
+                    'hearing_row': h_row,
+                    'bills': filtered_bills,
+                    'deadline_row': deadline_row,
+                }
 
-    # Build deadline_structured from deadline_events only -- i.e. letter deadlines
-    deadline_structured = defaultdict(lambda: defaultdict(list))
-    
-    for _, row in deadline_events.iterrows():
-        deadline_key = str(row['deadline_date'])
-        committee_name = row['hearing_name']
-        deadline_structured[deadline_key][committee_name].append({
-            'bill_number': row['bill_number'],
-            'bill_name': row['bill_name'],
-            'chamber_id': int(row['chamber_id']) if pd.notna(row['chamber_id']) else None,        
-            'committee_name': row['hearing_name'],
-            'hearing_date': str(row['hearing_date']),  # This is the event of the commmitee hearing that the letter deadline corresponds to
-        })
+            # Build deadline_structured — only include if there are bills associated with this deadline
+            if "Letter Deadline" in selected_event_types and deadline_row and deadline_row.get('deadline_date') and filtered_bills:
+                deadline_key = str(deadline_row['deadline_date'])
+                if deadline_key >= today_str:
+                    deadline_structured[deadline_key][committee_name] = {
+                        'hearing_row': h_row,
+                        'bills': filtered_bills,
+                        'deadline_row': deadline_row,
+                    }
 
-    deadline_structured = {k: dict(v) for k, v in deadline_structured.items()}
+    filtered_structured = dict(filtered_structured)
+    deadline_structured = dict(deadline_structured)
 
-    # Download all events button + total events count
+    # Event counts
     col1, col2 = st.columns([8, 2])
     with col1:
-        # Display count of events being shown based on current filters
-        today_str = date.today().isoformat()
         total_hearings = sum(len(committees) for d, committees in filtered_structured.items() if d >= today_str)
         total_deadlines = sum(len(committees) for d, committees in deadline_structured.items() if d >= today_str)
-        # Adjust caption to account for pluralization
         hearing_text = "Committee Hearing" if total_hearings == 1 else "Committee Hearings"
         deadline_text = "Letter Deadline" if total_deadlines == 1 else "Letter Deadlines"
         st.caption(f"**Displaying:** 🏛️ {total_hearings} {hearing_text} | ✉️ {total_deadlines} {deadline_text}")
-
     with col2:
         st.markdown('')
 
-    # Determine if filters are active -- this will determine whether to keep expanders open
-    # or closed by default
     filters_active = bool(selected_bills or selected_dashboards)
 
-    # Render events -- ONLY SHOW EVENTS TODAY OR AFTER
+    # Render events — today and future only
     all_dates = sorted(
         d for d in set(list(filtered_structured.keys()) + list(deadline_structured.keys()))
         if d >= today_str
@@ -367,66 +289,68 @@ with tab1:
     if not all_dates:
         st.info("No committee hearings match the current filters.")
     else:
-        for hearing_date in all_dates:
-            friendly_date = pd.to_datetime(hearing_date).strftime("%A, %B %d, %Y")
+        for event_date in all_dates:
+            friendly_date = pd.to_datetime(event_date).strftime("%A, %B %d, %Y")
             st.markdown(f"#### 📅 {friendly_date}")
 
             # Committee hearing events
-            if hearing_date in filtered_structured:
-                committees = filtered_structured[hearing_date]
-                committees = dict(sorted(committees.items(), key=lambda x: x[1]['chamber_id']))
+            if event_date in filtered_structured:
+                committees = filtered_structured[event_date]
+                committees = dict(sorted(committees.items(), key=lambda x: x[1]['hearing_row'].get('chamber_id') or 99))
 
-                for committee_name, committee_data in committees.items():
-                    chamber_id = committee_data['chamber_id']
-                    bills = committee_data['bills']
-
-                    # Grab chamber name and hearing date for expander content below
-                    chamber_name = f"{'Assembly' if chamber_id == 1 else 'Senate'}"
+                for committee_name, data in committees.items():
+                    h_row = data['hearing_row']
+                    bills = data['bills']
+                    deadline_row = data['deadline_row']
+                    chamber_id = h_row.get('chamber_id')
+                    chamber_name = 'Assembly' if chamber_id == 1 else 'Senate'
 
                     col1, col2 = st.columns([1, 9])
                     with col1:
-                        # Apply color-coded badge to denote chamber
                         st.badge(
                             label="Assembly" if chamber_id == 1 else "Senate",
                             color=get_badge_color(chamber_id)
                         )
                     with col2:
-                        # Build expander with content
                         with st.expander(committee_name, expanded=filters_active):
-
-                            # Display info as captions                            
                             st.caption(f"📝 Bills on the agenda for {chamber_name} {committee_name} Committee")
                             st.caption(f"📅 Committee Hearing: {friendly_date}")
-                            
-                            # Display bills under the committee hearing expander
-                            for bill in bills:
-                                render_bill(bill)
+
+                            if bills:
+                                for bill_row in bills:
+                                    render_bill(
+                                        bill_number=bill_row.get('bill_number', 'N/A'),
+                                        bill_name=bill_row.get('bill_name', 'N/A'),
+                                        hearing_row=h_row,
+                                        bill_row=bill_row,
+                                        deadline_row=deadline_row,
+                                    )
+                            else:
+                                st.caption("No bills on the agenda yet.")
 
             # Letter deadline events
-            if hearing_date in deadline_structured:
-                for committee_name, bills in deadline_structured[hearing_date].items():
-                    
-                    # Retrieve chamber_id, chamber name, and hearing date for expander content below
-                    chamber_id = bills[0].get('chamber_id')
-                    chamber_name = f"{'Assembly' if chamber_id == 1 else 'Senate'}"
-                    hearing_date = pd.to_datetime(bills[0]['hearing_date']).strftime("%A, %B %d, %Y")
+            if event_date in deadline_structured:
+                for committee_name, data in deadline_structured[event_date].items():
+                    h_row = data['hearing_row']
+                    bills = data['bills']
+                    deadline_row = data['deadline_row']
+                    chamber_id = h_row.get('chamber_id')
+                    chamber_name = 'Assembly' if chamber_id == 1 else 'Senate'
+                    hearing_friendly = pd.to_datetime(h_row.get('hearing_date')).strftime("%A, %B %d, %Y")
 
                     col1, col2 = st.columns([1, 9])
                     with col1:
-                        # Apply color-coded badge to denote letter deadlines
                         st.badge(label="Letter Deadline", color="orange")
-
-                    with col2:                        
-                        # Build expander with content
+                    with col2:
                         with st.expander(committee_name, expanded=filters_active):
-
-                            # Display chamber and hearing date as captions                            
                             st.caption(f"⚠️ Letter Deadline for {chamber_name} {committee_name} Committee")
-                            st.caption(f"📅 Committee Hearing: {hearing_date}")
+                            st.caption(f"📅 Committee Hearing: {hearing_friendly}")
 
-                            # Display bills under the letter deadline expander
-                            for bill in bills:
-                                st.markdown(f"- **{bill['bill_number']}** — {bill['bill_name']}")
+                            if bills:
+                                for bill_row in bills:
+                                    st.markdown(f"- **{bill_row.get('bill_number')}** — {bill_row.get('bill_name')}")
+                            else:
+                                st.markdown("No bills associated with this deadline yet.")
 
             st.divider()
 
@@ -536,3 +460,128 @@ with tab2:
             current_month = current_month.replace(year=year + 1, month=1)
         else:
             current_month = current_month.replace(month=month + 1)
+
+## My calendar URLs tab
+with tab3:
+    # Get user's calendar tokens and URLs
+    def get_cal_URLs(org_id, user_email):
+        try:
+            user_token = get_user_token(user_email)
+            org_token = get_org_token(org_id)
+
+            user_url = f"http://leg-calendar-feed-btmit.ondigitalocean.app/feed/user/{user_token}"
+            org_url = f"http://leg-calendar-feed-btmit.ondigitalocean.app/feed/org/{org_token}"
+            wg_url = "http://leg-calendar-feed-btmit.ondigitalocean.app/feed/working-group/gFrfnhaAQGTWyiAfWjLh_dZG4Sh1jihbdHKNzJkqYF8"
+
+            return user_url, org_url, wg_url
+        except Exception as e:
+            st.error(f"Error fetching calendar tokens: {e}")
+            return None, None, None
+        
+    user_url, org_url, wg_url = get_cal_URLs(org_id, user_email)
+
+    # Build user workflow to retrieve calendar URLs
+    st.markdown("### Get Your Personalized Calendar Feeds")
+    st.markdown(
+        """
+        - Add your personalized calendar feeds to your calendar app of choice (Google Calendar, Apple Calendar, Outlook, etc.). 
+        - These calendar feeds update every day with data from the CA Legislation Tracker so you can stay on top of hearings and deadlines for bills that matter to you.
+        - Each calendar feed displays events for the bills on the corresponding dashboard(s):
+            - *My Dashboard Calendar*: Events for bills on your personal dashboard.
+            - *Organization Dashboard Calendar*: Events for bills on your organization's dashboard.
+            - *AI Working Group Dashboard Calendar*: Events for bills on the AI Working Group dashboard.
+        - When you add a bill to any of your dashboards, that bill's hearings and deadlines will automatically appear in the corresponding calendar feed.
+        """
+    )
+    st.markdown('')
+    st.markdown('### My Calendar URLs')
+    st.caption("Copy the URLs below and import to your calendar app of choice.")
+
+    # Columns for each calendar URL
+    outer_col1, outer_col2, outer_col3 = st.columns(3)
+
+    with outer_col1: 
+        st.markdown(f"##### 🏢 {org_nickname} Dashboard")
+        with st.container(border=True):
+            st.text(org_url)
+
+            col1, col2 = st.columns([2, 8])    
+            with col1: 
+                st.markdown("**Copy URL:**")
+            with col2: 
+                copy_button(
+                    org_url,
+                    icon='material_symbols',  # default, use 'st' as alternative
+                    #tooltip='Any tooltip text',  # defaults to 'Copy'
+                    #copied_label='Copied!',  # defaults to 'Copied!'
+                    key='org_dash_url_copy',  # If omitted, a random key will be generated
+                )
+    
+    with outer_col2:
+        st.markdown("##### 📌 My Dashboard")
+        with st.container(border=True):
+            st.text(user_url)
+
+            col1, col2 = st.columns([2, 8])    
+            with col1: 
+                st.markdown("**Copy URL:**")
+            with col2: 
+                copy_button(
+                    user_url,
+                    icon='material_symbols',  # default, use 'st' as alternative
+                    #tooltip='Any tooltip text',  # defaults to 'Copy'
+                    #copied_label='Copied!',  # defaults to 'Copied!'
+                    key='my_dash_url_copy',  # If omitted, a random key will be generated
+                )
+
+    with outer_col3:
+        st.markdown("##### 🤝 AI Working Group Dashboard")
+        with st.container(border=True):
+            st.text(wg_url)
+
+            col1, col2 = st.columns([2, 8])    
+            with col1: 
+                st.markdown("**Copy URL:**")
+            with col2: 
+                copy_button(
+                    wg_url,
+                    icon='material_symbols',  # default, use 'st' as alternative
+                    #tooltip='Any tooltip text',  # defaults to 'Copy'
+                    #copied_label='Copied!',  # defaults to 'Copied!'
+                    key='wg_dash_url_copy',  # If omitted, a random key will be generated
+                )
+
+    # Instructions for adding calendar feed to external calendar apps
+    st.markdown('')
+    with st.expander("**How to add URLs to external calendar app**", icon="💡", expanded=False):
+        st.markdown(
+            """
+            **Google Calendar**
+            1. Copy the calendar URL.
+            2. In Google Calendar, click the "+" button next to "Other calendars" on the left sidebar.
+            3. Select "From URL".
+            4. Paste the URL and click "Add calendar".
+
+            **Apple Calendar (iOS)**
+            1. Copy the calendar URL.
+            2. Go to the Calendar app  on your Mac.
+            3. Choose "File" > "New Calendar Subscription".
+            4. Paste the URL, then click "Subscribe."
+
+            For additional instructions from Apple, [see here.](https://support.apple.com/guide/calendar/subscribe-to-calendars-icl1022/mac)
+
+            **Microsoft Outlook**
+            1. Copy the calendar URL.
+            2. Open your Outlook calendar, and on the Home tab, select "Add Calendar" > "From Internet".
+            3. Paste the URL from your internet calendar and select OK.
+            4. Outlook asks if you would like to add this calendar and subscribe to updates. Select Yes.
+
+            For additional instructions from Microsoft,[see here.](https://support.microsoft.com/en-us/office/import-calendars-into-outlook-8e8364e1-400e-4c0f-a573-fe76b5a2d379)
+
+            **Support**
+
+            If you have any issues or need help, please contact us and we'd be happy to try to assist you:
+            - Danya Sherbini, Lead Developer (danya@techequity.us)
+            - Keirstan Schiedeck, Product Manager (keirstan@techequity.us)
+            """
+        )
