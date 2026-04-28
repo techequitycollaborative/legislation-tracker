@@ -147,7 +147,7 @@ st.expander("Where is the data in the CA Legislation Tracker sourced from?", exp
 
 st.expander("How often is the CA Legislation Tracker updated?", expanded=False).markdown("""
                                                                                          
-The main legislative data (i.e., Bills, Legislators, Committees) is updated twice per day: first between 2-3 AM Pacific Time and again between 2-3 PM Pacific Time. Freshness of data pulled from legislative sources such as LegInfo are subject to the update cadence of those sources, which may vary. Please refer to the "Last Updated" date on the Bills page for the best indication of when the original data was last refreshed.
+The main legislative data (i.e., Bills, Legislators, Committees) is updated twice per day: at 6 AM Pacific Time and again at 11 PM Pacific Time. Freshness of data pulled from legislative sources such as LegInfo are subject to the update cadence of those sources, which may vary. Please refer to the "Last Updated" date on the Bills page for the best indication of when the original data was last refreshed.
 """)
                                                                                          
 st.expander("I noticed some data was incorrect or outdated.", expanded=False).markdown("This is possible. The California legislative websites may contain errors, or may not be updated on a timely basis, so there may be discrepencies from time to time. We do our best to ensure accuracy. We encourage advocacy professionals to double check information such as timing and location of Assembly and Senate meetings and hearings, or other time-sensitive information. If you notice recurring issues, please contact us.")
