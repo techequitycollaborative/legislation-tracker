@@ -503,12 +503,12 @@ with tab3:
     with outer_col1: 
         st.markdown(f"##### 🏢 {org_nickname} Dashboard")
         with st.container(border=True):
-            st.text(org_url)
+            st.code(org_url, language=None)
 
-            col1, col2 = st.columns([2, 8])    
-            with col1: 
+            org_col1, org_col2 = st.columns([8, 2])    
+            with org_col1: 
                 st.markdown("**Copy URL:**")
-            with col2: 
+            with org_col2: 
                 copy_button(
                     org_url,
                     icon='material_symbols',  # default, use 'st' as alternative
@@ -520,12 +520,12 @@ with tab3:
     with outer_col2:
         st.markdown("##### 📌 My Dashboard")
         with st.container(border=True):
-            st.text(user_url)
+            st.code(user_url, language=None)
 
-            col1, col2 = st.columns([2, 8])    
-            with col1: 
+            user_col1, user_col2 = st.columns([8, 2])    
+            with user_col1: 
                 st.markdown("**Copy URL:**")
-            with col2: 
+            with user_col2: 
                 copy_button(
                     user_url,
                     icon='material_symbols',  # default, use 'st' as alternative
@@ -537,12 +537,12 @@ with tab3:
     with outer_col3:
         st.markdown("##### 🤝 AI Working Group Dashboard")
         with st.container(border=True):
-            st.text(wg_url)
+            st.code(wg_url, language=None)
 
-            col1, col2 = st.columns([2, 8])    
-            with col1: 
+            wg_col1, wg_col2 = st.columns([8, 2])
+            with wg_col1: 
                 st.markdown("**Copy URL:**")
-            with col2: 
+            with wg_col2: 
                 copy_button(
                     wg_url,
                     icon='material_symbols',  # default, use 'st' as alternative
