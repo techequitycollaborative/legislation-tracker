@@ -535,7 +535,7 @@ with tab3:
             3. Paste the URL from your internet calendar and select OK.
             4. Outlook asks if you would like to add this calendar and subscribe to updates. Select Yes.
 
-            For additional instructions from Microsoft,[see here.](https://support.microsoft.com/en-us/office/import-calendars-into-outlook-8e8364e1-400e-4c0f-a573-fe76b5a2d379)
+            For additional instructions from Microsoft, [see here.](https://support.microsoft.com/en-us/office/import-calendars-into-outlook-8e8364e1-400e-4c0f-a573-fe76b5a2d379)
 
             **Support**
 
