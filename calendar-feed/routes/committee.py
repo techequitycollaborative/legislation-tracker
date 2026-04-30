@@ -17,6 +17,7 @@ def committee_feed(committee_id: int):
         rows,
         feed_title=f"Committee {committee_id} - Legislation Tracker",
         filename=f"committee_{committee_id}.ics",
+        dashboard=False
     )
 
 

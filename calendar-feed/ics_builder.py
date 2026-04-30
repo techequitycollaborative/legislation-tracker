@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_ical(
-    rows: list[dict[str, Any]], feed_title: str, feed_label: str = ""
+    rows: list[dict[str, Any]], feed_title: str, feed_label: str = "", dashboard=True
 ) -> bytes:
     """
     Build an iCal calendar from calendar_queries feed result rows.
@@ -81,7 +81,9 @@ def build_ical(
             try:
                 if group[0].get("canceled_at"):
                     continue
-                hearing_event = build_hearing_event(now_utc, hearing_id, group)
+                hearing_event = build_hearing_event(
+                    now_utc, hearing_id, group, dashboard
+                )
                 cal.add_component(hearing_event)
                 hearing_count += 1
                 # Deadline events - dashboard feeds only, one per tracked bill

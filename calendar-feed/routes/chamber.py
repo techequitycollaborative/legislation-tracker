@@ -15,6 +15,7 @@ def chamber_feed(chamber_id: int):
         rows,
         feed_title=f"Chamber {chamber_id} - Legislation Tracker",
         filename=f"chamber_{chamber_id}.ics",
+        dashboard=False
     )
 
 

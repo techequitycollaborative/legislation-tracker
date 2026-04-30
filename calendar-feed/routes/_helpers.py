@@ -8,9 +8,10 @@ def ical_response(
     feed_title: str,
     filename: str,
     feed_label: str = "",
+    dashboard: bool = True
 ) -> Response:
     """Wrap build_ical output in the correct Flask Response."""
-    payload = build_ical(rows, feed_title, feed_label)
+    payload = build_ical(rows, feed_title, feed_label, dashboard)
     return Response(
         payload,
         mimetype="text/calendar; charset=utf-8",
