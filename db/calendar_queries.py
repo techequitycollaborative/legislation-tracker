@@ -32,7 +32,10 @@ _FEED_SELECT = """
         b.openstates_bill_id,
         b.bill_number,
         b.bill_name,
-        b.author            AS bill_author
+        b.author            AS bill_author,
+        hb.file_order,
+        hb.footnote,
+        hb.footnote_symbol
     FROM snapshot.hearings h
     LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
     LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
@@ -65,14 +68,14 @@ _DASHBOARD_SELECT_BASE = """
         b.openstates_bill_id,
         b.bill_number,
         b.bill_name,
+        -- Author from bills materialized view
+        b.author          AS bill_author,
         hb.file_order,
         hb.footnote,
         hb.footnote_symbol,
         CASE WHEN dash.openstates_bill_id IS NOT NULL
              THEN TRUE ELSE FALSE
-        END                 AS on_dashboard,
-        -- Author from bills materialized view
-        b.author          AS bill_author
+        END                 AS on_dashboard
     FROM snapshot.hearings h
     LEFT JOIN snapshot.committee         c  ON c.committee_id = h.committee_id
     LEFT JOIN snapshot.hearing_deadlines hd ON hd.hearing_id = h.hearing_id
