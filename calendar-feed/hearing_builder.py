@@ -39,14 +39,7 @@ def _chamber_prefix(chamber_id: int | None) -> str:
     return f"[{abbrev}]" if abbrev else ""
 
 
-def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
-    """
-    Compose the event description from hearing-level fields and bill rows.
-
-    Returns a tuple of (plain_text, html) so callers can attach both:
-    - DESCRIPTION (plain) — used by Apple Calendar and Google Calendar
-    - X-ALT-DESC (html)   — used by Outlook
-    """
+def _build_core_description(h: dict, rows: list[dict]) -> tuple[list, list]:
     parts = []
     html_parts = []
 
@@ -87,47 +80,29 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
     else:
         parts.append(NOTES_NA)
         html_parts.append(NOTES_NA_HTML)
+    return parts, html_parts
 
-    # -- Step 4: bills — skip rows if no bill-related data present
-    bills = [r for r in rows if r.get("bill_number")]
-    agenda_length = len(bills)
+
+def _build_footnote_description(
+    bills: list[dict], parts: list[str], html_parts: list[str]
+) -> tuple[list, list]:
+
+    # Consolidate non-empty footnote content
     footnote_content = dict()
+    for bill_detail in bills:
+        symbol = bill_detail.get("footnote_symbol") or ""
+        footnote = bill_detail.get("footnote") or ""
 
-    if bills:
-        # Filter only for tracked bills
-        tracked_bills = [r for r in bills if r.get("on_dashboard", False)]
-        tracked_bills.sort(key=lambda r: r.get("file_order", float("inf")))
+        # Skip if both are empty
+        if not symbol and not footnote:
+            continue
 
-        # Add header
-        parts.append("\n**Tracked bills on the agenda**")
-        html_parts.append("<br><b>Tracked bills on the agenda</b><ul>")
+        if symbol not in footnote_content:
+            footnote_content[symbol] = footnote
 
-        # Only format content for tracked bills
-        for bill_detail in tracked_bills:
-            if bill_detail["footnote_symbol"]:
-                symbol = bill_detail["footnote_symbol"]
-                footnote = bill_detail["footnote"]
-                logger.info(f"Found footnote and symbol: {symbol} - {footnote}")
-                footnote_content[symbol] = footnote
-            else:
-                symbol = ""
-
-            # Ex: AB 123 - Titile (File order: 4/5)
-            line = (
-                "-"
-                f" {bill_detail['bill_number']}{symbol} |"  # Add footnote symbol if exists
-                f" {bill_detail['bill_name']} |"
-                f" File order: {bill_detail['file_order']}/{agenda_length}"
-            )
-            logger.info(line)
-            # Add content to description parts, stripping excess whitespace
-            parts.append(line)
-            html_parts.append(f"<li>{line[2:]}</li>")
-        html_parts.append("</ul>")
-
-    # -- Step 5: optionally, join footnote description to the bottom if exists
+    # Join footnote description to the bottom if exists
     if footnote_content:
-        logger.info("description step 5")
+        logger.info("build footnotes")
         footnote_description = "\n\n----------\n"
         footnote_description_html = "<br><br>----------<br>"
 
@@ -136,11 +111,83 @@ def _build_description(h: dict, rows: list[dict]) -> tuple[str, str]:
             footnote_description += f"{line}\n"
             footnote_description_html += f"<p>{line}</p>"
 
-        logger.info(footnote_description)
         parts.append(footnote_description)
         html_parts.append(footnote_description_html)
+    return parts, html_parts
 
-    # -- Step 6: Join parts
+
+def _build_bill_description(
+    bills: list[dict], parts: list[str], html_parts: list[str], dashboard: bool
+) -> tuple[list, list]:
+    # Filter if this is for a dashboard feed
+    if dashboard:
+        display_bills = [b for b in bills if b.get("on_dashboard", False)]
+        header = "Tracked bills on the agenda"
+        list_tag = "ul"
+    else:
+        display_bills = bills
+        header = "Bills on the agenda"
+        list_tag = "ol"
+
+    if not display_bills:
+        return parts, html_parts
+
+    full_agenda_length = len(bills)
+    display_bills.sort(key=lambda b: b["file_order"])
+    # Add headers
+    parts.append(f"\n**{header}**")
+    html_parts.append(f"<br><b>{header}</b><{list_tag}>")
+
+    for bill in display_bills:
+        symbol = bill.get("footnote_symbol") or ""
+        file_order = bill["file_order"]
+
+        # Ex: AB 123 | Lorem ipsum
+        desc = f" {bill['bill_number']}{symbol} | {bill['bill_name']}"
+
+        if dashboard:  # Ex: - AB 123 | Lorem ipsum | File order: 4/5
+            # Add file order to description, prefix is always '-'
+            desc += f" | File order: {file_order}/{full_agenda_length}"
+            prefix = "-"
+        else:  # Ex: 4. AB 123 | Lorem ipsum
+            prefix = f"{file_order}."
+
+        parts.append(f"{prefix}{desc}")
+        html_parts.append(f"<li>{desc.strip()}</li>")
+
+    # Close the HTML list
+    html_parts.append(f"</{list_tag}>")
+    return parts, html_parts
+
+
+def _build_description(h: dict, rows: list[dict], dashboard: bool) -> tuple[str, str]:
+    """
+    Compose the event description from hearing-level fields and bill rows.
+
+    Returns a tuple of (plain_text, html) so callers can attach both:
+    - DESCRIPTION (plain) — used by Apple Calendar and Google Calendar
+    - X-ALT-DESC (html)   — used by Outlook
+    """
+    # -- Step 1: Build universal description parts
+    parts, html_parts = _build_core_description(h, rows)
+
+    # -- Step 2: extract bills — skip rows if bill number was not found
+    bills = [r for r in rows if r.get("bill_number")]
+
+    # -- Step 3: Generate bill descriptions if there are bills associated
+    if bills:
+        parts, html_parts = _build_bill_description(
+            bills=bills,
+            parts=parts,
+            html_parts=html_parts,
+            dashboard=dashboard,
+        )
+    # -- Step 4: Add footer if there are footnotes
+    parts, html_parts = _build_footnote_description(
+        bills=bills, parts=parts, html_parts=html_parts
+    )
+
+    # -- Step 5: Join parts
     plain = "\n".join(parts)
     html = f'<html><body>{"".join(html_parts)}</body></html>'
 
@@ -164,7 +211,10 @@ def group_hearings(
 
 
 def build_hearing_event(
-    now_utc: datetime, hearing_id: int, group_rows: List[Dict[str, Any]]
+    now_utc: datetime,
+    hearing_id: int,
+    group_rows: List[Dict[str, Any]],
+    dashboard: bool,
 ) -> Event:
     """
     Build a single iCalendar Event from a grouped hearing.
@@ -202,7 +252,7 @@ def build_hearing_event(
     ev.add("summary", summary)
     logger.info(f"Building {summary}")
     # Build description from all rows in the group
-    plain, html = _build_description(h, group_rows)
+    plain, html = _build_description(h, group_rows, dashboard)
     ev.add("description", plain)
     alt = vText(html)
     alt.params["fmttype"] = "text/html"
