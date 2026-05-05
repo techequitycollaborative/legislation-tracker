@@ -476,6 +476,7 @@ with tab2:
 ## My calendar URLs tab
 with tab3:
     # Get user's calendar tokens and URLs
+    @st.cache_data(ttl=3600) # Cache for 1 hour (tokens shouldn't change often, if at all)
     def get_cal_URLs(org_id, user_email):
         try:
             user_token = get_user_token(user_email)
