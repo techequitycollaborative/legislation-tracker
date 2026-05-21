@@ -7,7 +7,7 @@
 
 -- Inputs: 
 ----- snapshot.committee: for most committee info
------ snapshot.bill_schedule: for all upcoming bill events
+----- snapshot.hearings: for all upcoming bill events
 ----- app.committee_assignment_mv: for filtered/processed committee assignment information
 
 -- Output: 
@@ -31,16 +31,14 @@ WITH temp_committee AS (
 upcoming_schedule AS (
     SELECT DISTINCT ON (c.committee_id)
         c.committee_id,
-        bs.chamber_id, 
-        bs.event_date, 
-        bs.event_text
-    FROM snapshot.bill_schedule bs
-    JOIN temp_committee c 
-        ON LOWER(bs.event_text) LIKE LOWER(CONCAT('%', c.committee_name, '%'))
-        AND c.chamber_id = bs.chamber_id
+        h.chamber_id, 
+        h.date, 
+        h.name
+    FROM snapshot.hearings h
+    JOIN temp_committee c ON c.committee_id = h.committee_id
 	-- Committees can have multiple hearing dates, so only grab the one that occurs after today's date
-    WHERE bs.event_date >= CURRENT_DATE
-    ORDER BY c.committee_id, bs.event_date ASC
+    WHERE h.date >= CURRENT_DATE
+    ORDER BY c.committee_id, h.date ASC
 ),
 
 -- Aggregate full committee membership
@@ -62,7 +60,7 @@ SELECT
     c.chamber_id,
     c.committee_name,
     c.webpage_link,
-    us.event_date::date AS committee_event,
+    us.date::date AS committee_event,
     fm.committee_chair,
     fm.committee_vice_chair,
     fm.committee_members,
