@@ -28,7 +28,7 @@ WITH temp_committee AS (
 ),
 
 -- Get all distinct upcoming committee hearings by partial string match of event text to committee name
-upcoming_schedule AS (
+upcoming_hearings AS (
     SELECT DISTINCT ON (c.committee_id)
         c.committee_id,
         h.chamber_id, 
@@ -60,14 +60,14 @@ SELECT
     c.chamber_id,
     c.committee_name,
     c.webpage_link,
-    us.date::date AS committee_event,
+    uh.date::date AS committee_event,
     fm.committee_chair,
     fm.committee_vice_chair,
     fm.committee_members,
     fm.member_count,
     fm.total_members
 FROM temp_committee c
-LEFT JOIN upcoming_schedule us ON c.committee_id = us.committee_id
+LEFT JOIN upcoming_hearings uh ON c.committee_id = uh.committee_id
 LEFT JOIN full_membership fm ON c.committee_id = fm.committee_id;
 
 -- Create unique index
