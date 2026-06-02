@@ -7,7 +7,7 @@
 
 -- Inputs: 
 ----- snapshot.committee: for most committee info
------ snapshot.bill_schedule: for all upcoming bill events
+----- snapshot.hearings: for all upcoming bill events
 ----- app.committee_assignment_mv: for filtered/processed committee assignment information
 
 -- Output: 
@@ -28,19 +28,17 @@ WITH temp_committee AS (
 ),
 
 -- Get all distinct upcoming committee hearings by partial string match of event text to committee name
-upcoming_schedule AS (
+upcoming_hearings AS (
     SELECT DISTINCT ON (c.committee_id)
         c.committee_id,
-        bs.chamber_id, 
-        bs.event_date, 
-        bs.event_text
-    FROM snapshot.bill_schedule bs
-    JOIN temp_committee c 
-        ON LOWER(bs.event_text) LIKE LOWER(CONCAT('%', c.committee_name, '%'))
-        AND c.chamber_id = bs.chamber_id
+        h.chamber_id, 
+        h.date, 
+        h.name
+    FROM snapshot.hearings h
+    JOIN temp_committee c ON c.committee_id = h.committee_id
 	-- Committees can have multiple hearing dates, so only grab the one that occurs after today's date
-    WHERE bs.event_date >= CURRENT_DATE
-    ORDER BY c.committee_id, bs.event_date ASC
+    WHERE h.date >= CURRENT_DATE
+    ORDER BY c.committee_id, h.date ASC
 ),
 
 -- Aggregate full committee membership
@@ -62,14 +60,14 @@ SELECT
     c.chamber_id,
     c.committee_name,
     c.webpage_link,
-    us.event_date::date AS committee_event,
+    uh.date::date AS committee_event,
     fm.committee_chair,
     fm.committee_vice_chair,
     fm.committee_members,
     fm.member_count,
     fm.total_members
 FROM temp_committee c
-LEFT JOIN upcoming_schedule us ON c.committee_id = us.committee_id
+LEFT JOIN upcoming_hearings uh ON c.committee_id = uh.committee_id
 LEFT JOIN full_membership fm ON c.committee_id = fm.committee_id;
 
 -- Create unique index

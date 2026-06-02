@@ -46,7 +46,7 @@ def get_committee_data():
         """
             
         committee = Query(
-            page_name="legislators",
+            page_name="committees",
             query=committee_query,
         ).fetch_records()
         
