@@ -119,27 +119,6 @@ def query_table(schema, table):
             df = pd.DataFrame(records, columns=columns)
     
     return df
-    
-# ###############################################################################
-
-# # Query bill tables -- processing of which has already been done in postgres database
-# # Cache these functions so database query functions don't reload every time the app
-# # reruns (i.e. if the user interacts with the table)
-
-# def get_data():
-#     """
-#     Use query_table to load main bills table (or view) and cache it.
-#     """
-#     # Cache the function that retrieves the data
-#     def get_bills():
-#         # Query the database for bills
-#         bills = query_table('app', 'bills_2025_2026') # this is pulling a view, not a table
-#         return bills
-    
-#     # Call the cached function to get the data
-#     bills = get_bills()
-    
-#     return bills
 
 ###############################################################################
 
