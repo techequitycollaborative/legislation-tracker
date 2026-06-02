@@ -90,20 +90,20 @@ bill_authors AS (
     GROUP BY openstates_bill_id
 ),
 
--- Deduplicate bill_schedule: if multiple rows per bill exist, keep the soonest 
+-- Deduplicate hearing_bills: if multiple rows per bill exist, keep the soonest 
 -- If no row exists, both hearing_date and hearing_name will be NULL
-bill_schedule AS (
+bill_hearings AS (
     SELECT DISTINCT ON (hb.openstates_bill_id)
         hb.id,
         hb.hearing_id,
         hb.openstates_bill_id,
         hb.file_order,
         h.date AS hearing_date,
-        h.name AS hearing_name,
+        h.name AS hearing_name
     FROM snapshot.hearing_bills hb
     JOIN snapshot.hearings h ON hb.hearing_id = h.hearing_id
     WHERE h.date >= CURRENT_DATE
-    ORDER BY hb.openstates_bill_id, h.date ASC;
+    ORDER BY hb.openstates_bill_id, h.date ASC
 ),
 
 -- Get bill topics
@@ -134,15 +134,15 @@ SELECT
 	b.leginfo_link,
 	b.bill_text,
     h.bill_history,
-	bs.event_date::date AS bill_event,
-    bs.event_text,
+	bh.hearing_date::date AS bill_event,
+    bh.hearing_name AS event_text,
     t.assigned_topics,
     b.last_updated_on::date
 FROM temp_bills b
 LEFT JOIN latest_status s ON b.openstates_bill_id = s.openstates_bill_id
 LEFT JOIN full_history h ON b.openstates_bill_id = h.openstates_bill_id
 LEFT JOIN bill_authors a ON b.openstates_bill_id = a.openstates_bill_id
-LEFT JOIN bill_schedule bs ON b.openstates_bill_id = bs.openstates_bill_id -- Add bill events from bill schedule table (without dupes)
+LEFT JOIN bill_hearings bh ON b.openstates_bill_id = bh.openstates_bill_id -- Add bill events from bill schedule table (without dupes)
 LEFT JOIN bill_topics t ON b.openstates_bill_id = t.openstates_bill_id;
 
 -- UNIQUE index to use CONCURRENTLY (refresh view without interruption)
