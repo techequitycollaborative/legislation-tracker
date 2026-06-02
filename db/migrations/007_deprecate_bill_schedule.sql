@@ -9,11 +9,12 @@
 BEGIN;
 
 -- =============================================================================
--- Drop view that are no longer in use
+-- Drop relations that are no longer in use
 -- =============================================================================
 DROP VIEW IF EXISTS bills_2025_2026;
 DROP VIEW IF EXISTS app.bills;
 DROP VIEW IF EXISTS app.hearing_bills;
+DROP TABLE IF EXISTS snapshot.bill_schedule;
 
 -- =============================================================================
 -- Dropping app.bills_mv and its dependents (bottom-up)
