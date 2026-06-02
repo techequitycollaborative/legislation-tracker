@@ -425,11 +425,10 @@ def create_ics_file(events):
 @st.cache_data(show_spinner="Loading committee events and deadlines...",ttl=120) # Cache data and refresh every 2 mins
 @profile("Calendar - load committee events and deadlines")
 def load_committee_events():
-    # Pull VIEWS from the database
-    #TODO: switch to existing materialized views when refresh is added to daily update scripts
-    hearings = query_table('app', 'hearings')
-    hearing_bills = query_table('app', 'hearing_bills')
-    hearing_deadlines = query_table('app', 'hearing_deadlines')
+    # Pull MAT VIEWS from the database
+    hearings = query_table('app', 'hearings_mv')
+    hearing_bills = query_table('app', 'hearing_bills_mv')
+    hearing_deadlines = query_table('app', 'hearing_deadlines_mv')
 
     # Format date cols as date string without time for display purposes
     hearings['hearing_date'] = pd.to_datetime(hearings['hearing_date'])
