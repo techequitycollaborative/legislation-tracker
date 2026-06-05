@@ -1,7 +1,7 @@
 keras==3.13.1
 nltk==3.9.1
 numpy==2.1.3
-pyarrow==20.0.0
+pyarrow==23.0.1
 safetensors==0.5.3
 sentence-transformers==5.0.0
 tensorflow==2.19.0
