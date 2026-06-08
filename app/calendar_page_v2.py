@@ -273,6 +273,7 @@ with tab1:
         hearing_text = "Committee Hearing" if total_hearings == 1 else "Committee Hearings"
         deadline_text = "Letter Deadline" if total_deadlines == 1 else "Letter Deadlines"
         st.caption(f"**Displaying:** 🏛️ {total_hearings} {hearing_text} | ✉️ {total_deadlines} {deadline_text}")
+        st.caption("🚫 ~Canceled hearing~ | ⭐ Tracked bill (any dashboard)")
     with col2:
         st.markdown('')
 
@@ -310,32 +311,40 @@ with tab1:
                             color=get_badge_color(chamber_id)
                         )
                     with col2:
-                        with st.expander(committee_name, expanded=filters_active):
+                        expander_text = committee_name
+                        # NOTE: make cancellation obvious from list view
+                        if h_row.get('notes').strip().lower() == 'hearing canceled':
+                            expander_text = f"🚫 ~{committee_name}~"
+                        with st.expander(expander_text, expanded=filters_active):
                             expander_col1, expander_col2 = st.columns([5, 5])
                             with expander_col1:
                                 st.caption(f"🏛️ {chamber_name} {committee_name} Committee")
                                 st.caption(f"📅 {friendly_date}")
+                                # NOTE: event details displayed as caption
+                                st.caption(f"""
+                                           {h_row.get('hearing_time') or h_row.get('hearing_time_verbatim')} - 
+                                           {h_row.get('hearing_location') or 'N/A'} - 
+                                           {h_row.get('hearing_room') or 'N/A'}
+                                           """)
                             with expander_col2:
                                 # Render notes if exists
                                 if h_row.get('notes'):
                                     # But if notes indicate hearing is canceled, show that prominently instead of the notes content
                                     if h_row.get('notes').strip().lower() == 'hearing canceled':
-                                        st.caption("⚠️ This hearing has been canceled.")
+                                        st.caption("🚫 This hearing has been canceled.")
                                     else:
                                         st.caption(f"📌 Notes: {h_row.get('notes')}")
                                 # Render webpage link if exists
                                 if h_row.get('committee_webpage'):
                                     st.caption(f"🔗 [Committee Webpage]({h_row.get('committee_webpage')})")
-
+                            #     """)   
                             if bills:
+                                st.divider()
                                 st.caption(f"📝 Bills on the agenda:")
-                                for bill_row in bills:
+                                # NOTE: sort bills by file_order
+                                for bill_row in sorted(bills, key=lambda b: int(b.get('file_order', 999))):
                                     render_bill(
-                                        bill_number=bill_row.get('bill_number', 'N/A'),
-                                        bill_name=bill_row.get('bill_name', 'N/A'),
-                                        hearing_row=h_row,
-                                        bill_row=bill_row,
-                                        deadline_row=deadline_row,
+                                        row=bill_row
                                     )
                             else:
                                 st.caption("*There are no bills on the agenda for this hearing.*")
