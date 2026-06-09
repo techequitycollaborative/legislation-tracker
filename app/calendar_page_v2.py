@@ -313,7 +313,7 @@ with tab1:
                     with col2:
                         expander_text = committee_name
                         # NOTE: make cancellation obvious from list view
-                        if h_row.get('notes').strip().lower() == 'hearing canceled':
+                        if h_row.get('notes', '').strip().lower() == 'hearing canceled':
                             expander_text = f"🚫 ~{committee_name}~"
                         with st.expander(expander_text, expanded=filters_active):
                             expander_col1, expander_col2 = st.columns([5, 5])
