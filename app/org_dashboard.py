@@ -43,13 +43,6 @@ st.expander("About this page", icon="ℹ️", expanded=False).markdown(f"""
 st.markdown(" ")
 st.markdown(" ")
 
-# Display any pending toast message from a previous rerun
-if '_toast' in st.session_state:
-    st.toast(st.session_state.pop('_toast'), icon='✅')
-
-if '_toast_warning' in st.session_state:
-    st.toast(st.session_state.pop('_toast_warning'), icon='⚠️')
-
 # Clear dashboard button -- DISABLED FOR NOW BC IT MIGHT GET MESSY HAVING THIS OPTION WITH MANY USERS SHARING ONE ORG DASHBOARD. but if we want to add it, the clear button on the my dashboard works.
 #col1, col2 = st.columns([4, 1])
 #with col2:
@@ -92,9 +85,7 @@ filters = display_bill_filters(
     show_org_position=True,
     show_assigned_to=True
 )
-filtered_bills = apply_bill_filters(st.session_state.org_dashboard_bills, filter_dict=filters)
-
-
+st.session_state['filtered_bills'] = apply_bill_filters(st.session_state.org_dashboard_bills, filter_dict=filters)
 # Create a hash of the filters to detect changes and reset selected bill if filters change. 
 # We use a hash here because the filter dict can be complex and contain unhashable types, so we convert it to a JSON string first (with sorted keys for consistency) and then hash that string.
 current_hash = filters_hash(filters)
@@ -105,48 +96,38 @@ if st.session_state.get('_last_filter_hash') != current_hash:
 # Update total bills count
 col1, col2, col3 = st.columns([2, 6, 2])
 with col1:
-    total_bills = len(filtered_bills)
+    total_bills = len(st.session_state.filtered_bills)
     st.markdown(f"#### Total bills: {total_bills:,}")
-    if len(filtered_bills) < len(st.session_state.org_dashboard_bills):
+    if len(st.session_state.filtered_bills) < len(st.session_state.org_dashboard_bills):
         st.caption(f"(filtered from {len(st.session_state.org_dashboard_bills):,} total)")
 
 ############################ MAIN TABLE / DATAFRAME #############################
 
+# Case 1: there are tracked bills
 if not st.session_state.org_dashboard_bills.empty:
     with timer("Org dashboard - draw streamlit df"):
-        data = display_bills_table(filtered_bills)
+        data = display_bills_table(st.session_state.filtered_bills)
+        selected = data.selection
+        # Case 1A: a row has been selected
+        if selected.rows:
+            selected_index = selected.rows[0]
+            # Update the session state with the newly selected ID
+            newly_selected_id = st.session_state.filtered_bills.iloc[selected_index]['openstates_bill_id']
+            if newly_selected_id != st.session_state.get('selected_bill_id', None):
+                track_event("selected bill ID updated")
+                st.session_state['selected_bill_id'] = newly_selected_id
+        # Case 1B: no row is selected, so we clear the saved bill ID
+        else:
+            track_event("selected bill ID cleared")
+            st.session_state.pop('selected_bill_id', None)
 
-    selected = data.selection
+        # Always check if there is a saved bill ID
+        selected_id = st.session_state.get('selected_bill_id')
+        # Case 2: the saved bill ID is not None
+        if selected_id is not None:
+            display_org_dashboard_details(selected_id)
 
-    if selected is not None and selected.rows:
-        track_event("Row selected")
-        selected_index = selected.rows[0]
-        newly_selected_id = filtered_bills.iloc[selected_index]['openstates_bill_id']
-        
-        # If user switched to a different bill, bust the custom details cache
-        # so the form loads fresh data for the new bill rather than serving
-        # the previous bill's cached response
-        if newly_selected_id != st.session_state.get('selected_bill_id'):
-            get_custom_bill_details_with_timestamp.clear()
-        
-        # Persist selection by bill ID (not row index) so it survives reruns
-        st.session_state['selected_bill_id'] = newly_selected_id
-
-    else:
-        # No row selected (deselect or initial load) — clear the details panel
-        st.session_state.pop('selected_bill_id', None)
-
-    # Look up the selected bill by ID from session state.
-    # Using ID instead of row index means the correct bill stays selected
-    # even if the table re-sorts or filters change between reruns.
-    selected_id = st.session_state.get('selected_bill_id')
-    if selected_id is not None:
-        selected_bill_data = filtered_bills[
-            filtered_bills['openstates_bill_id'] == selected_id
-        ]
-        if not selected_bill_data.empty:
-            display_org_dashboard_details(selected_bill_data)
-
+# Case 3: there are no tracked bills
 elif st.session_state.org_dashboard_bills.empty:
     st.write('No bills added yet.')
 
