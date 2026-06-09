@@ -87,6 +87,11 @@ def clean_markdown(text):
     return result
 ###############################################################################
 
+def safe_get(row, key, default='N/A'):
+    return row.get(key) or default
+
+###############################################################################
+
 def get_topic_color(topic):
     # Handle empty/null case first (returns light gray)
     if not topic or topic == "0":
