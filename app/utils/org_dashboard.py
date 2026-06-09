@@ -16,14 +16,27 @@ from .profiling import profile, timer, logging
 logger = logging.getLogger(__name__)
 
 @profile("utils/org_dashboard.py - display_org_dashboard_details")
-def display_org_dashboard_details(selected_rows):
+@st.fragment # Allows us to rerun 
+def display_org_dashboard_details(selected_id):
     '''
     Displays bill details on the ORG DASHBOARD page when a row is selected; features a button to remove a bill from your dashboard.
     '''
     # Check if selected_rows is None or empty before proceeding
-    if selected_rows is None or selected_rows.empty:
+    if selected_id is None:
         return
     
+    # Display any pending toast message from a previous rerun
+    if '_toast' in st.session_state:
+        st.toast(st.session_state.pop('_toast'), icon='✅')
+
+    if '_toast_warning' in st.session_state:
+        st.toast(st.session_state.pop('_toast_warning'), icon='⚠️')
+    
+    # NOTE: fetch fresh data inside the fragment so cache clears work
+    selected_rows = st.session_state.filtered_bills[
+        st.session_state.filtered_bills['openstates_bill_id'] == selected_id
+    ]
+
     required_cols = ['openstates_bill_id', 'bill_number', 
                         'bill_name', 'author', 'coauthors', 'status', 'date_introduced', 
                         'leg_session', 'chamber', 'leginfo_link', 'bill_text', 
@@ -93,10 +106,9 @@ def display_org_dashboard_details(selected_rows):
                     
                     # Reset org dashboard bills session state
                     st.session_state.org_dashboard_bills = pd.DataFrame()
-
-                    # Show success message, then refresh app to reflect change
+                    # Show success message, then refresh fragment to reflect change
                     st.session_state['_toast'] = f"Bill {bill_number} removed from dashboard."
-                    st.rerun()
+                    st.rerun(scope="fragment")
 
     # Add empty rows of space  
     st.write("")
@@ -322,6 +334,7 @@ def display_org_dashboard_details(selected_rows):
         if submitted:
             try:
                 # Update function call if needed
+                # Handles select + insert from DB and clearing cached data
                 save_custom_bill_details_with_timestamp( 
                     bill_number, 
                     org_position, 
@@ -335,15 +348,11 @@ def display_org_dashboard_details(selected_rows):
                     org_id,
                     org_name
                 )
-                
-                # When form is submitted, clear the cached org dashboard bills data so that it will be refreshed with the new custom details when the user clicks on a bill again or when the dashboard reloads. This ensures that the user sees the most up-to-date information without having to manually refresh the page.
-                st.session_state.org_dashboard_bills = pd.DataFrame()
-                get_org_dashboard_bills.clear()
 
                 # Keep expander open after submission so user can see the updated details and message
                 st.session_state['expander_custom_details'] = True 
                 st.session_state['_toast'] = f"Custom details for bill {bill_number} saved successfully by {user_email} from {org_name}."
-                st.rerun() 
+                st.rerun(scope="fragment")
             except Exception as e:
                 st.error(f"Error saving details: {str(e)}")
         
@@ -375,9 +384,9 @@ def display_org_dashboard_details(selected_rows):
                 # Keep the expander open after submission so user can see the new letter in the history and message
                 st.session_state['expander_letter_history'] = True
                     
-                # Success message, then rerun to update letter history with the new letter
+                # Success message, then rerun fragment to update letter history with the new letter
                 st.session_state['_toast'] = "Document successfully added!"
-                st.rerun()
+                st.rerun(scope="fragment")
                 
             except Exception as e:
                     st.error(f"Error adding letter: {str(e)}")
@@ -385,7 +394,7 @@ def display_org_dashboard_details(selected_rows):
             if add_letter_btn:  # only warn if they actually clicked the button
                 st.session_state['expander_letter_history'] = True  # keep expander open to show the warning
                 st.session_state['_toast_warning'] = "Please enter both a document name and URL."
-                st.rerun()
+                st.rerun(scope="fragment")
         
         st.divider()
         st.markdown('##### Documents')
