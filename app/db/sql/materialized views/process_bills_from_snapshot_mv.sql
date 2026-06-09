@@ -81,11 +81,20 @@ full_history AS (
 ),
 
 -- Process bill sponsors to get primary author and coauthors
+-- Updated to handle cases when primary_author column is blank (when it is blank, then full_name
+-- is blank and we need to use 'name' column instead of full_name, and also use title to distinguish
+-- b/w authors and coauthors)
 bill_authors AS (
     SELECT 
         openstates_bill_id,
-        MAX(CASE WHEN primary_author = 'True' THEN full_name END) AS author,
-        STRING_AGG(CASE WHEN primary_author = 'False' THEN full_name END, ', ') AS coauthors
+        COALESCE(
+            MAX(CASE WHEN primary_author = 'True' THEN full_name END),
+            MAX(CASE WHEN (primary_author IS NULL OR primary_author = '') AND title = 'author' THEN name END)
+        ) AS author,
+        COALESCE(
+            STRING_AGG(CASE WHEN primary_author = 'False' THEN full_name END, ', '),
+            STRING_AGG(CASE WHEN (primary_author IS NULL OR primary_author = '') AND title != 'author' THEN name END, ', ')
+        ) AS coauthors
     FROM snapshot.bill_sponsor
     GROUP BY openstates_bill_id
 ),
