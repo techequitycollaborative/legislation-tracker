@@ -16,6 +16,7 @@ import pytz
 import numpy as np
 from ics import Calendar, Event
 from .profiling import profile
+from .general import safe_get
 import re
 from db.connect import get_connection
 
@@ -433,66 +434,57 @@ def load_committee_events():
     # Format date cols as date string without time for display purposes
     hearings['hearing_date'] = pd.to_datetime(hearings['hearing_date'])
     hearings['hearing_date'] = hearings['hearing_date'].dt.strftime('%Y-%m-%d')
+    hearings['hearing_time'] = hearings['hearing_time'].apply(
+        lambda t: None if t is None else t.strftime("%-I:%M %p")
+    )
 
     hearing_deadlines['deadline_date'] = pd.to_datetime(hearing_deadlines['deadline_date'])
     hearing_deadlines['deadline_date'] = hearing_deadlines['deadline_date'].dt.strftime('%Y-%m-%d')
 
     return hearings, hearing_bills, hearing_deadlines
 
+# NOTE: returns whether string is in a DF column, hardcoded to bill_number
+def tracked_bill(session_state_df, bill_number) -> bool:
+    return session_state_df['bill_number'].isin([bill_number]).any()
+
+# NOTE: add single icon for any dashboard tracking, could be changed
+def render_bill_label(row: pd.Series):
+    bill_number = safe_get(row, 'bill_number')
+    bill_label = f"**{bill_number}** — {safe_get(row, 'bill_name')}"
+    tracked_on = {
+        "org": tracked_bill(st.session_state.org_dashboard_bills, bill_number),
+        "my": tracked_bill(st.session_state.dashboard_bills, bill_number),
+        "wg": tracked_bill(st.session_state.wg_dashboard_bills, bill_number)
+    }
+    if any(tracked_on.values()):
+        bill_label = "⭐ " + bill_label
+    return bill_label
+
 # Function to render bills for each committee event         
-def render_bill(bill_number: str, bill_name: str, hearing_row: pd.Series, bill_row: pd.Series, deadline_row: pd.Series | None):
+def render_bill(row: pd.Series):
     """
     This function renders bills on the calendar page in the following fashion: 
     - Bills are nested within a committee event (as an expander)
     - Each bill has an associated popover button; when clicked, it displays event + bill details
 
     Args:
-        bill_number: bill number string
-        bill_name: bill name string  
-        hearing_row: row from hearings df (hearing_date, hearing_name, chamber_id, hearing_time, hearing_location, hearing_room)
-        bill_row: row from hearing_bills df (file_order, status, date_introduced)
+        row: row from hearing_bills df (file_order, status, date_introduced)
         deadline_row: row from hearing_deadlines df, or None if no deadline exists
     """
-    col_text, col_btn = st.columns([7, 3])
-
-    with col_text:
-        st.markdown(f"- **{bill_number}** — {bill_name}")
-
-    with col_btn:
-        with st.popover("View event details", width="stretch", type="secondary"):
-            st.markdown(f"#### {bill_number}")
-            st.markdown(f"**{bill_name}**")
-            st.divider()
-
-            chamber_id = hearing_row.get('chamber_id')
-            chamber_name = 'Assembly' if chamber_id == 1 else 'Senate' if chamber_id == 2 else 'Unknown'
-
-            # Event info
-            st.markdown("##### Event Details")
-            st.markdown(f"""
-                - **Committee:** {hearing_row.get('hearing_name')}
-                - **Chamber:** {chamber_name}
-                - **Date:** {hearing_row.get('hearing_date')}
-                - **Time:** {hearing_row.get('hearing_time')}
-                - **Location:** {hearing_row.get('hearing_location')}
-                - **Room:** {hearing_row.get('hearing_room')}
-                - **Agenda Order:** {bill_row.get('file_order') if bill_row is not None else 'N/A'}
-            """)
-
-            # Letter deadline
-            st.markdown("##### Letter Deadline")
-            if deadline_row is not None and pd.notna(deadline_row.get('deadline_date')):
-                st.markdown(str(deadline_row.get('deadline_date')))
-            else:
-                st.markdown("No deadline set.")
-
-            # Bill info
-            st.markdown("##### Bill Details")
-            st.markdown(f"""
-                - **Status:** {bill_row.get('status') if bill_row is not None else 'N/A'}
-                - **Date Introduced:** {bill_row.get('date_introduced') if bill_row is not None else 'N/A'}
-            """)
-
+    file_order, expander = st.columns([0.05, 0.95])
+    # NOTE: markdown file order
+    with file_order:
+        st.write(f"##### **{safe_get(row, 'file_order')}.**")
+    # NOTE: use expander for better display
+    with expander:
+        if row is not None:
+            bill_label = render_bill_label(row)
+            with st.expander(bill_label, width='stretch'):
+                st.markdown(f"""
+                    - **Date Introduced:** {safe_get(row, 'date_introduced')}
+                    - **Author:** {safe_get(row, 'bill_author')}
+                """)
+                st.caption(f"🔗 [**Leginfo.gov**]({safe_get(row, 'leginfo_link')})")
 
 # Function to apply badges to denote chamber
 def get_badge_color(chamber_id) -> str:
