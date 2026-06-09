@@ -423,6 +423,7 @@ def remove_bill_from_org_dashboard(openstates_bill_id, bill_number):
 
     # Clear the cache so data reloads -- only for org dashboard bills, not the entire cache which could impact other areas of the app
     get_org_dashboard_bills.clear()
+    get_bill_activity_history.clear()
 
 ###############################################################################
 @st.cache_data(ttl=10) 
