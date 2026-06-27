@@ -1,8 +1,11 @@
--- Title: process_hearing_bills_mv.sql
--- Creates app.hearing_bills_mv materialized view
--- One row per bill per hearing
--- Sources: snapshot.hearing_bills, app.bills_mv
+-- =============================================================================
+-- Migration: Refactor app.hearing_bills_mv to reference snapshot.bill
+-- Run once against legtracker_2026
+-- Views affected: app.hearing_bills_mv
+-- Notes: no rollback
+-- =============================================================================
 
+BEGIN;
 DROP MATERIALIZED VIEW IF EXISTS app.hearing_bills_mv;
 CREATE MATERIALIZED VIEW app.hearing_bills_mv AS
 
@@ -58,5 +61,5 @@ CREATE UNIQUE INDEX idx_hearing_bills_pk ON app.hearing_bills_mv (hearing_id, op
 CREATE INDEX idx_hearing_bills_hearing ON app.hearing_bills_mv (hearing_id);
 CREATE INDEX idx_hearing_bills_bill ON app.hearing_bills_mv (openstates_bill_id);
 
-
--- REFRESH MATERIALIZED VIEW CONCURRENTLY app.hearing_bills_mv;
+REFRESH MATERIALIZED VIEW app.hearing_bills_mv;
+COMMIT;
