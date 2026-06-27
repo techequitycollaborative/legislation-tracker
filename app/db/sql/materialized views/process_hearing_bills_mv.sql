@@ -10,9 +10,23 @@ CREATE MATERIALIZED VIEW app.hearing_bills_mv AS
 WITH bill_authors AS (
     SELECT 
         openstates_bill_id,
-        MAX(CASE WHEN primary_author = 'True' THEN full_name END)               AS author,
-        STRING_AGG(CASE WHEN primary_author = 'False' THEN full_name END, ', ') AS coauthors
-    FROM snapshot.bill_sponsor
+        COALESCE(
+            MAX(CASE WHEN primary_author = 'True' THEN full_name END),
+            MAX(CASE WHEN (
+                primary_author IS NULL OR primary_author = ''
+                )
+                AND title = 'author' THEN name END
+            )
+        ) AS author,
+        COALESCE(
+            STRING_AGG(CASE WHEN primary_author = 'False' THEN full_name END, ', '),
+            STRING_AGG(CASE WHEN (
+                primary_author IS NULL OR primary_author = ''
+            )
+                AND title != 'author' THEN name END, ', '
+            )
+        ) AS coauthors
+        FROM snapshot.bill_sponsor
     GROUP BY openstates_bill_id
 )
 
