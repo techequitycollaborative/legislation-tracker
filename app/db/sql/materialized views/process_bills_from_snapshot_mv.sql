@@ -55,8 +55,10 @@ WITH temp_bills AS (
                 FROM app.bill_history 
                 WHERE LOWER(description) LIKE '%inactive file%'
             )
+			-- get specific bills that users requested that did not meet filtering criteria above
 			OR bill_num = 'AB 412'
 			OR bill_num = 'SB 435'
+			OR bill_num = 'AB 882'
         )
 		
 ),
