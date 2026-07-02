@@ -15,14 +15,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the requirements file first to leverage Docker's caching
-COPY requirements.txt /app/
+COPY streamlit_app/requirements.txt .
 
 # Upgrade pip and install dependencies
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
 
-# Copy the rest of the application code into the container
-COPY . .
+# Copy shared db module from monorepo root
+COPY db/ ./db/
+
+# Copy service source
+COPY streamlit_app/ ./
 
 # Expose the Streamlit port
 EXPOSE 8501
