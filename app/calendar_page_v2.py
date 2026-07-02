@@ -29,7 +29,7 @@ import calendar
 import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
-from db.query import get_my_dashboard_bills, get_org_dashboard_bills, get_working_group_bills
+from foo.query import get_my_dashboard_bills, get_org_dashboard_bills, get_working_group_bills
 from utils.calendar_utils import load_leg_events, load_committee_events, load_css, render_bill, get_badge_color, get_user_token, get_org_token
 from utils.profiling import track_rerun
 from collections import defaultdict

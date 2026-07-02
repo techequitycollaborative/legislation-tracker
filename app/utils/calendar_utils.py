@@ -10,7 +10,7 @@ Utility functions for the Calendar page
 
 import pandas as pd
 import streamlit as st
-from db.query import query_table
+from foo.query import query_table
 from datetime import datetime, timedelta, date
 import pytz
 import numpy as np

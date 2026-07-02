@@ -13,7 +13,7 @@ Committees page with:
 import numpy as np
 import pandas as pd
 import streamlit as st
-from db.query import Query, COMMITTEE_COLUMNS
+from foo.query import Query, COMMITTEE_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv
 from utils.committees import display_committee_info_text, initialize_filter_state, display_committee_filters, apply_committee_filters, display_committee_table

@@ -9,7 +9,7 @@ Function for displaying bill details on the Bills Page.
 """
 import streamlit as st
 import pandas as pd
-from db.query import add_bill_to_dashboard, add_bill_to_org_dashboard, add_bill_to_working_group_dashboard, BILL_COLUMNS
+from foo.query import add_bill_to_dashboard, add_bill_to_org_dashboard, add_bill_to_working_group_dashboard, BILL_COLUMNS
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer
 

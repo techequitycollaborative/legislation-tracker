@@ -9,7 +9,7 @@ Function for displaying bills on the AI Working Group page.
 
 import streamlit as st
 import pandas as pd
-from db.query import get_all_custom_bill_details_for_bill, remove_bill_from_wg_dashboard, save_wg_comment, get_wg_comments
+from foo.query import get_all_custom_bill_details_for_bill, remove_bill_from_wg_dashboard, save_wg_comment, get_wg_comments
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer
 

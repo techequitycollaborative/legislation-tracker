@@ -10,7 +10,7 @@ AI Working Group Dashboard
 import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
-from db.query import (
+from foo.query import (
     query_table,
     get_working_group_bills,
     get_ai_members,

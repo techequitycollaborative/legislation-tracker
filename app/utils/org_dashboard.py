@@ -10,7 +10,7 @@ Utility function for displaying bill details on the ORG DASHBOARD page.
 
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard, get_letter_history, add_letter_to_history, get_bill_activity_history, get_org_dashboard_bills
+from foo.query import get_custom_bill_details_with_timestamp, save_custom_bill_details_with_timestamp, remove_bill_from_org_dashboard, get_letter_history, add_letter_to_history, get_bill_activity_history, get_org_dashboard_bills
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer, logging
 logger = logging.getLogger(__name__)

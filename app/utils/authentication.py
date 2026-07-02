@@ -12,10 +12,12 @@ import streamlit as st
 import bcrypt
 import psycopg2
 import re
+from db.connect import get_conn, with_connection
 from db.queries.authentication import * 
+import threading
 from typing import Optional
 from dataclasses import dataclass, field
-from utils.profiling import profile, show_performance_metrics, track_rerun
+from utils.profiling import profile, show_performance_metrics, track_rerun, timer
 import logging
 logger = logging.getLogger(__name__)
 
@@ -183,9 +185,8 @@ class SignupResult:
     user_id: Optional[int] = None
     errors: list[str] = field(default_factory=list)
 
-
 def signup_user(name: str, email: str, password: str, confirm_password: str,
-                 selected_org: str, org_mapping: dict) -> SignupResult:
+                 selected_org: str, org_mapping: dict, conn=None) -> SignupResult:
     errors = []
 
     if not name:
@@ -200,25 +201,22 @@ def signup_user(name: str, email: str, password: str, confirm_password: str,
     if selected_org == "Select an organization":
         errors.append("Please select an organization")
 
-    if not is_approved_user(email):
-        errors.append("Your email is not in the approved users list. Please contact admin for access.")
-
-    if errors:
-        return SignupResult(success=False, errors=errors)
-
     org_id = org_mapping.get(selected_org)
     if org_id is None:
         # selected_org wasn't the placeholder, but also isn't a valid key --
         # e.g. org list changed between render and submit
         return SignupResult(success=False, errors=["Invalid organization selection. Please try again."])
-
-    try:
-        user_id = create_user(name, email, hash_password(password), org_id)
-        return SignupResult(success=True, user_id=user_id)
-    except psycopg2.IntegrityError:
-        return SignupResult(success=False, errors=["Email already exists. Please log in."])
-    except psycopg2.Error as e:
-        return SignupResult(success=False, errors=[f"Database error: {e}"])
+    
+    with get_conn() as conn:
+        if not is_approved_user(email, conn=conn):
+            return SignupResult(success=False, errors=["Your email is not in the approved users list. Please contact admin for access."])
+        try:
+            user_id = create_user(name, email, hash_password(password), org_id, conn=conn)
+            return SignupResult(success=True, user_id=user_id)
+        except psycopg2.IntegrityError:
+            return SignupResult(success=False, errors=["Email already exists. Please log in."])
+        except psycopg2.Error as e:
+            return SignupResult(success=False, errors=[f"Database error: {e}"])
 
 @dataclass
 class LoginResult:
@@ -227,28 +225,41 @@ class LoginResult:
     org: Optional[dict] = None
     error: Optional[str] = None
 
-
-def login_user(email: str, password: str) -> LoginResult:
+@with_connection()
+def login_user(email: str, password: str, conn=None) -> LoginResult:
     if not email or not password:
         return LoginResult(success=False, error="Please enter both email and password")
 
-    if not is_approved_user(email):
-        return LoginResult(success=False, error="Your email is not approved for access. Please contact admin.")
+    # with get_conn() as conn, timer("get_login_payload"):
+    # 1. Fetch all data in ONE trip
+    data = get_login_payload(email, conn=conn)
+    
+    # 2. Verify approval status if not found in logged_users
+    if not data and not is_approved_user(email, conn=conn):
+        return LoginResult(success=False, error="Your email is not approved.")
 
-    user = get_user(email)
+    if not data or not check_password(password, data["password_hash"]):
+        return LoginResult(success=False, error="Invalid email or password.")
 
-    if user is None or not check_password(password, user["password_hash"]):
-        return LoginResult(success=False, error="Invalid email or password. Please try again.")
+    # 3. Update last login (this still triggers one commit)
+    update_last_login(data["id"], conn=conn)
 
-    update_last_login(user["id"])
-    log_user_login(user["id"], user["name"], user["email"], user["org_id"])
+    # 4. Asynchronously log the event (non-blocking)
+    threading.Thread(
+        target=log_user_login, 
+        args=(data["id"], data["name"], data["email"], data["org_id"])
+    ).start()
 
-    org = get_organization_by_id(user["org_id"])
-    return LoginResult(success=True, user=user, org=org)
+    # Return structured result
+    return LoginResult(
+        success=True, 
+        user=data, 
+        org={"name": data["org_name"], "nickname": data["org_nickname"]}
+    )
 
 ############################# SIGN UP AND LOGIN PAGE #############################
 @profile("utils/authentication.py - signup_page")
-def signup_page():
+def signup_page(conn=None):
     """
     Render the signup page with validation and error handling.
     """
@@ -262,7 +273,7 @@ def signup_page():
     confirm_password = st.text_input("Confirm Password", type="password")
     
     # Get all organizations for the dropdown
-    organizations = get_all_organizations()
+    organizations = get_all_organizations(conn=conn)
     org_names = ["Select an organization"] + [org["name"] for org in organizations]
     org_mapping = {org["name"]: org["id"] for org in organizations}
     

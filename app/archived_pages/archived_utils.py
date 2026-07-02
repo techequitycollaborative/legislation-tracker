@@ -10,7 +10,7 @@ Deprecated or outdated functions no longer in active use.
 
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard, remove_bill_from_dashboard, add_bill_to_org_dashboard, remove_bill_from_org_dashboard, BILL_COLUMNS  
+from foo.query import get_custom_bill_details, save_custom_bill_details, add_bill_to_dashboard, remove_bill_from_dashboard, add_bill_to_org_dashboard, remove_bill_from_org_dashboard, BILL_COLUMNS  
 
 ##############################################################################
 

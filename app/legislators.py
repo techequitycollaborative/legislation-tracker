@@ -10,7 +10,7 @@ This page of the app contains legislator information.
 import numpy as np
 import pandas as pd
 import streamlit as st
-from db.query import Query, LEGISLATOR_COLUMNS
+from foo.query import Query, LEGISLATOR_COLUMNS
 from utils import aggrid_styler
 from utils.general import to_csv, transform_name
 from utils.legislators import display_legislator_info_text

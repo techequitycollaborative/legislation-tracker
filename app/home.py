@@ -88,7 +88,7 @@ org_name = st.session_state['org_name']
 user_email = st.session_state['user_email']
 
 # Check WG membership
-from db.query import get_ai_members
+from db.queries.working_group import get_ai_members
 ai_members = get_ai_members()
 is_wg_member = not ai_members.empty and user_email in ai_members['email'].values
 

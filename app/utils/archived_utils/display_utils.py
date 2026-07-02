@@ -11,10 +11,10 @@ IMPORTANT: THIS SCRIPT IS DEPRECATED. FUNCTIONS HAVE BEEN REFACTORED INTO INDIVI
 """
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details, get_custom_bill_details_with_timestamp, get_custom_contact_details_with_timestamp
-from db.query import save_custom_bill_details, save_custom_bill_details_with_timestamp, save_custom_contact_details_with_timestamp
-from db.query import add_bill_to_dashboard, remove_bill_from_dashboard, add_bill_to_org_dashboard, remove_bill_from_org_dashboard
-from db.query import BILL_COLUMNS, COMMITTEE_COLUMNS, LEGISLATOR_COLUMNS
+from foo.query import get_custom_bill_details, get_custom_bill_details_with_timestamp, get_custom_contact_details_with_timestamp
+from foo.query import save_custom_bill_details, save_custom_bill_details_with_timestamp, save_custom_contact_details_with_timestamp
+from foo.query import add_bill_to_dashboard, remove_bill_from_dashboard, add_bill_to_org_dashboard, remove_bill_from_org_dashboard
+from foo.query import BILL_COLUMNS, COMMITTEE_COLUMNS, LEGISLATOR_COLUMNS
 
 def display_bill_info_text(selected_rows):
     '''

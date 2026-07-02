@@ -10,7 +10,7 @@ Utility function for displaying committee details on the Committees page.
 
 import streamlit as st
 import pandas as pd
-from db.query import COMMITTEE_COLUMNS
+from foo.query import COMMITTEE_COLUMNS
 from .profiling import profile, timer
 
 @profile("utils/committees.py - display_committee_info_text")

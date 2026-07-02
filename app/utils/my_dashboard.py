@@ -10,7 +10,7 @@ Utility function for displaying bill details on the MY DASHBOARD page.
 """
 import streamlit as st
 import pandas as pd
-from db.query import get_custom_bill_details_with_timestamp, remove_bill_from_dashboard, get_most_recent_letter
+from foo.query import get_custom_bill_details_with_timestamp, remove_bill_from_dashboard, get_most_recent_letter
 from .general import bill_topic_grid, clean_markdown
 from .profiling import profile, timer
 

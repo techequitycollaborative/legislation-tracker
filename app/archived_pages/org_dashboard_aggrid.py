@@ -12,7 +12,7 @@ import streamlit as st
 import pandas as pd
 from utils.aggrid_styler import draw_bill_grid
 from utils.general import to_csv
-from db.query import get_org_dashboard_bills
+from foo.query import get_org_dashboard_bills
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, show_performance_metrics, track_rerun

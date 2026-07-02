@@ -10,7 +10,7 @@ Private dashboard for an organization, populated with bills from Bills page
 
 import streamlit as st
 import pandas as pd
-from db.query import get_org_dashboard_bills, get_custom_bill_details_with_timestamp
+from foo.query import get_org_dashboard_bills, get_custom_bill_details_with_timestamp
 from utils.org_dashboard import display_org_dashboard_details
 from utils.bill_history import format_bill_history
 from utils.profiling import timer, profile, track_rerun, track_event

@@ -12,7 +12,7 @@ Bills page with:
 
 import streamlit as st
 import pandas as pd
-from db.query import get_data
+from foo.query import get_data
 from utils import aggrid_styler
 from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text

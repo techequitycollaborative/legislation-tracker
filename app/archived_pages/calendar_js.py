@@ -12,8 +12,8 @@ injected FullCalendar javascript.
 
 import pandas as pd
 import streamlit as st
-from db.query import query_table
-from db.query import get_my_dashboard_bills
+from foo.query import query_table
+from foo.query import get_my_dashboard_bills
 from streamlit.components.v1 import html
 import streamlit.components.v1 as components
 from datetime import datetime, timedelta

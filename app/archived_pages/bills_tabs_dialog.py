@@ -7,14 +7,14 @@ Created on Oct 2, 2024
 
 Bill into page with:
     - Bill table with tabs
-    - Bill details with expander
+    - Bill details with dialog
 """
 
 import streamlit as st
 import pandas as pd
-from db.query import get_data
+from foo.query import get_data
 from utils import aggrid_styler
-from utils.general import display_bill_info_expander, to_csv, format_bill_history, get_bill_topics, keywords
+from utils.general import display_bill_info_dialog, to_csv, get_bill_topics, keywords, format_bill_history
 
 # Page title and description
 st.title('Bills')
@@ -34,7 +34,6 @@ bills = get_data()
 bills['date_introduced'] = pd.to_datetime(bills['date_introduced']).dt.strftime('%Y-%m-%d') # Remove timestampe from date introduced
 bills = get_bill_topics(bills, keyword_dict= keywords)  # Get bill topics
 bills['bill_history'] = bills['bill_history'].apply(format_bill_history) #Format bill history
-
 
 ############################### FILTER DATA FRAMES BY TOPIC ###############################
 
@@ -90,7 +89,7 @@ with tab1:
 
     # If a row is selected, display bill info:
     if selected_rows is not None and len(selected_rows) != 0:
-        display_bill_info_expander(selected_rows)
+        display_bill_info_dialog(selected_rows)
 
 
 
@@ -121,7 +120,7 @@ with tab2:
     # If a row is selected, display bill info:
     if selected_rows is not None:
         if len(selected_rows) != 0:
-            display_bill_info_expander(selected_rows)
+            display_bill_info_dialog(selected_rows)
 
         
 ############################# TAB 3: Housing Bills #############################
@@ -154,7 +153,7 @@ with tab3:
     # If a row is selected, display bill info:
     if selected_rows is not None:
         if len(selected_rows) != 0:
-            display_bill_info_expander(selected_rows)
+            display_bill_info_dialog(selected_rows)
 
     
         
@@ -188,7 +187,7 @@ with tab4:
     # If a row is selected, display bill info:
     if selected_rows is not None:
         if len(selected_rows) != 0:
-            display_bill_info_expander(selected_rows)
+            display_bill_info_dialog(selected_rows)
    
     
 

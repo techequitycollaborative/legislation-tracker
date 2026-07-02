@@ -10,7 +10,7 @@ Created on Nov 5, 2025
 import streamlit as st
 #st.write(st.__version__) --> for debugging conflicting streamlit versions
 import pandas as pd
-from db.query import Query, BILL_COLUMNS
+from foo.query import Query, BILL_COLUMNS
 from utils.general import to_csv, topic_config
 from utils.bills import display_bill_info_text
 from utils.bill_history import format_bill_history
