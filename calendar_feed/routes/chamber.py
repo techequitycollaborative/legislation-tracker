@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app
 from extensions import cache
-from db.calendar_queries import get_hearings_for_chamber
+from db.queries.calendar import get_hearings_for_chamber
 from routes._helpers import ical_response, json_response
 
 bp = Blueprint("chamber", __name__)

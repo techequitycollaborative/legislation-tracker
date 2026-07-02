@@ -2,7 +2,7 @@
 
 from flask import Blueprint, current_app
 from extensions import cache
-from db.calendar_queries import get_hearings_for_committee
+from db.queries.calendar import get_hearings_for_committee
 from routes._helpers import ical_response, json_response
 
 bp = Blueprint("committee", __name__)

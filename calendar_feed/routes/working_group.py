@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, current_app, request
 from extensions import cache
 from auth import resolve_user_token
-from db.calendar_queries import get_hearings_for_wg
+from db.queries.calendar import get_hearings_for_wg
 from routes._helpers import ical_response, json_response
 import time
 

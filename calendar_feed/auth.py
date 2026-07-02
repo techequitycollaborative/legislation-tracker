@@ -2,7 +2,7 @@ import hashlib
 import logging
 from typing import Optional
 
-from db.connect import get_conn
+from db.connect import fetch_one
 
 logger = logging.getLogger(__name__)
 
@@ -14,14 +14,9 @@ def _hash(raw_token: str) -> str:
 def resolve_org_token(raw_token: str) -> Optional[int]:
     """Return org_id if the token is valid, else None."""
     hashed = _hash(raw_token)
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT id FROM auth.approved_organizations WHERE feed_token_hash = %s",
-                (hashed,),
-            )
-            row = cur.fetchone()
-    return row[0] if row else None
+    sql = "SELECT id FROM auth.approved_organizations WHERE feed_token_hash = %s"
+    result = fetch_one(sql, (hashed, ))[0]
+    return result if result else None
 
 
 def resolve_user_token(raw_token: str) -> Optional[dict]:
@@ -30,13 +25,8 @@ def resolve_user_token(raw_token: str) -> Optional[dict]:
     is_wg_member is True when the wg column equals 'yes' (case-insensitive).
     """
     hashed = _hash(raw_token)
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT email, ai_working_group FROM auth.approved_users WHERE feed_token_hash = %s",
-                (hashed,),
-            )
-            row = cur.fetchone()
+    sql = "SELECT email, ai_working_group FROM auth.approved_users WHERE feed_token_hash = %s"
+    row = fetch_one(sql, (hashed, ))
     if not row:
         return None
     return {

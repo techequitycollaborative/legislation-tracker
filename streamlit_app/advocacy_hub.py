@@ -10,9 +10,11 @@ Page that features custom data from organizations using the Leg Tracker.
 
 import streamlit as st
 import pandas as pd
-from db.query import get_all_custom_bill_details, get_all_most_recent_letters
-from utils.aggrid_styler import draw_advocacy_grid
-from utils.profiling import track_rerun
+# from db.query import get_all_custom_bill_details, get_all_most_recent_letters
+from db.queries.custom_details import get_all as get_all_custom_bill_details
+from db.queries.letter_history import get_all as get_all_most_recent_letters
+from streamlit_app.utils.aggrid_styler import draw_advocacy_grid
+from streamlit_app.utils.profiling import track_rerun
 
 track_rerun("Advocacy Hub")
 

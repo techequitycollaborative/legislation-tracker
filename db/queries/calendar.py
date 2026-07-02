@@ -1,12 +1,11 @@
 # db/calendar_queries.py
 
-from psycopg2.extras import RealDictCursor
-from db.connect import get_conn
+from db.connect import fetch_all, fetch_one
 
 # ── Shared SQL fragments ───────────────────────────────────────────────────────
 
 _FUTURE_ONLY = "h.date >= CURRENT_DATE"  # For getting future only events
-_ALL_TIME = "h.date >= '2026-04-01'"  # For getting all events from this season, including past ones (but starting from specific date)
+_ALL_TIME = "h.date >= '2026-04-01'"  # For getting all events from this session, including past ones (but starting from specific date)
 _ORDER = "ORDER BY h.date, h.time_normalized NULLS LAST"
 
 # Core SELECT for chamber/committee feeds — no dashboard context, no deadlines.
@@ -126,7 +125,7 @@ _DASHBOARD_SELECT_WITH_CUSTOM = """
 # ── Page queries (Streamlit) ───────────────────────────────────────────────────
 
 
-def get_hearings() -> list[dict]:
+def get_hearings(as_dataframe: bool = False) -> list[dict]:
     """
     All future hearings with no bill data — for the calendar page list view.
     """
@@ -153,13 +152,10 @@ def get_hearings() -> list[dict]:
         WHERE {_FUTURE_ONLY}
         {_ORDER}
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql)
-            return cur.fetchall()
+    return fetch_all(sql, as_dataframe=as_dataframe)
 
 
-def get_hearing_agenda(hearing_id: int) -> list[dict]:
+def get_hearing_agenda(hearing_id: int, as_dataframe: bool = False) -> list[dict]:
     """
     Bills and notes for a single hearing — for the calendar page drill-down.
     """
@@ -178,14 +174,11 @@ def get_hearing_agenda(hearing_id: int) -> list[dict]:
         WHERE hb.hearing_id = %s
         ORDER BY hb.file_order
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (hearing_id,))
-            return cur.fetchall()
+    return fetch_all(sql, (hearing_id, ), as_dataframe=as_dataframe)
 
 
 # ── Feed queries (calendar-feed service) ──────────────────────────────────────
-def get_hearings_for_chamber(chamber_id: int) -> list[dict]:
+def get_hearings_for_chamber(chamber_id: int, as_dataframe: bool = False) -> list[dict]:
     """
     No dashboard context — on_dashboard absent, no deadline events emitted.
 
@@ -197,13 +190,10 @@ def get_hearings_for_chamber(chamber_id: int) -> list[dict]:
           AND h.chamber_id = %s
         {_ORDER}
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (chamber_id,))
-            return cur.fetchall()
+    return fetch_all(sql, (chamber_id, ), as_dataframe=as_dataframe)
 
 
-def get_hearings_for_committee(committee_id: int) -> list[dict]:
+def get_hearings_for_committee(committee_id: int, as_dataframe: bool = False) -> list[dict]:
     """
     No dashboard context — on_dashboard absent, no deadline events emitted.
 
@@ -215,13 +205,10 @@ def get_hearings_for_committee(committee_id: int) -> list[dict]:
           AND h.committee_id = %s
         {_ORDER}
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (committee_id,))
-            return cur.fetchall()
+    return fetch_all(sql, (committee_id, ), as_dataframe=as_dataframe)
 
 
-def get_name_for_org(org_id: int) -> str | None:
+def get_name_for_org(org_id: int, as_dataframe: bool = False) -> str | None:
     """
     Return org nickname associated with org ID to use in feed title.
     """
@@ -229,14 +216,11 @@ def get_name_for_org(org_id: int) -> str | None:
         SELECT nickname FROM auth.approved_organizations
         WHERE id = %s
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (org_id,))
-            result = cur.fetchone()
-            return result["nickname"] if result else None
+    result = fetch_one(sql, (org_id, ), as_dataframe=as_dataframe)
+    return result if result else None
 
 
-def get_hearings_for_org(org_id: int) -> list[dict]:
+def get_hearings_for_org(org_id: int, as_dataframe: bool = False) -> list[dict]:
     """
     All hearings where at least one bill on the org's dashboard is on
     the agenda. Returns all bills on each hearing; on_dashboard=TRUE only for
@@ -259,15 +243,9 @@ def get_hearings_for_org(org_id: int) -> list[dict]:
           )
         {_ORDER}
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(
-                sql, (org_id, org_id, org_id)
-            )  # All three org_id placeholders need to be resolved
-            return cur.fetchall()
+    return fetch_all(sql, (org_id, org_id, org_id), as_dataframe=as_dataframe)
 
-
-def get_hearings_for_user(user_email: str) -> list[dict]:
+def get_hearings_for_user(user_email: str, as_dataframe: bool = False) -> list[dict]:
     """
     All hearings where at least one bill on the user's personal dashboard
     is on the agenda. on_dashboard=TRUE only for bills tracked by this user.
@@ -290,13 +268,9 @@ def get_hearings_for_user(user_email: str) -> list[dict]:
           )
         {_ORDER}
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, (user_email, user_email))
-            return cur.fetchall()
+    return fetch_all(sql, (user_email, user_email), as_dataframe=as_dataframe)
 
-
-def get_hearings_for_wg() -> list[dict]:
+def get_hearings_for_wg(as_dataframe: bool = False) -> list[dict]:
     """
     All future hearings where at least one bill on the working group dashboard
     is on the agenda. on_dashboard=TRUE only for bills tracked by the WG.
@@ -317,7 +291,4 @@ def get_hearings_for_wg() -> list[dict]:
           )
         {_ORDER}
     """
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql)
-            return cur.fetchall()
+    fetch_all(sql)
