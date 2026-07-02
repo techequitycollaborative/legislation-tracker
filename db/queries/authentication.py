@@ -2,7 +2,20 @@ from db.connect import get_cursor, fetch_one, fetch_all, execute
 
 from typing import Optional, Dict, List
 
-def get_user(email: str) -> Optional[Dict]:
+def get_login_payload(email: str, conn=None) -> Optional[Dict]:
+    """Retrieves user, org info, and approval status in one trip."""
+    sql = """
+    SELECT 
+        u.id, u.name, u.email, u.password_hash, u.org_id, 
+        o.name as org_name, o.nickname as org_nickname,
+        (SELECT ai_working_group FROM auth.approved_users WHERE lower(email) = lower(u.email)) as ai_wg
+    FROM auth.logged_users u
+    LEFT JOIN auth.approved_organizations o ON u.org_id = o.id
+    WHERE u.email = %s
+    """
+    return fetch_one(sql, (email, ), conn=conn)
+
+def get_user(email: str, conn=None) -> Optional[Dict]:
     """
     Retrieve user information by email.
     
@@ -14,9 +27,9 @@ def get_user(email: str) -> Optional[Dict]:
     """
     sql = "SELECT id, name, email, password_hash, org_id FROM auth.logged_users WHERE email=%s"
 
-    return fetch_one(sql, (email, ))
+    return fetch_one(sql, (email, ), conn=conn)
 
-def is_approved_user(email: str) -> bool:
+def is_approved_user(email: str, conn=None) -> bool:
     """
     Check if the email is in the approved_users table.
     
@@ -27,10 +40,10 @@ def is_approved_user(email: str) -> bool:
         bool: True if email is in approved_users table, False otherwise
     """
     sql = "SELECT 1 FROM auth.approved_users WHERE lower(email)=lower(%s)"
-    result = fetch_one(sql, (email, ))
+    result = fetch_one(sql, (email, ), conn=conn)
     return result is not None
 
-def get_all_organizations() -> List[Dict]:
+def get_all_organizations(conn=None) -> List[Dict]:
     """
     Retrieve all organizations from the database.
     
@@ -38,10 +51,10 @@ def get_all_organizations() -> List[Dict]:
         List[Dict]: List of organizations (id, name)
     """
     sql = "SELECT id, name FROM auth.approved_organizations ORDER BY name"
-    result = fetch_all(sql)
+    result = fetch_all(sql, conn=conn)
     return result if result else []
 
-def create_user(name: str, email: str, password_hash: str, org_id: int) -> Optional[int]:
+def create_user(name: str, email: str, password_hash: str, org_id: int, conn=None) -> Optional[int]:
     """
     Create a new user in the database.
 
@@ -61,7 +74,7 @@ def create_user(name: str, email: str, password_hash: str, org_id: int) -> Optio
             constraint violation) -- callers decide how to surface this.
         psycopg2.Error: for other database errors.
     """
-    with get_cursor(commit=True) as cur:
+    with get_cursor(commit=True, conn=conn) as cur:
         cur.execute(
             """
             INSERT INTO auth.logged_users
@@ -73,7 +86,7 @@ def create_user(name: str, email: str, password_hash: str, org_id: int) -> Optio
         )
         return cur.fetchone()["id"]  # RealDictCursor -> dict, not a tuple
 
-def get_organization_by_id(org_id: int) -> Optional[Dict]:
+def get_organization_by_id(org_id: int, conn=None) -> Optional[Dict]:
     """
     Retrieve organization by ID.
     
@@ -84,9 +97,9 @@ def get_organization_by_id(org_id: int) -> Optional[Dict]:
         Optional[Dict]: Organization information or None if not found
     """
     sql = "SELECT id, name, domain, nickname FROM auth.approved_organizations WHERE id=%s"
-    return fetch_one(sql, (org_id, ))
+    return fetch_one(sql, (org_id, ), conn=conn)
 
-def update_last_login(user_id: int) -> bool:
+def update_last_login(user_id: int, conn=None) -> bool:
     """
     Update the last_login timestamp for a user.
     
@@ -102,13 +115,14 @@ def update_last_login(user_id: int) -> bool:
         SET last_login = NOW()
         WHERE id = %s
         """,
-        (user_id, )
+        (user_id, ),
+        conn=conn
     )
     
     return rowcount > 0
     
 
-def log_user_login(user_id: int, name: str, email: str, org_id: int) -> bool:
+def log_user_login(user_id: int, name: str, email: str, org_id: int, conn=None) -> bool:
     """
     Log a user login event to the auth.logins table.
     
@@ -121,9 +135,9 @@ def log_user_login(user_id: int, name: str, email: str, org_id: int) -> bool:
     Returns:
         bool: True if logging was successful, False otherwise
     """
-    org_name = get_organization_by_id(org_id)["name"]
+    org_name = get_organization_by_id(org_id, conn=conn)["name"]
 
-    with get_cursor() as cur:
+    with get_cursor(conn=conn) as cur:
         cur.execute(
             """
                 INSERT INTO auth.logins 
@@ -137,10 +151,10 @@ def log_user_login(user_id: int, name: str, email: str, org_id: int) -> bool:
 
 ############################# AI WORKING GROUP VALIDATION #############################
 
-def is_user_in_working_group(user_email):
+def is_user_in_working_group(user_email: str, conn=None):
     """
     Check if the user is in the AI Working Group by querying the approved_users table.
     """
     sql = "SELECT ai_working_group FROM auth.approved_users WHERE lower(email) = lower(%s)"
-    result = fetch_one(sql, (user_email, ))
+    result = fetch_one(sql, (user_email, ), conn=conn)
     return result["ai_working_group"].strip().lower() == 'yes'
