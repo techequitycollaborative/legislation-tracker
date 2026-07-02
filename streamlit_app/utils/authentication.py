@@ -12,12 +12,12 @@ import streamlit as st
 import bcrypt
 import psycopg2
 import re
-import os
-from db.config import db_config as config
-from db.connect import get_connection
-from typing import Optional, Tuple, List
-from datetime import datetime, timedelta
+from db.queries.authentication import * 
+from typing import Optional
+from dataclasses import dataclass, field
 from utils.profiling import profile, show_performance_metrics, track_rerun
+import logging
+logger = logging.getLogger(__name__)
 
 '''
 # Cookies functions for keeping users logged in -- TURNED OFF BC THESE ARE STILL IN DEVELOPMENT!!
@@ -176,228 +176,78 @@ def check_password(password: str, hashed: str) -> bool:
         bool: True if password is correct, False otherwise
     """
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-
-def get_user(email: str) -> Optional[Tuple]:
-    """
-    Retrieve user information by email.
     
-    Args:
-        email (str): User's email address
-    
-    Returns:
-        Optional[Tuple]: User information or None if not found
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn:
-            return None
-        
-        try:
-            c.execute("SELECT id, name, email, password_hash, org_id FROM auth.logged_users WHERE email=%s", (email,))
-            user = c.fetchone()
-            return user
-        except psycopg2.Error as e:
-            st.error(f"Database error: {e}")
-            return None
-
-def is_approved_user(email: str) -> bool:
-    """
-    Check if the email is in the approved_users table.
-    
-    Args:
-        email (str): User's email address
-    
-    Returns:
-        bool: True if email is in approved_users table, False otherwise
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn:
-            return False
-        
-        try:
-            c.execute("SELECT 1 FROM auth.approved_users WHERE email=%s", (email,))
-            result = c.fetchone()
-            return result is not None
-        except psycopg2.Error as e:
-            st.error(f"Database error: {e}")
-            return False
-
-def get_all_organizations() -> List[Tuple]:
-    """
-    Retrieve all organizations from the database.
-    
-    Returns:
-        List[Tuple]: List of organizations (id, name)
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn:
-            return []
-        
-        try:
-            c.execute("SELECT id, name FROM auth.approved_organizations ORDER BY name")
-            orgs = c.fetchall()
-            return orgs
-        except psycopg2.Error as e:
-            st.error(f"Database error: {e}")
-            return []
-
-def create_user(name: str, email: str, password: str, org_id: int) -> Optional[int]:
-    """
-    Create a new user in the database.
-    
-    Args:
-        name (str): User's full name
-        email (str): User's email address
-        password (str): User's password
-        org_id (int): Organization ID
-    
-    Returns:
-        Optional[int]: Created user ID or None if creation failed
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn:
-            return None
-        
-        try:
-            password_hash = hash_password(password)
-            # Set both created_at and last_login to NOW() when creating a new user
-            c.execute("""
-                INSERT INTO auth.logged_users 
-                (name, email, password_hash, org_id, created_at, last_login) 
-                VALUES (%s, %s, %s, %s, NOW(), NOW()) 
-                RETURNING id
-            """, (name, email, password_hash, org_id))
-            conn.commit()
-            return c.fetchone()[0]
-        except psycopg2.IntegrityError:
-            st.error("Email already exists. Please log in.")
-            conn.rollback()
-            return None
-        except psycopg2.Error as e:
-            st.error(f"Database error: {e}")
-            conn.rollback()
-            return None
-
-def get_organization_by_id(org_id: int) -> Optional[Tuple]:
-    """
-    Retrieve organization by ID.
-    
-    Args:
-        org_id (int): Organization ID
-    
-    Returns:
-        Optional[Tuple]: Organization information or None if not found
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn:
-            return None
-        
-        try:
-            c.execute("SELECT id, name, domain, nickname FROM auth.approved_organizations WHERE id=%s", (org_id,))
-            org = c.fetchone()
-            return org
-        except psycopg2.Error as e:
-            st.error(f"Database error: {e}")
-            return None
-
-def update_last_login(user_id: int) -> bool:
-    """
-    Update the last_login timestamp for a user.
-    
-    Args:
-        user_id (int): User's ID
-    
-    Returns:
-        bool: True if update was successful, False otherwise
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn:
-            return False
-        
-        try:
-            c.execute("""
-                UPDATE auth.logged_users 
-                SET last_login = NOW() 
-                WHERE id = %s
-            """, (user_id,))
-            conn.commit()
-            return True
-        except psycopg2.Error as e:
-            st.error(f"Database error updating last login: {e}")
-            conn.rollback()
-            return False
-    
-
-def log_user_login(user_id: int, name: str, email: str, org_id: int) -> bool:
-    """
-    Log a user login event to the auth.logins table.
-    
-    Args:
-        user_id (int): User's ID
-        name (str): User's name
-        email (str): User's email
-        org_id (int): Organization ID
-    
-    Returns:
-        bool: True if logging was successful, False otherwise
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn:
-            return False
-        
-        try:
-            # Get organization name for the log
-            org = get_organization_by_id(org_id)
-            org_name = org[1] if org else None
-            
-            c.execute("""
-                INSERT INTO auth.logins 
-                (login_date, login_time, user_id, name, email, org, org_id) 
-                VALUES (CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s)
-            """, (user_id, name, email, org_name, org_id))
-            conn.commit()
-            return True
-        except psycopg2.Error as e:
-            st.error(f"Database error logging login: {e}")
-            conn.rollback()
-            return False
+@dataclass
+class SignupResult:
+    success: bool
+    user_id: Optional[int] = None
+    errors: list[str] = field(default_factory=list)
 
 
-############################# AI WORKING GROUP VALIDATION #############################
+def signup_user(name: str, email: str, password: str, confirm_password: str,
+                 selected_org: str, org_mapping: dict) -> SignupResult:
+    errors = []
 
-def is_user_in_working_group(user_email):
-    """
-    Check if the user is in the AI Working Group by querying the approved_users table.
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        if not conn or not c:
-            return False  # Prefer returning False for clean boolean logic
+    if not name:
+        errors.append("Name is required")
+    if not validate_email(email):
+        errors.append("Invalid email address")
+    if not validate_password(password):
+        errors.append("Password does not meet complexity requirements")
+    if password != confirm_password:
+        errors.append("Passwords do not match")
 
-        try:
-            c.execute("""
-                SELECT ai_working_group FROM auth.approved_users WHERE email = %s;
-            """, (user_email,))
-            result = c.fetchone()
+    if selected_org == "Select an organization":
+        errors.append("Please select an organization")
 
-            if result and isinstance(result[0], str):
-                return result[0].strip().lower() == 'yes'
-            else:
-                return False
+    if not is_approved_user(email):
+        errors.append("Your email is not in the approved users list. Please contact admin for access.")
 
-        except psycopg2.Error as e:
-            st.error(f"Database error: {e}")
-            return False  # Avoid returning None unless there's a specific reason
+    if errors:
+        return SignupResult(success=False, errors=errors)
 
+    org_id = org_mapping.get(selected_org)
+    if org_id is None:
+        # selected_org wasn't the placeholder, but also isn't a valid key --
+        # e.g. org list changed between render and submit
+        return SignupResult(success=False, errors=["Invalid organization selection. Please try again."])
+
+    try:
+        user_id = create_user(name, email, hash_password(password), org_id)
+        return SignupResult(success=True, user_id=user_id)
+    except psycopg2.IntegrityError:
+        return SignupResult(success=False, errors=["Email already exists. Please log in."])
+    except psycopg2.Error as e:
+        return SignupResult(success=False, errors=[f"Database error: {e}"])
+
+@dataclass
+class LoginResult:
+    success: bool
+    user: Optional[dict] = None
+    org: Optional[dict] = None
+    error: Optional[str] = None
+
+
+def login_user(email: str, password: str) -> LoginResult:
+    if not email or not password:
+        return LoginResult(success=False, error="Please enter both email and password")
+
+    if not is_approved_user(email):
+        return LoginResult(success=False, error="Your email is not approved for access. Please contact admin.")
+
+    user = get_user(email)
+
+    if user is None or not check_password(password, user["password_hash"]):
+        return LoginResult(success=False, error="Invalid email or password. Please try again.")
+
+    update_last_login(user["id"])
+    log_user_login(user["id"], user["name"], user["email"], user["org_id"])
+
+    org = get_organization_by_id(user["org_id"])
+    return LoginResult(success=True, user=user, org=org)
 
 ############################# SIGN UP AND LOGIN PAGE #############################
-
+@profile("utils/authentication.py - signup_page")
 def signup_page():
     """
     Render the signup page with validation and error handling.
@@ -413,59 +263,29 @@ def signup_page():
     
     # Get all organizations for the dropdown
     organizations = get_all_organizations()
-    org_names = ["Select an organization"] + [org[1] for org in organizations]
-    org_mapping = {org[1]: org[0] for org in organizations}
+    org_names = ["Select an organization"] + [org["name"] for org in organizations]
+    org_mapping = {org["name"]: org["id"] for org in organizations}
     
     # Organization dropdown
     selected_org = st.selectbox("Organization", options=org_names)
     
     # Validate and submit
     if st.button("Sign Up"):
-        # Comprehensive validation
-        errors = []
-        
-        if not name:
-            errors.append("Name is required")
-        
-        if not validate_email(email):
-            errors.append("Invalid email address")
-        
-        if not validate_password(password):
-            errors.append("Password does not meet complexity requirements")
-        
-        if password != confirm_password:
-            errors.append("Passwords do not match")
-        
-        if selected_org == "Select an organization":
-            errors.append("Please select an organization")
-        
-        # Check if user is approved
-        if not is_approved_user(email):
-            errors.append("Your email is not in the approved users list. Please contact admin for access.")
+        result = signup_user(
+            name, email, password, confirm_password, selected_org, org_mapping
+        )
         
         # Display any validation errors
-        if errors:
-            for error in errors:
+        if not result.success:
+            for error in result.errors:
                 st.error(error)
             return
         
-        # Get the selected organization ID
-        org_id = org_mapping.get(selected_org)
-        
-        if org_id:
-            user_id = create_user(name, email, password, org_id)
-            
-            if user_id:
-                # Store user email for login convenience
-                st.session_state['signup_email'] = email
-                # Store org name in session state for later use
-                st.session_state['org_name'] = selected_org
-                # Set success flag and redirect to login
-                st.session_state['signup_success'] = True
-                st.session_state['show_signup'] = False
-                st.rerun()
-        else:
-            st.error("Invalid organization selection. Please try again.")
+        st.session_state['signup_email'] = email
+        st.session_state['org_name'] = selected_org
+        st.session_state['signup_success'] = True
+        st.session_state['show_signup'] = False
+        st.rerun()
 
     # Add a button to return to login page
     if st.button("Already have an account? Log In"):
@@ -502,42 +322,25 @@ def login_page():
     
     # Login attempt
     if st.button("Login"):
-        # Basic input validation
-        if not email or not password:
-            st.error("Please enter both email and password")
-            return
-        
-        # Check if the user is in the approved_users table
-        if not is_approved_user(email):
-            st.error("Your email is not approved for access. Please contact admin.")
-            return
-            
-        user = get_user(email)
-        
-        if user and check_password(password, user[3]):
-            # Update last_login timestamp
-            update_last_login(user[0])  # Pass user_id
+        result = login_user(email, password)
 
-            # Log the login event
-            log_user_login(user[0], user[1], user[2], user[4])
+        if not result.success:
+            st.error(result.error)
+            return
             
-            # Successful login
-            st.session_state['authenticated'] = True
-            st.session_state['user_id'] = user[0]
-            st.session_state['user_name'] = user[1]
-            st.session_state['user_email'] = user[2]
-            st.session_state['org_id'] = user[4]
+        # Successful login
+        st.session_state['authenticated'] = True
+        st.session_state['user_id'] = result.user["id"]
+        st.session_state['user_name'] = result.user["name"]
+        st.session_state['user_email'] = result.user["email"]
+        st.session_state['org_id'] = result.user["org_id"]
             
-            # Get organization info and store in session state
-            org = get_organization_by_id(user[4])
-            if org:
-                st.session_state['org_name'] = org[1]
-                st.session_state['nickname'] = org[3]
+        if result.org:
+            st.session_state['org_name'] = result.org["name"]
+            st.session_state['nickname'] = result.org["nickname"]
             
             #set_login_cookie(user[2])  # <-- Persist login
             st.rerun()
-        else:
-            st.error("Invalid email or password. Please try again.")
     
     # Signup navigation
     if st.button("Create an Account"):
