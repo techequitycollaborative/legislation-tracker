@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the requirements file first to leverage Docker's caching
-COPY streamlit_app/requirements.txt .
+COPY app/requirements.txt .
 
 # Upgrade pip and install dependencies
 RUN pip3 install --upgrade pip
@@ -25,7 +25,7 @@ RUN pip3 install -r requirements.txt
 COPY db/ ./db/
 
 # Copy service source
-COPY streamlit_app/ ./
+COPY app/ ./
 
 # Expose the Streamlit port
 EXPOSE 8501

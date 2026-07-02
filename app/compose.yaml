@@ -11,7 +11,7 @@ services:
   streamlit_app:
     build:
       context: ..
-      dockerfile: streamlit_app/Dockerfile
+      dockerfile: app/Dockerfile
     env_file:
       - .env # This tells the app where to pull the local .env file for local deployment
     image: leg-tracker:latest

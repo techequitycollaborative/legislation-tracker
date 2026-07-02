@@ -7,7 +7,7 @@ services:
   calendar-feed:
     build:
       context: ..                               # monorepo root — required for COPY db/
-      dockerfile: calendar_feed/Dockerfile
+      dockerfile: calendar-feed/Dockerfile
     ports:
       - "5001:5000"
     volumes:

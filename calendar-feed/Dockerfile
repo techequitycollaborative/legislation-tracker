@@ -9,14 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq-dev gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY calendar_feed/requirements.txt .
+COPY calendar-feed/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared db module from monorepo root
 COPY db/ ./db/
 
 # Copy service source
-COPY calendar_feed/ ./
+COPY calendar-feed/ ./
 
 EXPOSE 5000
 
