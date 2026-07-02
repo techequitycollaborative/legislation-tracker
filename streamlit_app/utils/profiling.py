@@ -4,7 +4,8 @@ import traceback
 import streamlit as st
 from functools import wraps
 from contextlib import contextmanager
-from db.config import app_config as config
+import os
+from configparser import ConfigParser
 
 # Set up logging for console output
 logging.basicConfig(
@@ -12,6 +13,26 @@ logging.basicConfig(
     format='%(asctime)s - [%(name)s] - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+def config(section='app', filename = 'db/credentials.ini'):
+    # Check if a variable is set in the environment first
+    setting = os.getenv('PROFILING_ENABLED', default=None)
+    if setting != None:
+        config = {
+            'profiling_enabled': setting == 'true'
+        }
+    else:
+        parser = ConfigParser()
+        if parser.read(filename):
+            if parser.has_section(section):
+                config = {
+                    'profiling_enabled': parser.getboolean(section, 'profiling')
+                }
+            else:
+                raise Exception(f"Section {section} not found in the {filename} file")
+        else:
+            raise Exception(f"Could not read {filename} file")
+    return config
 
 # Globals - turn off in production
 
