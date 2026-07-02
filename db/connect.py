@@ -1,6 +1,7 @@
 # db/connect.py
 from contextlib import contextmanager
 import time
+import functools
 import logging
 import psycopg2
 import psycopg2.extras
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def _connect():
-    """Shared connection setup used by both get_cursor and get_conn."""
+    """Shared connection setup used by with_connection, get_conn, and get_cursor."""
     connect_start = time.time()
     conn = psycopg2.connect(**config("postgres"))
     connect_time = (time.time() - connect_start) * 1000
@@ -18,62 +19,59 @@ def _connect():
     return conn
 
 
-@contextmanager
-def get_cursor(commit: bool = False):
+def with_connection():
     """
-    Yields a RealDictCursor against a fresh connection, with timing/logging
-    for connect, commit (if applicable), and close. Connection is opened and
-    closed per call by design -- DO's managed pool (port 25061, transaction
-    mode) handles pooling upstream, so we don't hold connections open here.
+    Decorator for sharing a single database connection across multiple 
+    function calls.
 
-    Use this (or the fetch_all/fetch_one/execute helpers below) for standard
-    single-statement queries. For bulk loads (copy_expert/execute_values) or
-    multi-statement transactions, use get_conn() instead.
+    Opens a connection and injects it as the `conn` keyword argument. The 
+    connection is closed automatically when the decorated function returns. 
+    This decorator does not perform any commits; transaction management 
+    (commit/rollback) is left to the individual operations or the caller.
+
+    Safe to nest: If a `conn` is already provided in the kwargs, it reuses 
+    that connection instead of creating a new one.
     """
-    conn = None
-    start_time = time.time()
-    try:
-        conn = _connect()
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if kwargs.get("conn") is not None:
+                return func(*args, **kwargs)  # already inside a connection scope
 
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            yield cur
-
-        if commit:
-            commit_start = time.time()
-            conn.commit()
-            commit_time = (time.time() - commit_start) * 1000
-            logger.info(f"Transaction committed in {commit_time:.1f}ms")
-
-        total_time = (time.time() - start_time) * 1000
-        logger.info(f"Query completed (total: {total_time:.1f}ms)")
-
-    except psycopg2.DatabaseError as e:
-        if conn:
-            conn.rollback()
-            logger.error(f"Transaction rolled back: {e.pgerror}")
-        raise
-    except Exception as e:
-        if conn:
-            conn.rollback()
-            logger.error(f"Transaction rolled back: {str(e)}")
-        raise
-    finally:
-        if conn:
-            close_start = time.time()
-            conn.close()
-            close_time = (time.time() - close_start) * 1000
-            logger.info(f"Database connection closed in {close_time:.1f}ms")
+            conn = None
+            start_time = time.time()
+            try:
+                conn = _connect()
+                kwargs["conn"] = conn
+                result = func(*args, **kwargs)
+                total_time = (time.time() - start_time) * 1000
+                logger.info(f"{func.__name__} completed (total: {total_time:.1f}ms)")
+                return result
+            except Exception as e:
+                logger.error(f"{func.__name__} failed: {e!r}")
+                if conn and not conn.closed:
+                    try:
+                        conn.rollback()
+                    except psycopg2.InterfaceError:
+                        logger.warning(f"{func.__name__}: connection already closed, skipping rollback")
+                raise  # always re-raise the ORIGINAL exception, not a cleanup error
+            finally:
+                if conn and not conn.closed:
+                    conn.close()
+        return wrapper
+    return decorator
 
 
 @contextmanager
 def get_conn():
     """
-    Raw connection access for bulk loads (copy_expert / execute_values) or
-    multi-statement transactions that need to commit/rollback as one unit.
-    Prefer get_cursor() / fetch_all() / fetch_one() / execute() for standard
-    single-statement queries -- reach for this only when a call site needs
-    more than one execute() to complete a logical operation, or needs
-    cursor-level APIs like copy_expert.
+    Provides raw connection access for manual transaction management or 
+    bulk operations.
+
+    Yields a standard psycopg2 connection object. Does not perform any 
+    automatic commits or rollbacks. The caller is responsible for calling 
+    `conn.commit()` or `conn.rollback()` as needed. The connection is 
+    automatically closed when the context manager exits.
     """
     conn = None
     start_time = time.time()
@@ -82,50 +80,89 @@ def get_conn():
 
         yield conn
 
-        commit_start = time.time()
-        conn.commit()
-        commit_time = (time.time() - commit_start) * 1000
-
-        total_time = (time.time() - start_time) * 1000
-        logger.info(
-            f"Transaction committed in {commit_time:.1f}ms (total: {total_time:.1f}ms)"
-        )
-    except psycopg2.DatabaseError as e:
-        if conn:
-            conn.rollback()
-            logger.error(f"Transaction rolled back: {e.pgerror}")
-        raise
     except Exception as e:
-        if conn:
-            conn.rollback()
-            logger.error(f"Transaction rolled back: {str(e)}")
+        logger.error(f"Transaction failed: {e!r}")
+        if conn and not conn.closed:
+            try:
+                conn.rollback()
+                logger.error("Transaction rolled back")
+            except psycopg2.InterfaceError:
+                logger.warning("get_conn: connection already closed, skipping rollback")
         raise
     finally:
-        if conn:
-            close_start = time.time()
+        if conn and not conn.closed:
             conn.close()
-            close_time = (time.time() - close_start) * 1000
+            close_time = (time.time() - start_time) * 1000
             logger.info(f"Database connection closed in {close_time:.1f}ms")
 
 
-def fetch_all(query: str, params: tuple = (), as_dataframe: bool = False):
-    with get_cursor() as cur:
+@contextmanager
+def get_cursor(conn=None):
+    """
+    Yields a RealDictCursor for a single statement.
+
+    If `conn` is None, opens a new connection and closes it on exit. 
+    If `conn` is provided, reuses the existing connection. 
+
+    This function does NOT perform automatic commits after execution. 
+    Callers must explicitly commit the transaction on the connection 
+    object if persistence is required. This allows for multi-statement 
+    transactions to be managed manually by the caller.
+    """
+    owns_conn = conn is None
+    try:
+        if owns_conn:
+            conn = _connect()
+
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            yield cur
+
+    except Exception as e:
+        logger.error(f"get_cursor failed: {e!r}")
+        if conn and not conn.closed:
+            try:
+                conn.rollback()
+            except psycopg2.InterfaceError:
+                logger.warning("get_cursor: connection already closed, skipping rollback")
+        raise
+    finally:
+        if owns_conn and conn and not conn.closed:
+            conn.close()
+
+
+def fetch_all(query, params=(), as_dataframe=False, conn=None):
+    """
+    Run a SELECT and return all rows.
+
+    as_dataframe=True returns a pandas DataFrame instead of a list of dicts
+    (pandas is imported lazily -- callers that never ask for a dataframe,
+    e.g. Flask/pipeline, don't pay the import cost).
+
+    conn: optional shared connection (see get_cursor). Omit for a standalone
+    call; pass through when calling from inside a with_connection-decorated
+    function.
+    """
+    with get_cursor(conn=conn) as cur:
         cur.execute(query, params)
         rows = cur.fetchall()
     if as_dataframe:
-        import pandas as pd  # lazy import -- Flask/pipeline callers never pay for this
+        import pandas as pd  # lazy import
         return pd.DataFrame(rows)
     return rows
 
 
-def fetch_one(query: str, params: tuple = ()):
-    with get_cursor() as cur:
+def fetch_one(query, params=(), conn=None):
+    """Run a SELECT and return a single row (dict) or None if no match."""
+    with get_cursor(conn=conn) as cur:
         cur.execute(query, params)
         return cur.fetchone()
 
 
-def execute(query: str, params: tuple = ()) -> int:
-    """For single-statement INSERT/UPDATE/DELETE. Returns affected row count."""
-    with get_cursor(commit=True) as cur:
+def execute(query, params=(), conn=None) -> int:
+    """
+    Run a single-statement INSERT/UPDATE/DELETE. Returns affected row count.
+    Commits automatically (see get_cursor) whether or not conn is shared.
+    """
+    with get_cursor(conn=conn) as cur:
         cur.execute(query, params)
         return cur.rowcount
